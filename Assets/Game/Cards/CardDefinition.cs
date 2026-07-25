@@ -33,6 +33,14 @@ namespace Game.Cards
         [SerializeReference]
         public List<CardEffect> Effects = new List<CardEffect>();
 
+        [Header("留在手上的代价")]
+        [Tooltip("回合结束时这张牌若仍在手牌，就结算这些效果。「灼烧」「疑虑」这类状态/诅咒牌靠它。")]
+        [SerializeReference]
+        public List<CardEffect> InHandEndOfTurnEffects = new List<CardEffect>();
+
+        public bool HasInHandEndOfTurnEffects
+            => InHandEndOfTurnEffects != null && InHandEndOfTurnEffects.Count > 0;
+
         [Header("升级")]
         [Tooltip("升级后变成哪张卡。留空表示不可升级。")]
         public CardDefinition UpgradedVersion;

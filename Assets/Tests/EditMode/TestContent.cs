@@ -369,6 +369,45 @@ namespace Game.Tests
                     }
                 });
 
+            // ---- 诅咒牌 / 状态牌
+            Cards["wound"] = MakeUnplayable("wound", "伤口", CardType.Status);
+
+            var dazed = MakeUnplayable("dazed", "眩晕", CardType.Status);
+            dazed.Keywords = CardKeyword.Ethereal;
+            Cards["dazed"] = dazed;
+
+            var slimed = MakeCard("slimed", "粘液", 1, CardType.Status, CardTargetKind.None, "消耗。");
+            slimed.Rarity = CardRarity.Special;
+            slimed.Keywords = CardKeyword.Exhaust;
+            Cards["slimed"] = slimed;
+
+            var burn = MakeUnplayable("burn", "灼烧", CardType.Status);
+            Cards["burn"] = burn;
+            burn.InHandEndOfTurnEffects = new List<CardEffect>
+            {
+                new DamageEffect
+                {
+                    Target = TargetSelector.SelfOnly,
+                    Amount = EffectValue.Flat(2),
+                    Kind = DamageKind.Loss,
+                    IgnoreBlock = true,
+                }
+            };
+
+            Cards["injury"] = MakeUnplayable("injury", "伤势", CardType.Curse);
+
+            var doubt = MakeUnplayable("doubt", "疑虑", CardType.Curse);
+            Cards["doubt"] = doubt;
+            doubt.InHandEndOfTurnEffects = new List<CardEffect>
+            {
+                new ApplyStatusEffect
+                {
+                    Target = TargetSelector.SelfOnly,
+                    Status = Statuses["weak"],
+                    Stacks = EffectValue.Flat(1),
+                }
+            };
+
             // 递归保护测试用：自己嵌自己
             var deep = new RepeatEffect { Times = EffectValue.Flat(2), Effects = new List<CardEffect>() };
             var cur = deep;
@@ -380,6 +419,15 @@ namespace Game.Tests
             }
             cur.Effects.Add(new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(1) });
             Cards["deepnest"] = MakeCard("deepnest", "深层嵌套", 0, CardType.Attack, CardTargetKind.SingleEnemy, "", deep);
+        }
+
+        /// <summary>不可打出的状态 / 诅咒牌。稀有度一律 Special，避免混进奖励池。</summary>
+        private CardDefinition MakeUnplayable(string id, string name, CardType type)
+        {
+            var so = MakeCard(id, name, 0, type, CardTargetKind.None, "不可打出。");
+            so.CostMode = CostMode.Unplayable;
+            so.Rarity = CardRarity.Special;
+            return so;
         }
 
         private CardDefinition MakeCard(string id, string name, int cost, CardType type,

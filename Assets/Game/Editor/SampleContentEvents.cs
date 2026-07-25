@@ -13,7 +13,8 @@ namespace Game.Editor
     /// </summary>
     internal static class SampleContentEvents
     {
-        internal static void CreateEvents(string dir, Dictionary<string, EventDefinition> output)
+        internal static void CreateEvents(string dir, Dictionary<string, EventDefinition> output,
+                                          Dictionary<string, Cards.CardDefinition> cards)
         {
             // ---- ① 纯取舍：血换牌
             Make(dir, output, "shrine_of_blood", "血之神龛",
@@ -166,6 +167,40 @@ namespace Game.Editor
                         new GoldRunEffect { Amount = 35 },
                         new HpRunEffect { Amount = 8 },
                     },
+                });
+
+            // ---- ⑦ 诅咒交易：强收益 + 永久代价
+            //
+            // ★ 诅咒牌唯一有意思的地方在于它进的是**永久牌库**，只能靠商店删卡清掉。
+            //   所以给诅咒的入口必须是「玩家自己点头同意」的局外选择，
+            //   而不是战斗里被敌人塞——被塞的那种应该是临时的状态牌。
+            Make(dir, output, "whispering_idol", "低语神像",
+                "一尊没有面孔的石像立在岔路口。\n你凑近时，脑子里响起一个不属于自己的声音：「力量。只要一点点代价。」",
+                new EventOption
+                {
+                    Text = "接受力量",
+                    ResultText = "你拿到了想要的东西。某种东西也住进了你的牌组。",
+                    Effects = new List<RunEffect>
+                    {
+                        new AddCardRunEffect { Card = null, AnyRarity = true, Count = 3, PlayerChooses = true },
+                        new AddCardRunEffect { Card = cards["injury"], Count = 1 },
+                    },
+                },
+                new EventOption
+                {
+                    Text = "掠夺神像（获得金币）",
+                    ResultText = "石像碎裂时，那个声音笑了。",
+                    Effects = new List<RunEffect>
+                    {
+                        new GoldRunEffect { Amount = 120 },
+                        new AddCardRunEffect { Card = cards["doubt"], Count = 2 },
+                    },
+                },
+                new EventOption
+                {
+                    Text = "捂住耳朵走开",
+                    ResultText = "声音渐渐远了。",
+                    Effects = new List<RunEffect>(),
                 });
         }
 

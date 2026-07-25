@@ -180,8 +180,6 @@ namespace Game.Battle
 
             Ctx.Phase = BattlePhase.TurnEnd;
 
-            Ctx.Deck.EndTurnDiscard();
-
             using (var hooks = Ctx.Collect<ITurnHook>())
             {
                 for (int i = 0; i < hooks.Count; i++) hooks[i].Impl.OnTurnEnd(Ctx, hooks[i].Src);
@@ -193,6 +191,14 @@ namespace Game.Battle
 
             // ★ 状态衰减必须在 OnTurnEnd 之后：中毒要先掉血再减层
             TickStatusDecay(atTurnStart: false);
+
+            // ★ 「留在手上的代价」（灼烧 / 疑虑）夹在衰减之后、清理手牌之前。
+            //   放衰减之前的话，疑虑施加的 1 层虚弱会被同一次衰减立刻扣掉；
+            //   放清理之后的话，牌已经离手，判定永远为假。
+            Ctx.Deck.FireInHandEndOfTurnEffects();
+            if (CheckBattleEnd()) return;
+
+            Ctx.Deck.EndTurnDiscard();
 
             if (CheckBattleEnd()) return;
 

@@ -172,7 +172,16 @@ namespace Game.Editor
 
                 if (card.Effects == null || card.Effects.Count == 0)
                 {
-                    warnings++; sb.AppendLine($"[警告] {card.Id}: 没有任何效果。");
+                    // ★ 状态牌 / 诅咒牌本来就该没有出牌效果——它们的作用就是堵手牌。
+                    //   同理，只有「留在手上的代价」的牌（灼烧）也不算配错。
+                    //   不放行这两类，校验器每次都会报一串假警告，真警告就没人看了。
+                    bool intentionallyEmpty = card.Type == CardType.Status
+                                              || card.Type == CardType.Curse
+                                              || card.HasInHandEndOfTurnEffects;
+                    if (!intentionallyEmpty)
+                    {
+                        warnings++; sb.AppendLine($"[警告] {card.Id}: 没有任何效果。");
+                    }
                 }
                 else
                 {
