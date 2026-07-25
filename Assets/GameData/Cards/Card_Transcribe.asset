@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_Transcribe
+  m_EditorClassIdentifier: 
+  Id: transcribe
+  DisplayName: "\u6620\u5199"
+  Art: {fileID: 0}
+  Cost: 1
+  CostMode: 0
+  Type: 1
+  Rarity: 2
+  TargetKind: 0
+  Keywords: 0
+  DescriptionTemplate: "\u9009\u62E9 {0} \u5F20\u624B\u724C\uFF0C\u590D\u5236\u4E00\u4EFD\u5230\u624B\u724C\uFF08\u672C\u573A\u6218\u6597\u540E\u6D88\u5931\uFF09\u3002"
+  Effects:
+  - rid: 1041046769074962526
+  InHandEndOfTurnEffects: []
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962526
+      type: {class: SelectCardsEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Source: 1
+        Count:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Action: 4
+        AllowFewer: 1
+        Cancellable: 0
+        Prompt: 

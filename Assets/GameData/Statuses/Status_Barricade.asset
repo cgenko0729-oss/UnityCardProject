@@ -20,10 +20,10 @@ MonoBehaviour:
   MaxStacks: 1
   Description: "\u62A4\u7532\u4E0D\u518D\u4E8E\u56DE\u5408\u5F00\u59CB\u65F6\u6D88\u5931\u3002"
   Behaviours:
-  - rid: 1041046762904355024
+  - rid: 1041046769074962525
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355024
+    - rid: 1041046769074962525
       type: {class: BarricadeBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data: 

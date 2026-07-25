@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9321c9045a8076241a0e0b7d0e35ca43, type: 3}
+  m_Name: Potion_Fracture
+  m_EditorClassIdentifier: 
+  Id: fracture
+  DisplayName: "\u788E\u88C2\u836F\u6C34"
+  Icon: {fileID: 0}
+  Rarity: 2
+  DescriptionTemplate: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 5 \u70B9\u4F24\u5BB3\uFF0C\u91CD\u590D
+    {0} \u6B21\u3002"
+  TargetKind: 0
+  Effects:
+  - rid: 1041046769074962494
+  ShopPrice: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962494
+      type: {class: RepeatEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Times:
+          Base: 3
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Effects:
+        - rid: 1041046769074962495
+    - rid: 1041046769074962495
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 3
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 5
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 0
+        IgnoreBlock: 0

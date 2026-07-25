@@ -26,18 +26,18 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: 
     Effects:
-    - rid: 1041046762904354982
-    - rid: 1041046762904354983
+    - rid: 1041046769074962504
+    - rid: 1041046769074962505
     EndsEvent: 1
   MinRow: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904354982
+    - rid: 1041046769074962504
       type: {class: GoldRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 35
-    - rid: 1041046762904354983
+    - rid: 1041046769074962505
       type: {class: HpRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 8

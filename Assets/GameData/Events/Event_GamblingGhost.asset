@@ -26,8 +26,8 @@ MonoBehaviour:
     DisabledHint: "\u91D1\u5E01\u4E0D\u8DB3"
     ResultText: 
     Effects:
-    - rid: 1041046762904355001
-    - rid: 1041046762904355002
+    - rid: 1041046769074962517
+    - rid: 1041046769074962518
     EndsEvent: 1
   - Text: "\u4E0D\u8D4C"
     Condition:
@@ -43,22 +43,22 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355001
+    - rid: 1041046769074962517
       type: {class: GoldRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: -50
-    - rid: 1041046762904355002
+    - rid: 1041046769074962518
       type: {class: RandomPickRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Options:
         - Note: "\u8D62"
           Weight: 50
           Effects:
-          - rid: 1041046762904355003
+          - rid: 1041046769074962519
         - Note: "\u8F93"
           Weight: 50
           Effects: []
-    - rid: 1041046762904355003
+    - rid: 1041046769074962519
       type: {class: GoldRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 130

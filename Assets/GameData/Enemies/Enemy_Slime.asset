@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046762904355030
+    - rid: 1041046769074962611
   - Name: "\u8150\u8680"
     Intent: 6
     Weight: 0
@@ -44,15 +44,27 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046762904355031
-  FixedSequence: 000000000000000001000000
+    - rid: 1041046769074962612
+  - Name: "\u55B7\u5410\u7C98\u6DB2"
+    Intent: 6
+    Weight: 0
+    MaxConsecutive: 0
+    Condition:
+      Kind: 0
+      Id: 
+      Value: 0
+      Invert: 0
+    PhaseMask: 0
+    Effects:
+    - rid: 1041046769074962613
+  FixedSequence: 00000000000000000100000002000000
   LoopSequence: 1
   PhaseHpThresholds: 
   CustomBrainType: 
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355030
+    - rid: 1041046769074962611
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -77,7 +89,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046762904355031
+    - rid: 1041046769074962612
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -94,3 +106,24 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
+    - rid: 1041046769074962613
+      type: {class: AddCardEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Card: {fileID: 11400000, guid: 74ea0986d1e9032488c5f2d39cf02afa, type: 2}
+        Pile: 2
+        Count:
+          Base: 2
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Temporary: 1
+        Upgraded: 0
+        CopySourceCard: 0

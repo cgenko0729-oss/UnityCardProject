@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9321c9045a8076241a0e0b7d0e35ca43, type: 3}
+  m_Name: Potion_Poison
+  m_EditorClassIdentifier: 
+  Id: poison
+  DisplayName: "\u5267\u6BD2\u836F\u6C34"
+  Icon: {fileID: 0}
+  Rarity: 1
+  DescriptionTemplate: "\u5BF9\u4E00\u4E2A\u654C\u4EBA\u65BD\u52A0 {0} \u5C42\u4E2D\u6BD2\u3002"
+  TargetKind: 1
+  Effects:
+  - rid: 1041046769074962522
+  ShopPrice: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962522
+      type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 2
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Status: {fileID: 11400000, guid: b47e44c27bcec3a43829c6f345fc0d37, type: 2}
+        Stacks:
+          Base: 6
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

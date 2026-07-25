@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: defend
   DisplayName: "\u9632\u5FA1"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: abb322c92837357408ad107ea9735523, type: 3}
   Cost: 1
   CostMode: 0
   Type: 1
@@ -23,12 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
   Effects:
-  - rid: 1041046762904355059
+  - rid: 1041046769074962644
+  InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 11400000, guid: c2debdff3d9b1f94ea558df0c6be6d12, type: 2}
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355059
+    - rid: 1041046769074962644
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

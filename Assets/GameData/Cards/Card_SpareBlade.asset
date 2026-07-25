@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_SpareBlade
+  m_EditorClassIdentifier: 
+  Id: spare_blade
+  DisplayName: "\u5907\u7528\u5200\u5203"
+  Art: {fileID: 0}
+  Cost: 0
+  CostMode: 0
+  Type: 0
+  Rarity: 1
+  TargetKind: 1
+  Keywords: 2
+  DescriptionTemplate: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u4FDD\u7559\u3002"
+  Effects:
+  - rid: 1041046769074962565
+  InHandEndOfTurnEffects: []
+  UpgradedVersion: {fileID: 11400000, guid: b61087b72a741ec41864fd847ae9262f, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962565
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 2
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 5
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 0
+        IgnoreBlock: 0

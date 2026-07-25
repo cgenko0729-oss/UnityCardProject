@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_GatherStrength
+  m_EditorClassIdentifier: 
+  Id: gather_strength
+  DisplayName: "\u84C4\u529B"
+  Art: {fileID: 0}
+  Cost: 0
+  CostMode: 0
+  Type: 1
+  Rarity: 2
+  TargetKind: 0
+  Keywords: 1
+  DescriptionTemplate: "\u4E0B\u56DE\u5408\u5F00\u59CB\u65F6\uFF0C\u83B7\u5F97 2
+    \u5C42\u529B\u91CF\u4E0E 8 \u70B9\u62A4\u7532\u3002\u6D88\u8017\u3002"
+  Effects:
+  - rid: 1041046769074962533
+  InHandEndOfTurnEffects: []
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962533
+      type: {class: DelayedEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Timing: 1
+        Effects:
+        - rid: 1041046769074962534
+        - rid: 1041046769074962535
+    - rid: 1041046769074962534
+      type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Status: {fileID: 11400000, guid: a466306de74253a4183a502357a7d557, type: 2}
+        Stacks:
+          Base: 2
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+    - rid: 1041046769074962535
+      type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 8
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

@@ -19,12 +19,12 @@ MonoBehaviour:
   Description: "\u6BCF\u573A\u6218\u6597\u4E2D\uFF0C\u7B2C\u4E00\u6B21\u53D7\u5230\u81F4\u6B7B\u4F24\u5BB3\u65F6\u4FDD\u7559
     1 \u70B9\u751F\u547D\uFF0C\u5E76\u56DE\u590D 10 \u70B9\u751F\u547D\u3002"
   Behaviours:
-  - rid: 1041046762904355049
+  - rid: 1041046769074962634
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355049
+    - rid: 1041046769074962634
       type: {class: GrantStatusOnBattleStartBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         Status: {fileID: 11400000, guid: 829fcc2887e4b12468aabd5006aa07b0, type: 2}

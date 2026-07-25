@@ -19,12 +19,12 @@ MonoBehaviour:
   Description: "\u6BCF\u573A\u6218\u6597\u7684\u7B2C\u4E00\u56DE\u5408\u83B7\u5F97
     10 \u70B9\u62A4\u7532\u3002"
   Behaviours:
-  - rid: 1041046762904355052
+  - rid: 1041046769074962633
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355052
+    - rid: 1041046769074962633
       type: {class: BattleStartResourceBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         Heal: 0

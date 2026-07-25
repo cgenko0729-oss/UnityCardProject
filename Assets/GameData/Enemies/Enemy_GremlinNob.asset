@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046762904354986
+    - rid: 1041046769074962567
   - Name: "\u91CD\u62F3"
     Intent: 1
     Weight: 66
@@ -44,7 +44,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046762904354987
+    - rid: 1041046769074962568
   - Name: "\u8DFA\u811A"
     Intent: 3
     Weight: 34
@@ -56,8 +56,8 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046762904354988
-    - rid: 1041046762904354989
+    - rid: 1041046769074962569
+    - rid: 1041046769074962570
   FixedSequence: 00000000
   LoopSequence: 0
   PhaseHpThresholds: 
@@ -65,7 +65,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904354986
+    - rid: 1041046769074962567
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -82,7 +82,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046762904354987
+    - rid: 1041046769074962568
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -107,7 +107,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046762904354988
+    - rid: 1041046769074962569
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -132,7 +132,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046762904354989
+    - rid: 1041046769074962570
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

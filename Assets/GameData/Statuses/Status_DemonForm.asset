@@ -20,11 +20,11 @@ MonoBehaviour:
   MaxStacks: 9
   Description: "\u6BCF\u56DE\u5408\u5F00\u59CB\u83B7\u5F97 {stacks} \u70B9\u529B\u91CF\u3002"
   Behaviours:
-  - rid: 1041046762904354981
+  - rid: 1041046769074962499
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904354981
+    - rid: 1041046769074962499
       type: {class: TurnStartGrantStatusBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data:
         Status: {fileID: 11400000, guid: a466306de74253a4183a502357a7d557, type: 2}

@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_BurdenOfProof
+  m_EditorClassIdentifier: 
+  Id: burden_of_proof
+  DisplayName: "\u4E3E\u8BC1\u4E4B\u8D23"
+  Art: {fileID: 0}
+  Cost: 1
+  CostMode: 0
+  Type: 1
+  Rarity: 3
+  TargetKind: 0
+  Keywords: 2
+  DescriptionTemplate: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u4FDD\u7559\u3002\u56DE\u5408\u7ED3\u675F\u65F6\u82E5\u4ECD\u5728\u624B\u724C\uFF0C\u5931\u53BB
+    2 \u70B9\u751F\u547D\u3002"
+  Effects:
+  - rid: 1041046769074962641
+  InHandEndOfTurnEffects:
+  - rid: 1041046769074962642
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962641
+      type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 14
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+    - rid: 1041046769074962642
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 2
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 3
+        IgnoreBlock: 1

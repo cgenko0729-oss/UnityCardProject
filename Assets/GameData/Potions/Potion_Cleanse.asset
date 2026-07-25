@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9321c9045a8076241a0e0b7d0e35ca43, type: 3}
+  m_Name: Potion_Cleanse
+  m_EditorClassIdentifier: 
+  Id: cleanse
+  DisplayName: "\u6F84\u6F88\u836F\u6C34"
+  Icon: {fileID: 0}
+  Rarity: 2
+  DescriptionTemplate: "\u9009\u62E9 {0} \u5F20\u624B\u724C\u6D88\u8017\uFF0C\u7136\u540E\u62BD
+    {1} \u5F20\u724C\u3002"
+  TargetKind: 0
+  Effects:
+  - rid: 1041046769074962507
+  - rid: 1041046769074962508
+  ShopPrice: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046769074962507
+      type: {class: SelectCardsEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Source: 1
+        Count:
+          Base: 2
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Action: 2
+        AllowFewer: 1
+        Cancellable: 0
+        Prompt: 
+    - rid: 1041046769074962508
+      type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Count:
+          Base: 3
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

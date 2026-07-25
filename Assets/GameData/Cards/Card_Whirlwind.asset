@@ -24,12 +24,13 @@ MonoBehaviour:
   DescriptionTemplate: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0CX
     \u6B21\u3002"
   Effects:
-  - rid: 1041046762904355041
+  - rid: 1041046769074962619
+  InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355041
+    - rid: 1041046769074962619
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

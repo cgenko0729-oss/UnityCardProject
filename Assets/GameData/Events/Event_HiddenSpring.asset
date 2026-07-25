@@ -26,7 +26,7 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u6CC9\u6C34\u5E26\u7740\u94C1\u9508\u5473\uFF0C\u4F46\u786E\u5B9E\u6709\u6548\u3002"
     Effects:
-    - rid: 1041046762904355004
+    - rid: 1041046769074962588
     EndsEvent: 1
   - Text: "\u88C5\u6EE1\u6C34\u56CA\u540E\u79BB\u5F00"
     Condition:
@@ -37,13 +37,13 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u4E5F\u8BB8\u4EE5\u540E\u7528\u5F97\u4E0A\u3002"
     Effects:
-    - rid: 1041046762904355005
+    - rid: 1041046769074962589
     EndsEvent: 1
   MinRow: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046762904355004
+    - rid: 1041046769074962588
       type: {class: ConditionalRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Condition:
@@ -52,18 +52,18 @@ MonoBehaviour:
           Value: 50
           Invert: 0
         Then:
-        - rid: 1041046762904355006
+        - rid: 1041046769074962590
         Else:
-        - rid: 1041046762904355007
-    - rid: 1041046762904355005
+        - rid: 1041046769074962591
+    - rid: 1041046769074962589
       type: {class: GoldRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 25
-    - rid: 1041046762904355006
+    - rid: 1041046769074962590
       type: {class: RestHealRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         PercentOfMax: 40
-    - rid: 1041046762904355007
+    - rid: 1041046769074962591
       type: {class: MaxHpRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 5
