@@ -19,6 +19,42 @@ namespace Game.Tests
         /// <summary>切成交互模式：不再自动替玩家选，改为挂起等作答。</summary>
         private void MakeInteractive() => Ctx.Selector = null;
 
+        // ================================================================= 交互模式的接线
+
+        [Test]
+        public void InteractiveRun_SuspendsWithoutAnyUiInvolvement()
+        {
+            // ★ 这条守的是「谁来打开交互模式」。
+            //   最初的实现把开关放在 BattleScreen.LateUpdate 的「Ctx 变化了」分支里，
+            //   而 Bind 结尾已经把 _boundCtx 设成当前 Ctx，那个分支永不成立——
+            //   整个选牌功能被静默降级成「系统替你随机选」，界面上毫无异常，
+            //   只有玩家会觉得「怎么不问我」。EditMode 测不到 MonoBehaviour，
+            //   所以开关必须挪到 RunContext 上，才能在这里钉住。
+            MakeRun();
+            Run.InteractivePlayer = true;
+            Ctrl.StartBattle(Run, Content.Encounters["dummy"]);
+
+            Assert.IsNull(Ctx.Selector,
+                "InteractivePlayer 的一局必须自动进入挂起模式，不依赖任何界面代码");
+
+            ClearHand();
+            GiveCard("strike");
+            var sift = GiveCard("sift");
+            Ctrl.TryPlayCard(sift, null, out _);
+
+            Assert.IsNotNull(Ctrl.PendingSelection, "真人局打出选牌卡必须停下来问玩家");
+        }
+
+        [Test]
+        public void NonInteractiveRun_KeepsTheAutomaticSelector()
+        {
+            MakeRun();
+            Assert.IsFalse(Run.InteractivePlayer, "默认必须是非交互，否则测试与模拟器会死锁");
+
+            Ctrl.StartBattle(Run, Content.Encounters["dummy"]);
+            Assert.IsNotNull(Ctx.Selector);
+        }
+
         private void ClearHand() => Ctx.Deck.Hand.Clear();
 
         // ================================================================= 五种处置

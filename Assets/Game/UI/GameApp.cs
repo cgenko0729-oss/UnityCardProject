@@ -115,7 +115,12 @@ namespace Game.UI
             for (int i = 0; i < StarterDeck.Count; i++)
                 deck.Add(new StarterDeckEntry(StarterDeck[i].CardId, StarterDeck[i].Count));
 
-            Manager.StartNewRun(Database, seed, deck, StarterRelicId, StartingMaxHp);
+            var run = Manager.StartNewRun(Database, seed, deck, StarterRelicId, StartingMaxHp);
+
+            // ★ 真人在玩：战斗内的选牌要挂起等他点，而不是系统替他随机选。
+            //   放在这里而不是界面里，是因为界面的绑定时机会变，而「谁开的这一局」不会变。
+            run.InteractivePlayer = true;
+
             Debug.Log($"[GameApp] 新游戏开始，种子 = {seed}。");
         }
 
