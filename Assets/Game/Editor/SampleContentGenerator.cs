@@ -53,6 +53,7 @@ namespace Game.Editor
             CreateCards();
             // ★ 必须在 CreateEnemies 之前：敌人的「塞牌」行动要引用这些卡的资产。
             SampleContentCurses.CreateCurseAndStatusCards(Statuses, Cards);
+            SampleContentKeywords.CreateKeywordCards(Statuses, Cards);
             CreateEnemies();
             CreateEncounters();
             SampleContentRelics.CreateRelics(RelicDir, Statuses, Relics);
