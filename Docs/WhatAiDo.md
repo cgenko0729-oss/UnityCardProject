@@ -35,7 +35,7 @@
    - 想复现某一局：选中 `GameApp`，把 `Fixed Seed` 改成非 0
 5. 只调试单场战斗：菜单 `Tools/卡牌游戏/2. 创建战斗测试场景` → `Battle.unity`，
    选中 `BattleBootstrap` 改 `Encounter Id`。
-6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **89/89 通过**）。
+6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **164/164 通过**）。
 7. 校验内容与架构规则：菜单 `Tools/卡牌游戏/3. 校验内容与架构规则`（应为 0 错误 0 警告）。
    CI / 命令行用 `-executeMethod Game.Editor.ContentValidator.ValidateBatch`，有错误时退出码为 1。
 
