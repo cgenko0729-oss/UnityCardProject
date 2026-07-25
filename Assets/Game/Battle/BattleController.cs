@@ -28,13 +28,15 @@ namespace Game.Battle
         /// <summary>战斗结束回调（RunManager 订阅）。参数为是否胜利。</summary>
         public event Action<bool> BattleFinished;
 
-        /// <summary>实际结算用的上下文。</summary>
-        private readonly EffectContext _playCtx = new EffectContext();
-
         /// <summary>
-        /// 预览专用上下文。★ 与 _playCtx 分开：CanPlayCard 每帧被 UI 调用，
+        /// 预览专用上下文。★ 与结算用的上下文分开：CanPlayCard 每帧被 UI 调用，
         /// 若与结算共用一个实例，一旦某个效果在 Apply 途中间接触发了 CanPlayCard，
         /// 正在结算的 Targets / XValue 会被 Reset 掉，产生只在特定卡组合下出现的诡异 bug。
+        ///
+        /// <para>结算侧则**每次出牌新建**一个上下文（见 <see cref="ResolvePlayStep"/>）：
+        /// 结算可能挂起等玩家选牌，挂起期间这个上下文必须一直活着，
+        /// 复用单例会让「回响」的第二次结算把第一次还没跑完的现场 Reset 掉。
+        /// 一次出牌最多分配 9 个对象，不在每帧路径上，不值得为它做池化。</para>
         /// </summary>
         private readonly EffectContext _previewCtx = new EffectContext();
 
@@ -173,6 +175,7 @@ namespace Game.Battle
         public void EndTurn()
         {
             if (Ctx == null || Ctx.Phase != BattlePhase.PlayerTurn) return;
+            if (Ctx.IsWaitingForSelection) return;
 
             Ctx.Phase = BattlePhase.TurnEnd;
 
@@ -259,6 +262,8 @@ namespace Game.Battle
 
             if (Ctx == null || Ctx.BattleEnded) { reason = PlayFailReason.BattleEnded; return false; }
             if (Ctx.Phase != BattlePhase.PlayerTurn) { reason = PlayFailReason.NotPlayerTurn; return false; }
+            // 上一张牌还在等玩家选牌，整场战斗都不该继续推进
+            if (Ctx.IsWaitingForSelection) { reason = PlayFailReason.WaitingForSelection; return false; }
             if (card == null || !Ctx.Deck.Hand.Contains(card)) { reason = PlayFailReason.NotInHand; return false; }
 
             if (card.HasKeyword(CardKeyword.Unplayable) || card.Def.CostMode == CostMode.Unplayable)
@@ -327,22 +332,42 @@ namespace Game.Battle
                 for (int i = 0; i < hooks.Count; i++) hooks[i].Impl.OnCardPlayed(Ctx, hooks[i].Src, card);
             }
 
-            for (int rep = 0; rep <= extraPlays; rep++)
-            {
-                _playCtx.Reset(Ctx, Ctx.Player, target, card);
-                _playCtx.PreviewMode = false;
-                _playCtx.XValue = card.Def.CostMode == CostMode.X ? spend : 0;
+            ResolvePlayStep(card, target, spend, extraPlays);
+            return true;
+        }
 
-                EffectResolver.ResolveAll(card.Def.Effects, _playCtx);
+        /// <summary>
+        /// 结算这张牌的效果一次；跑完再排下一次（回响），全部跑完才收尾。
+        ///
+        /// ★ 为什么不用 for 循环：效果里可能有选牌，结算会挂起等玩家作答。
+        ///   循环变量与「循环之后的收尾代码」都活在 C# 调用栈上，挂起时栈会展开，
+        ///   收尾代码就会在效果真正跑完之前抢先执行——牌会在玩家还没选完时就进弃牌堆。
+        ///   写成回调链之后，「下一次」和「收尾」都由结算栈在正确的时刻驱动。
+        /// </summary>
+        private void ResolvePlayStep(CardInstance card, BattleUnit target, int spend, int repsLeft)
+        {
+            if (Ctx.BattleEnded) { FinishPlay(card); return; }
+
+            var ectx = new EffectContext();
+            ectx.Reset(Ctx, Ctx.Player, target, card);
+            ectx.PreviewMode = false;
+            ectx.XValue = card.Def.CostMode == CostMode.X ? spend : 0;
+
+            EffectResolver.ResolveAll(card.Def.Effects, ectx, () =>
+            {
                 Ctx.RunTriggerQueue();
 
-                if (Ctx.BattleEnded) break;
-            }
+                if (repsLeft > 0 && !Ctx.BattleEnded)
+                    ResolvePlayStep(card, target, spend, repsLeft - 1);
+                else
+                    FinishPlay(card);
+            });
+        }
 
+        private void FinishPlay(CardInstance card)
+        {
             SendCardToDestination(card);
-
             CheckBattleEnd();
-            return true;
         }
 
         /// <summary>决定一张打完的牌进哪个堆。默认规则可被 ICardFlowHook 改写。</summary>
@@ -386,6 +411,12 @@ namespace Game.Battle
             Ctx.Victory = victory;
             Ctx.Phase = victory ? BattlePhase.Victory : BattlePhase.Defeat;
 
+            // ★ 战斗结束时丢掉一切没跑完的效果与没答完的选牌请求。
+            //   不清的话：玩家在选牌面板还开着的时候被中毒打死，
+            //   面板会继续挂在结算界面上，而它的回调会往一个已经结束的战斗里写数据。
+            Ctx.CancelPendingSelection();
+            Ctx.Resolution.Clear();
+
             using (var flow = Ctx.Collect<IBattleFlowHook>())
             {
                 for (int i = 0; i < flow.Count; i++) flow[i].Impl.OnBattleEnd(Ctx, flow[i].Src, victory);
@@ -422,5 +453,21 @@ namespace Game.Battle
 
         public bool NeedsTargetSelection(CardInstance card)
             => card != null && card.Def != null && card.Def.TargetKind == CardTargetKind.SingleEnemy;
+
+        // ================================================================= 选牌（给 UI 用）
+
+        /// <summary>非 null 表示结算已挂起，UI 该弹选牌面板了。</summary>
+        public PendingCardSelection PendingSelection => Ctx?.PendingSelection;
+
+        /// <summary>
+        /// 玩家选完了。传空列表表示「跳过」（仅当请求允许跳过时才该这么调）。
+        /// 调用之后挂起的结算会自动继续跑完。
+        /// </summary>
+        public void ResolveSelection(IReadOnlyList<CardInstance> chosen)
+        {
+            if (Ctx == null || Ctx.PendingSelection == null) return;
+            Ctx.ResolveSelection(chosen);
+            CheckBattleEnd();
+        }
     }
 }

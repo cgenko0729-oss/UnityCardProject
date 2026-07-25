@@ -107,6 +107,18 @@ namespace Game.UI
                     AddLog($"「{e.Id}」被消耗");
                     break;
 
+                case BattleEventType.CardDiscarded:
+                    AddLog($"「{e.Id}」被弃掉");
+                    break;
+
+                case BattleEventType.CardRetained:
+                    AddLog($"「{e.Id}」将保留到下回合");
+                    break;
+
+                case BattleEventType.CardSelectionRequested:
+                    AddLog($"等待选择 {e.Value} 张牌…");
+                    break;
+
                 case BattleEventType.DeckShuffled:
                     AddLog("洗牌");
                     break;

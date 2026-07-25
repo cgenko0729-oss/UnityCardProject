@@ -1,4 +1,6 @@
 using System;
+using Game.Battle;
+using Game.Cards;
 using Game.Core;
 
 namespace Game.Effects.Impl
@@ -19,7 +21,8 @@ namespace Game.Effects.Impl
 
         public override void Apply(EffectContext ctx)
         {
-            var deck = ctx.Battle?.Deck;
+            var battle = ctx.Battle;
+            var deck = battle?.Deck;
             if (deck == null) return;
 
             if (DiscardMode == Mode.All)
@@ -28,11 +31,29 @@ namespace Game.Effects.Impl
                 return;
             }
 
-            // ChooseByPlayer 需要手牌选择 UI（阶段 4 接入）。在此之前按随机处理，保证逻辑始终可跑。
             int n = Count.Evaluate(ctx, ctx.Source);
+            if (n <= 0) return;
+
+            if (DiscardMode == Mode.ChooseByPlayer)
+            {
+                if (ctx.PreviewMode) return;
+
+                // 交给统一的选牌管线：有 UI 时挂起问玩家，无 UI 时当场随机作答。
+                var req = new CardSelectionRequest
+                {
+                    Source = CardPile.Hand,
+                    Count = n,
+                    AllowFewer = true,
+                    Action = CardSelectionAction.Discard,
+                };
+                battle.RequestCardSelection(req,
+                    cards => CardSelectionOps.Apply(battle, CardSelectionAction.Discard, cards));
+                return;
+            }
+
             for (int k = 0; k < n && deck.Hand.Count > 0; k++)
             {
-                int idx = ctx.Battle.Rng.Range(RngStream.CardEffect, 0, deck.Hand.Count);
+                int idx = battle.Rng.Range(RngStream.CardEffect, 0, deck.Hand.Count);
                 deck.Discard(deck.Hand[idx]);
             }
         }

@@ -233,6 +233,92 @@ namespace Game.Tests
                     }
                 });
 
+            // ---- 战斗内选牌测试用
+            //
+            // 「弃 1 张、再抽 2 张」是验证挂起顺序最锋利的一张牌：
+            // 如果结算没有真的挂起，抽牌会在玩家选牌之前发生，手牌数和牌堆都对不上。
+            Cards["sift"] = MakeCard("sift", "筛选", 1, CardType.Skill, CardTargetKind.None,
+                "选择弃掉 {0} 张牌，然后抽 {1} 张牌。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.Discard,
+                },
+                new DrawEffect { Count = EffectValue.Flat(2) });
+
+            Cards["purge"] = MakeCard("purge", "净除", 0, CardType.Skill, CardTargetKind.None,
+                "选择消耗 {0} 张手牌。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.Exhaust,
+                });
+
+            Cards["hold"] = MakeCard("hold", "把持", 0, CardType.Skill, CardTargetKind.None,
+                "选择 {0} 张手牌，本回合结束时保留它。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.Retain,
+                });
+
+            Cards["mirror"] = MakeCard("mirror", "映写", 1, CardType.Skill, CardTargetKind.None,
+                "选择 {0} 张手牌，复制一份到手牌。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.Duplicate,
+                });
+
+            Cards["stash"] = MakeCard("stash", "藏牌", 0, CardType.Skill, CardTargetKind.None,
+                "选择 {0} 张手牌放回抽牌堆顶。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.ToDrawTop,
+                });
+
+            // 组合子里嵌选牌：验证挂起能穿过 Conditional 恢复
+            Cards["condselect"] = MakeCard("condselect", "择机弃牌", 0, CardType.Skill, CardTargetKind.None,
+                "若手牌至少 2 张，选择弃掉 1 张，然后获得 3 点护甲。",
+                new ConditionalEffect
+                {
+                    Condition = new EffectCondition { Kind = ConditionKind.HandCountAtLeast, Value = 2 },
+                    Then = new List<CardEffect>
+                    {
+                        new SelectCardsEffect
+                        {
+                            Source = CardPile.Hand,
+                            Count = EffectValue.Flat(1),
+                            Action = CardSelectionAction.Discard,
+                        }
+                    },
+                    Else = new List<CardEffect>(),
+                },
+                new BlockEffect { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(3) });
+
+            // Repeat 里嵌选牌：验证 n 次迭代在挂起后仍然全部执行
+            Cards["repeatselect"] = MakeCard("repeatselect", "连续筛选", 0, CardType.Skill, CardTargetKind.None,
+                "重复 2 次：选择消耗 1 张手牌。",
+                new RepeatEffect
+                {
+                    Times = EffectValue.Flat(2),
+                    Effects = new List<CardEffect>
+                    {
+                        new SelectCardsEffect
+                        {
+                            Source = CardPile.Hand,
+                            Count = EffectValue.Flat(1),
+                            Action = CardSelectionAction.Exhaust,
+                        }
+                    }
+                });
+
             // 递归保护测试用：自己嵌自己
             var deep = new RepeatEffect { Times = EffectValue.Flat(2), Effects = new List<CardEffect>() };
             var cur = deep;
