@@ -59,6 +59,11 @@ namespace Game.Battle
                 Deck = new DeckController(),
             };
 
+            // ★ 交互模式在这里一次性决定，不交给界面每帧去打开。
+            //   Selector 为 null 表示「不要替玩家选，挂起等他点」。
+            //   非交互（测试 / 自动模拟器）保留 BattleContext 默认的随机选择器。
+            if (run.InteractivePlayer) Ctx.Selector = null;
+
             // 遗物的 Hook 与状态的 Hook 走同一套 Collect，这里只是把持有的遗物复制进来。
             // ★ 验收标准之一：新增一个遗物不需要改本类任何一行结算代码。
             Ctx.Relics.AddRange(run.Relics);

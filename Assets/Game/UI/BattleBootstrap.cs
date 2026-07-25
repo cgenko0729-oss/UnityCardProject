@@ -66,6 +66,8 @@ namespace Game.UI
                 Hp = MaxHp,
                 EnergyPerTurn = EnergyPerTurn,
                 CardsPerTurn = CardsPerTurn,
+                // 单场战斗调试场景同样是真人在点，选牌要弹面板
+                InteractivePlayer = true,
             };
 
             for (int i = 0; i < StarterDeck.Count; i++)

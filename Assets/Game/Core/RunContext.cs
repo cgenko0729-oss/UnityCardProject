@@ -17,6 +17,21 @@ namespace Game.Core
         public int Seed;
         public Rng Rng;
 
+        /// <summary>
+        /// 这一局是不是真人在玩。
+        ///
+        /// ★ 目前唯一的用途：决定战斗内选牌要不要挂起等玩家点。
+        ///   true  → <c>BattleContext.Selector</c> 置 null，结算挂起，UI 弹选牌面板；
+        ///   false → 保留默认的随机选择器，结算一口气跑完（EditMode 测试 / 自动模拟器）。
+        ///
+        /// <para>★★ 这个开关**必须由创建这一局的人设置**，绝不能交给界面在每帧循环里去打开。
+        ///   最初的实现放在 <c>BattleScreen.LateUpdate</c> 的「Ctx 变化了」分支里，
+        ///   而 <c>Bind</c> 结尾已经把 _boundCtx 设成了当前 Ctx，那个分支从此永不成立——
+        ///   于是整个选牌功能被静默地降级成「系统替你随机选」，
+        ///   界面上什么异常都看不到，只有玩家会觉得「怎么不问我」。</para>
+        /// </summary>
+        public bool InteractivePlayer;
+
         /// <summary>只读数据库引用，方便效果/AI 按 id 取 Definition。</summary>
         public GameDatabase Database;
 

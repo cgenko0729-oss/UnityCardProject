@@ -54,13 +54,26 @@ namespace Game.UI
         {
             _controller = controller;
             BuildUI(parent);
-            BuildUnitViews();
 
             _presenter = gameObject.GetComponent<BattlePresenter>();
             if (_presenter == null) _presenter = gameObject.AddComponent<BattlePresenter>();
-            _presenter.Init(this, Ctx);
 
+            AdoptContext();
+        }
+
+        /// <summary>
+        /// 接管当前的 <see cref="BattleContext"/>：建单位面板、重接表现层。
+        ///
+        /// ★ 只有这一处做接管，Bind 与 LateUpdate 都调它。
+        ///   曾经 Bind 里做一半、LateUpdate 里做另一半，而 Bind 结尾又把 _boundCtx 设成了当前 Ctx，
+        ///   于是 LateUpdate 那一半永远不会执行——加在那里的任何新逻辑都会被静默跳过。
+        /// </summary>
+        private void AdoptContext()
+        {
             _boundCtx = Ctx;
+            _intentVersion = -1;
+            BuildUnitViews();
+            if (_presenter != null) _presenter.Init(this, Ctx);
         }
 
         /// <summary>
@@ -128,9 +141,14 @@ namespace Game.UI
             UIFactory.Stretch(_energyText.rectTransform);
 
             // ---- 药水栏
+            var potionHeader = UIFactory.CreateText(root, "PotionHeader", "药　水", 20,
+                TextAnchor.MiddleLeft, new Color(0.62f, 0.86f, 0.78f));
+            UIFactory.SetAnchored(potionHeader.rectTransform, new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(28, top - 96), new Vector2(300, top - 68));
+
             _potionBar = UIFactory.CreateEmpty(root, "PotionBar");
             UIFactory.SetAnchored(_potionBar, new Vector2(0, 1), new Vector2(0, 1),
-                new Vector2(24, top - 200), new Vector2(232, top - 76));
+                new Vector2(24, top - 258), new Vector2(320, top - 100));
 
             // ---- 牌堆信息
             _pileText = UIFactory.CreateText(root, "Piles", "", 20, TextAnchor.LowerLeft);
@@ -306,18 +324,7 @@ namespace Game.UI
             if (Ctx == null) return;
 
             // Bind 时战斗还没开始的话，在这里补建单位面板并重新接上表现层
-            if (!ReferenceEquals(_boundCtx, Ctx))
-            {
-                _boundCtx = Ctx;
-                _intentVersion = -1;
-                BuildUnitViews();
-                if (_presenter != null) _presenter.Init(this, Ctx);
-
-                // ★ 把选牌的决定权交给玩家：Selector 置 null 就是「不要替我选，挂起等我点」。
-                //   非交互场合（EditMode 测试、自动模拟器）不会走到这里，
-                //   于是它们保留默认的随机选择器，全程同步跑完，一个测试都不用改。
-                Ctx.Selector = null;
-            }
+            if (!ReferenceEquals(_boundCtx, Ctx)) AdoptContext();
 
             SyncSelectionPicker();
 
@@ -462,11 +469,16 @@ namespace Game.UI
                 bool usable = !locked
                               && (_controller.CanUsePotion(potions[i], FirstAliveEnemy(), out var reason)
                                   || reason == PotionFailReason.NeedTarget);
-                UIFactory.SetInteractable(_potionButtons[i], usable, PotionColor);
+
+                // 选中的那瓶高亮，玩家才知道「我现在正拿着它在找目标」
+                bool selected = _selectedPotion != null && _selectedPotion == potions[i];
+                UIFactory.SetInteractable(_potionButtons[i], usable,
+                    selected ? PotionSelectedColor : PotionColor);
             }
         }
 
         private static readonly Color PotionColor = new Color(0.20f, 0.40f, 0.34f);
+        private static readonly Color PotionSelectedColor = new Color(0.38f, 0.68f, 0.55f);
 
         private void RebuildPotionBar(List<PotionInstance> potions)
         {
@@ -477,18 +489,23 @@ namespace Game.UI
             _selectedPotion = null;
 
             int slots = Ctx.Run != null ? Ctx.Run.PotionSlots : 0;
+            const float rowHeight = 46f;
 
             for (int i = 0; i < slots; i++)
             {
-                float y = -i * 42f;
+                float y = -i * rowHeight;
 
                 if (i >= potions.Count)
                 {
                     // 空槽也画出来，玩家才知道自己还能拿几瓶
                     var empty = UIFactory.CreatePanel(_potionBar, "PotionSlotEmpty" + i,
-                        new Color(1f, 1f, 1f, 0.06f));
+                        new Color(1f, 1f, 1f, 0.05f));
                     UIFactory.SetAnchored(empty, new Vector2(0, 1), new Vector2(1, 1),
-                        new Vector2(0, y - 38), new Vector2(0, y - 4));
+                        new Vector2(0, y - 40), new Vector2(0, y - 6));
+
+                    var emptyText = UIFactory.CreateText(empty, "EmptyText", "空 槽", 15,
+                        TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.28f));
+                    UIFactory.Stretch(emptyText.rectTransform);
                     continue;
                 }
 
@@ -496,40 +513,53 @@ namespace Game.UI
                 var potion = potions[i];
 
                 var btn = UIFactory.CreateTextButton(_potionBar, "Potion" + i,
-                    potion.DisplayName, 18, PotionColor, () => OnPotionClicked(index));
+                    potion.DisplayName, 17, PotionColor, () => OnPotionClicked(index));
                 UIFactory.SetAnchored((RectTransform)btn.transform, new Vector2(0, 1), new Vector2(1, 1),
-                    new Vector2(0, y - 38), new Vector2(-40, y - 4));
+                    new Vector2(0, y - 40), new Vector2(-42, y - 6));
 
                 // 倒掉按钮。★ 必须有：药水槽满了又买不到想要的东西时，
                 //   没有倒掉手段的话玩家会被永久卡住。
                 var drop = UIFactory.CreateTextButton(_potionBar, "PotionDrop" + i, "×", 18,
                     new Color(0.40f, 0.20f, 0.20f), () => OnPotionDiscarded(index));
                 UIFactory.SetAnchored((RectTransform)drop.transform, new Vector2(1, 1), new Vector2(1, 1),
-                    new Vector2(-36, y - 38), new Vector2(0, y - 4));
+                    new Vector2(-38, y - 40), new Vector2(0, y - 6));
 
                 _potionButtons.Add(btn);
                 _potionSignature.Add(potion.Uid);
             }
         }
 
+        /// <summary>
+        /// 点药水。★ 一律「先选中、再确认」两步：
+        /// 第一步把药水的说明打在提示栏上，第二步才真的喝掉。
+        /// 一步就喝的话，玩家在读到「这瓶是干什么的」之前药水已经没了——
+        /// 药水是一次性资源，误触的代价无法挽回。
+        /// </summary>
         private void OnPotionClicked(int index)
         {
             var potions = Potions;
             if (potions == null || index >= potions.Count || InputLocked) return;
 
             var potion = potions[index];
+            if (potion.Def == null) return;
 
-            if (_selectedPotion == potion) { _selectedPotion = null; ShowHint(""); return; }
+            bool needsTarget = potion.Def.NeedsTarget;
 
-            if (potion.Def != null && potion.Def.NeedsTarget)
+            // 第二次点同一瓶：不需要目标的当场喝掉，需要目标的则取消选择
+            if (_selectedPotion == potion)
             {
-                _selected = null;              // 药水与卡牌互斥，不能同时处于选目标态
-                _selectedPotion = potion;
-                ShowHint($"选择「{potion.DisplayName}」的目标");
+                if (needsTarget) { _selectedPotion = null; ShowHint(""); return; }
+                UsePotion(potion, null);
                 return;
             }
 
-            UsePotion(potion, null);
+            _selected = null;              // 药水与卡牌互斥，不能同时处于选目标态
+            _selectedPotion = potion;
+
+            string desc = potion.Def.GetDescription(Ctx);
+            ShowHint(needsTarget
+                ? $"「{potion.DisplayName}」{desc}　—　点击一个敌人使用"
+                : $"「{potion.DisplayName}」{desc}　—　再点一次使用");
         }
 
         private void OnPotionDiscarded(int index)
@@ -654,7 +684,9 @@ namespace Game.UI
             if (_hintTimer > 0f)
             {
                 _hintTimer -= Time.fixedDeltaTime;
-                if (_hintTimer <= 0f && _selected == null) _hintText.text = "";
+                // 正在选目标（牌或药水）时提示必须一直挂着，否则玩家会忘了自己在选什么
+                if (_hintTimer <= 0f && _selected == null && _selectedPotion == null)
+                    _hintText.text = "";
             }
         }
 
