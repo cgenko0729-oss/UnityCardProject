@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Cards;
 using Game.Map;
+using Game.Potions;
 using Game.Relics;
 
 namespace Game.Core
@@ -30,6 +31,16 @@ namespace Game.Core
 
         /// <summary>已持有的遗物。顺序即获得顺序，也是 Hook 的收集顺序。</summary>
         public readonly List<RelicInstance> Relics = new List<RelicInstance>();
+
+        // ================================================================= 药水
+
+        /// <summary>药水槽位数。遗物可以改大它。</summary>
+        public int PotionSlots = 3;
+
+        /// <summary>背包里的药水。长度不会超过 <see cref="PotionSlots"/>。</summary>
+        public readonly List<PotionInstance> Potions = new List<PotionInstance>(3);
+
+        public bool HasPotionSpace => Potions.Count < PotionSlots;
 
         // ================================================================= 地图进度
 
@@ -77,14 +88,23 @@ namespace Game.Core
         // ================================================================= Uid 分配
 
         private int _nextCardUid = 1;
+        private int _nextPotionUid = 1;
 
         /// <summary>分配一个卡牌 Uid。★ 存档时必须一并存下 _nextCardUid，否则读档后会撞号。</summary>
         public int NextCardUid() => _nextCardUid++;
+
+        /// <summary>分配一个药水 Uid。存档规则与卡牌 Uid 完全相同。</summary>
+        public int NextPotionUid() => _nextPotionUid++;
 
         /// <summary>存档恢复用：把计数器推到不小于 value 的位置。</summary>
         public void EnsureCardUidAtLeast(int value)
         {
             if (value > _nextCardUid) _nextCardUid = value;
+        }
+
+        public void EnsurePotionUidAtLeast(int value)
+        {
+            if (value > _nextPotionUid) _nextPotionUid = value;
         }
 
         public RunContext(int seed, GameDatabase database)
@@ -138,6 +158,29 @@ namespace Game.Core
             if (def == null || HasRelic(def.Id)) return false;
             Relics.Add(new RelicInstance(def));
             return true;
+        }
+
+        // ================================================================= 药水操作
+
+        /// <summary>
+        /// 获得一瓶药水。★ 槽位满时返回 null——**调用方必须处理这个 null**，
+        /// 否则玩家会以为拿到了而实际没有。奖励界面据此显示「背包已满」。
+        /// </summary>
+        public PotionInstance AddPotion(PotionDefinition def)
+        {
+            if (def == null || !HasPotionSpace) return null;
+            var inst = new PotionInstance(NextPotionUid(), def);
+            Potions.Add(inst);
+            return inst;
+        }
+
+        public bool RemovePotion(PotionInstance potion) => potion != null && Potions.Remove(potion);
+
+        public PotionInstance FindPotion(string id)
+        {
+            for (int i = 0; i < Potions.Count; i++)
+                if (Potions[i].Id == id) return Potions[i];
+            return null;
         }
 
         // ================================================================= 生命值

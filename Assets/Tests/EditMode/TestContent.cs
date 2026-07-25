@@ -11,6 +11,10 @@ using UnityEngine;
 using RelicDef = Game.Relics.RelicDefinition;
 using RelicRarity = Game.Relics.RelicRarity;
 using RelicImpl = Game.Relics.Impl;
+// ★ 必须走别名：下面的 Potions 字段会遮蔽 Game.Potions 命名空间，
+//   直接写 PotionRarity 会被解析成「字段的成员」。
+using PotionDef = Game.Potions.PotionDefinition;
+using PotionRarity = Game.Potions.PotionRarity;
 
 namespace Game.Tests
 {
@@ -27,6 +31,8 @@ namespace Game.Tests
         public readonly Dictionary<string, EnemyDefinition> Enemies = new Dictionary<string, EnemyDefinition>();
         public readonly Dictionary<string, EncounterDefinition> Encounters = new Dictionary<string, EncounterDefinition>();
         public readonly Dictionary<string, RelicDef> Relics = new Dictionary<string, RelicDef>();
+        public readonly Dictionary<string, PotionDef> Potions =
+            new Dictionary<string, PotionDef>();
 
         private readonly List<Object> _created = new List<Object>();
 
@@ -38,6 +44,7 @@ namespace Game.Tests
             c.CreateEnemies();
             c.CreateEncounters();
             c.CreateRelics();
+            c.CreatePotions();
 
             c.Db = c.New<GameDatabase>("Db");
             c.Db.Statuses = new List<StatusDefinition>(c.Statuses.Values);
@@ -45,6 +52,7 @@ namespace Game.Tests
             c.Db.Enemies = new List<EnemyDefinition>(c.Enemies.Values);
             c.Db.Encounters = new List<EncounterDefinition>(c.Encounters.Values);
             c.Db.Relics = new List<RelicDef>(c.Relics.Values);
+            c.Db.Potions = new List<PotionDef>(c.Potions.Values);
             c.Db.BuildIndex();
             return c;
         }
@@ -140,6 +148,48 @@ namespace Game.Tests
             so.Rarity = rarity;
             so.Description = name;
             so.Behaviours = new List<StatusBehaviour>(behaviours);
+            return so;
+        }
+
+        // ================================================================ 药水
+
+        private void CreatePotions()
+        {
+            MakePotion("healing", "治疗药水", PotionRarity.Common, CardTargetKind.None,
+                "回复 {0} 点生命。",
+                new HealEffect { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(15) });
+
+            MakePotion("fire", "火焰药水", PotionRarity.Common, CardTargetKind.SingleEnemy,
+                "造成 {0} 点伤害。",
+                new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(20) });
+
+            MakePotion("energy", "活力药水", PotionRarity.Uncommon, CardTargetKind.None,
+                "获得 {0} 点能量。",
+                new EnergyEffect { Amount = EffectValue.Flat(2) });
+
+            // 药水里放选牌效果：证明药水也能让结算挂起
+            MakePotion("cleanse", "澄澈药水", PotionRarity.Rare, CardTargetKind.None,
+                "选择消耗 {0} 张手牌。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.Exhaust,
+                });
+        }
+
+        private PotionDef MakePotion(string id, string name, PotionRarity rarity,
+                                                    CardTargetKind targetKind, string template,
+                                                    params CardEffect[] effects)
+        {
+            var so = New<PotionDef>("Potion_" + id);
+            so.Id = id;
+            so.DisplayName = name;
+            so.Rarity = rarity;
+            so.TargetKind = targetKind;
+            so.DescriptionTemplate = template;
+            so.Effects = new List<CardEffect>(effects);
+            Potions[id] = so;
             return so;
         }
 

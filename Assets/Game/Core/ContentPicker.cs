@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Cards;
+using Game.Potions;
 using Game.Relics;
 
 namespace Game.Core
@@ -76,6 +77,40 @@ namespace Game.Core
                 if (run != null && run.HasRelic(pool[i].Id)) pool.RemoveAt(i);
 
             if (pool.Count == 0) return null;
+            return pool[rng.Range(stream, 0, pool.Count)];
+        }
+
+        // 药水稀有度权重。比卡牌更平，因为药水是一次性的，稀有度差距不该太大。
+        public const int PotionWeightCommon = 65;
+        public const int PotionWeightUncommon = 25;
+        public const int PotionWeightRare = 10;
+
+        public static PotionRarity RollPotionRarity(Rng rng, RngStream stream)
+        {
+            int total = PotionWeightCommon + PotionWeightUncommon + PotionWeightRare;
+            int roll = rng.Range(stream, 0, total);
+
+            roll -= PotionWeightRare; if (roll < 0) return PotionRarity.Rare;
+            roll -= PotionWeightUncommon; if (roll < 0) return PotionRarity.Uncommon;
+            return PotionRarity.Common;
+        }
+
+        /// <summary>
+        /// 抽一瓶药水。★ 与遗物不同，药水**允许重复**——
+        /// 一次性消耗品，拿到两瓶同样的完全合理。
+        /// </summary>
+        public static PotionDefinition PickPotion(Rng rng, GameDatabase db, RngStream stream,
+                                                  PotionRarity? rarity = null)
+        {
+            if (db == null) return null;
+
+            var pool = new List<PotionDefinition>();
+            db.GetPotionsByRarity(pool, rarity ?? RollPotionRarity(rng, stream));
+
+            // 该稀有度没有内容就退回整个池子，宁可给错稀有度也不要给空
+            if (pool.Count == 0) db.GetPotionsByRarity(pool, null);
+            if (pool.Count == 0) return null;
+
             return pool[rng.Range(stream, 0, pool.Count)];
         }
 

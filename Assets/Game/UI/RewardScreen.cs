@@ -15,6 +15,7 @@ namespace Game.UI
         private Button _goldButton;
         private Button _cardButton;
         private Button _relicButton;
+        private Button _potionButton;
         private Button _leaveButton;
 
         private BattleReward Reward => Run.PendingReward;
@@ -48,6 +49,9 @@ namespace Game.UI
                 if (Reward.Relic != null)
                     _relicButton = AddRow($"✦ 遗物：{Reward.Relic.DisplayName}",
                         new Color(0.36f, 0.26f, 0.44f), TakeRelic);
+
+                if (Reward.Potion != null)
+                    _potionButton = AddRow(PotionLabel(), new Color(0.20f, 0.40f, 0.34f), TakePotion);
             }
 
             _leaveButton = UIFactory.CreateTextButton(Root, "Leave", "离　开", 30,
@@ -105,6 +109,28 @@ namespace Game.UI
             RefreshRows();
         }
 
+        /// <summary>
+        /// 背包满时把原因写在标签上。★ 只是把按钮置灰而不说为什么，
+        /// 玩家会以为奖励界面坏了。
+        /// </summary>
+        private string PotionLabel()
+        {
+            if (Reward?.Potion == null) return "";
+            string s = $"♒ 药水：{Reward.Potion.DisplayName}";
+            if (!Reward.PotionTaken && !Run.HasPotionSpace) s += "　（药水槽已满）";
+            return s;
+        }
+
+        private void TakePotion()
+        {
+            if (Reward?.Potion == null || Reward.PotionTaken) return;
+            if (!Run.HasPotionSpace) return;
+
+            Run.AddPotion(Reward.Potion);
+            Reward.PotionTaken = true;
+            RefreshRows();
+        }
+
         private void RefreshRows()
         {
             if (Reward == null) return;
@@ -113,16 +139,22 @@ namespace Game.UI
             SetRow(_cardButton, !Reward.CardTaken, new Color(0.22f, 0.32f, 0.46f), "▤ 卡牌三选一");
             SetRow(_relicButton, !Reward.RelicTaken, new Color(0.36f, 0.26f, 0.44f),
                 Reward.Relic != null ? $"✦ 遗物：{Reward.Relic.DisplayName}" : "");
+            // ★ 药水行不能套用「已领取」后缀：它变灰的原因可能是槽位满而不是已领。
+            //   标签在 PotionLabel() 里已经写清楚了，这里不再追加任何后缀。
+            SetRow(_potionButton, !Reward.PotionTaken && Run.HasPotionSpace,
+                new Color(0.20f, 0.40f, 0.34f), PotionLabel(),
+                disabledSuffix: Reward.PotionTaken ? "　（已领取）" : "");
 
             UIFactory.LabelOf(_leaveButton).text = Reward.AllTaken ? "离　开" : "跳过剩余奖励";
         }
 
-        private static void SetRow(Button btn, bool available, Color color, string label)
+        private static void SetRow(Button btn, bool available, Color color, string label,
+                                   string disabledSuffix = "　（已领取）")
         {
             if (btn == null) return;
             UIFactory.SetInteractable(btn, available, color);
             var text = UIFactory.LabelOf(btn);
-            if (text != null) text.text = available ? label : label + "　（已领取）";
+            if (text != null) text.text = available ? label : label + disabledSuffix;
         }
     }
 }

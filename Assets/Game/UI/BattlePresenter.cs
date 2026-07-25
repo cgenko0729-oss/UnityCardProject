@@ -119,6 +119,14 @@ namespace Game.UI
                     AddLog($"等待选择 {e.Value} 张牌…");
                     break;
 
+                case BattleEventType.PotionUsed:
+                    AddLog($"喝下药水「{e.Id}」");
+                    break;
+
+                case BattleEventType.PotionDiscarded:
+                    AddLog($"倒掉了药水「{e.Id}」");
+                    break;
+
                 case BattleEventType.DeckShuffled:
                     AddLog("洗牌");
                     break;

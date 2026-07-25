@@ -113,6 +113,7 @@ namespace Game.Editor
             warnings += CheckCards(sb);
             warnings += CheckEnemies(sb);
             warnings += CheckRelics(sb);
+            warnings += CheckPotions(sb);
             warnings += CheckEvents(sb);
             warnings += CheckRewardPool(sb);
             warnings += CheckDuplicateIds(sb);
@@ -298,6 +299,85 @@ namespace Game.Editor
             }
 
             return warnings;
+        }
+
+        private static int CheckPotions(StringBuilder sb)
+        {
+            int warnings = 0;
+
+            foreach (var p in LoadAll<Game.Potions.PotionDefinition>())
+            {
+                if (string.IsNullOrEmpty(p.Id))
+                {
+                    warnings++;
+                    sb.AppendLine($"[警告] 药水 {p.name}: 没有 Id。");
+                    continue;
+                }
+
+                if (p.Effects == null || p.Effects.Count == 0)
+                {
+                    warnings++;
+                    sb.AppendLine($"[警告] 药水 {p.Id}: 没有任何效果，喝了不会发生任何事。");
+                    continue;
+                }
+
+                for (int i = 0; i < p.Effects.Count; i++)
+                {
+                    if (p.Effects[i] == null)
+                    {
+                        warnings++;
+                        sb.AppendLine($"[警告] 药水 {p.Id}: 第 {i} 个效果为空" +
+                                      $"（多半是效果类被改名导致 [SerializeReference] 丢引用）。");
+                    }
+                }
+
+                if (string.IsNullOrEmpty(p.DescriptionTemplate))
+                {
+                    warnings++;
+                    sb.AppendLine($"[警告] 药水 {p.Id}: 没有描述模板，玩家无从知道它做了什么。");
+                }
+
+                // ★ 与卡牌同一条规则：声明要选目标却没有任何效果打到 Chosen，
+                //   玩家会被要求点一个敌人然后发现点了没用。
+                if (p.TargetKind == CardTargetKind.SingleEnemy && !UsesChosenTarget(p.Effects))
+                {
+                    warnings++;
+                    sb.AppendLine($"[警告] 药水 {p.Id}: 声明了 SingleEnemy，" +
+                                  $"但没有任何效果以 Chosen 为目标——玩家的点选会被忽略。");
+                }
+
+                if (p.TargetKind != CardTargetKind.SingleEnemy && p.TargetKind != CardTargetKind.None)
+                {
+                    warnings++;
+                    sb.AppendLine($"[警告] 药水 {p.Id}: TargetKind 只支持 None 与 SingleEnemy，" +
+                                  $"当前为 {p.TargetKind}。");
+                }
+            }
+
+            return warnings;
+        }
+
+        /// <summary>效果树里是否存在以 Chosen 为目标的效果（递归进组合子）。</summary>
+        private static bool UsesChosenTarget(System.Collections.Generic.IReadOnlyList<CardEffect> effects)
+        {
+            if (effects == null) return false;
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                var e = effects[i];
+                if (e == null) continue;
+                if (e.Target.Kind == TargetKind.ChosenTarget) return true;
+
+                switch (e)
+                {
+                    case Game.Effects.Impl.RepeatEffect rep when UsesChosenTarget(rep.Effects):
+                        return true;
+                    case Game.Effects.Impl.ConditionalEffect cond
+                        when UsesChosenTarget(cond.Then) || UsesChosenTarget(cond.Else):
+                        return true;
+                }
+            }
+            return false;
         }
 
         private static int CheckEvents(StringBuilder sb)

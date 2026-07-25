@@ -1,4 +1,3 @@
-using System.Text;
 using Game.Battle;
 using Game.Effects;
 
@@ -113,30 +112,7 @@ namespace Game.Cards
                 PreviewMode = true,   // 描述每帧都会算，绝不能消耗随机流
             };
 
-            var sb = new StringBuilder(template.Length + 16);
-            for (int i = 0; i < template.Length; i++)
-            {
-                char c = template[i];
-                if (c != '{') { sb.Append(c); continue; }
-
-                int close = template.IndexOf('}', i);
-                if (close < 0) { sb.Append(c); continue; }
-
-                string inner = template.Substring(i + 1, close - i - 1);
-                if (int.TryParse(inner, out int idx) && idx >= 0 && idx < Def.Effects.Count && Def.Effects[idx] != null)
-                {
-                    string val;
-                    try { val = Def.Effects[idx].Describe(effCtx); }
-                    catch { val = "?"; }
-                    sb.Append(val);
-                    i = close;
-                }
-                else
-                {
-                    sb.Append(c);
-                }
-            }
-            return sb.ToString();
+            return EffectDescription.Format(template, Def.Effects, effCtx);
         }
 
         public void OnBattleEnd()

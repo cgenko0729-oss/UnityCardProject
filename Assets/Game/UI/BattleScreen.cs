@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using Game.Battle;
 using Game.Cards;
+using Game.Potions;
 using Game.Units;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -126,6 +127,11 @@ namespace Game.UI
             _energyText = UIFactory.CreateText(energyBg, "EnergyText", "3/3", 34, TextAnchor.MiddleCenter, Color.black);
             UIFactory.Stretch(_energyText.rectTransform);
 
+            // ---- 药水栏
+            _potionBar = UIFactory.CreateEmpty(root, "PotionBar");
+            UIFactory.SetAnchored(_potionBar, new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(24, top - 200), new Vector2(232, top - 76));
+
             // ---- 牌堆信息
             _pileText = UIFactory.CreateText(root, "Piles", "", 20, TextAnchor.LowerLeft);
             UIFactory.SetAnchored(_pileText.rectTransform, new Vector2(0, 0), new Vector2(0, 0),
@@ -241,8 +247,11 @@ namespace Game.UI
 
         public void OnUnitClicked(UnitView view)
         {
-            if (_selected == null || Ctx == null || Ctx.BattleEnded || InputLocked) return;
+            if (Ctx == null || Ctx.BattleEnded || InputLocked) return;
             if (view.Unit == null || view.Unit.IsPlayer || !view.Unit.IsAlive) return;
+
+            if (_selectedPotion != null) { UsePotion(_selectedPotion, view.Unit); return; }
+            if (_selected == null) return;
 
             PlaySelected(_selected.Card, view.Unit);
         }
@@ -270,6 +279,7 @@ namespace Game.UI
             if (InputCompat.RightMouseDown || InputCompat.EscapeDown)
             {
                 _selected = null;
+                _selectedPotion = null;
                 ShowHint("");
                 return;
             }
@@ -277,8 +287,14 @@ namespace Game.UI
             if (InputCompat.SpaceDown || InputCompat.KeyDown(KeyCode.E))
             {
                 // ★ 正在选目标时，空格先取消选择而不是直接结束回合，
-                //   否则玩家会莫名其妙地把选好的牌丢掉。
-                if (_selected != null) { _selected = null; ShowHint(""); return; }
+                //   否则玩家会莫名其妙地把选好的牌 / 药水丢掉。
+                if (_selected != null || _selectedPotion != null)
+                {
+                    _selected = null;
+                    _selectedPotion = null;
+                    ShowHint("");
+                    return;
+                }
                 OnEndTurnClicked();
             }
         }
@@ -316,6 +332,7 @@ namespace Game.UI
             RefreshHandViews();
             LayoutHand();
             RefreshCards();
+            RefreshPotionBar();
             RefreshUnits();
             RefreshHud();
         }
@@ -381,7 +398,7 @@ namespace Game.UI
 
         private void RefreshUnits()
         {
-            bool targeting = _selected != null;
+            bool targeting = _selected != null || _selectedPotion != null;
             for (int i = 0; i < _unitViews.Count; i++)
             {
                 var v = _unitViews[i];
@@ -414,6 +431,136 @@ namespace Game.UI
                 _resultText.color = Ctx.Victory ? new Color(1f, 0.9f, 0.4f) : new Color(1f, 0.4f, 0.4f);
             }
         }
+
+        // ============================================================ 药水栏
+
+        private RectTransform _potionBar;
+        private readonly List<Button> _potionButtons = new List<Button>();
+        private readonly List<int> _potionSignature = new List<int>();
+
+        /// <summary>正在等玩家点目标的药水。与卡牌的 <c>_selected</c> 是同一套交互。</summary>
+        private PotionInstance _selectedPotion;
+
+        private List<PotionInstance> Potions => Ctx?.Run?.Potions;
+
+        private void RefreshPotionBar()
+        {
+            var potions = Potions;
+            if (potions == null) return;
+
+            // 与手牌同样的「签名比对」：只有真的变了才重建，否则每帧销毁重建按钮
+            bool changed = potions.Count != _potionSignature.Count;
+            if (!changed)
+                for (int i = 0; i < potions.Count; i++)
+                    if (potions[i].Uid != _potionSignature[i]) { changed = true; break; }
+
+            if (changed) RebuildPotionBar(potions);
+
+            bool locked = InputLocked;
+            for (int i = 0; i < _potionButtons.Count && i < potions.Count; i++)
+            {
+                bool usable = !locked
+                              && (_controller.CanUsePotion(potions[i], FirstAliveEnemy(), out var reason)
+                                  || reason == PotionFailReason.NeedTarget);
+                UIFactory.SetInteractable(_potionButtons[i], usable, PotionColor);
+            }
+        }
+
+        private static readonly Color PotionColor = new Color(0.20f, 0.40f, 0.34f);
+
+        private void RebuildPotionBar(List<PotionInstance> potions)
+        {
+            for (int i = 0; i < _potionButtons.Count; i++)
+                if (_potionButtons[i] != null) Destroy(_potionButtons[i].gameObject);
+            _potionButtons.Clear();
+            _potionSignature.Clear();
+            _selectedPotion = null;
+
+            int slots = Ctx.Run != null ? Ctx.Run.PotionSlots : 0;
+
+            for (int i = 0; i < slots; i++)
+            {
+                float y = -i * 42f;
+
+                if (i >= potions.Count)
+                {
+                    // 空槽也画出来，玩家才知道自己还能拿几瓶
+                    var empty = UIFactory.CreatePanel(_potionBar, "PotionSlotEmpty" + i,
+                        new Color(1f, 1f, 1f, 0.06f));
+                    UIFactory.SetAnchored(empty, new Vector2(0, 1), new Vector2(1, 1),
+                        new Vector2(0, y - 38), new Vector2(0, y - 4));
+                    continue;
+                }
+
+                int index = i;
+                var potion = potions[i];
+
+                var btn = UIFactory.CreateTextButton(_potionBar, "Potion" + i,
+                    potion.DisplayName, 18, PotionColor, () => OnPotionClicked(index));
+                UIFactory.SetAnchored((RectTransform)btn.transform, new Vector2(0, 1), new Vector2(1, 1),
+                    new Vector2(0, y - 38), new Vector2(-40, y - 4));
+
+                // 倒掉按钮。★ 必须有：药水槽满了又买不到想要的东西时，
+                //   没有倒掉手段的话玩家会被永久卡住。
+                var drop = UIFactory.CreateTextButton(_potionBar, "PotionDrop" + i, "×", 18,
+                    new Color(0.40f, 0.20f, 0.20f), () => OnPotionDiscarded(index));
+                UIFactory.SetAnchored((RectTransform)drop.transform, new Vector2(1, 1), new Vector2(1, 1),
+                    new Vector2(-36, y - 38), new Vector2(0, y - 4));
+
+                _potionButtons.Add(btn);
+                _potionSignature.Add(potion.Uid);
+            }
+        }
+
+        private void OnPotionClicked(int index)
+        {
+            var potions = Potions;
+            if (potions == null || index >= potions.Count || InputLocked) return;
+
+            var potion = potions[index];
+
+            if (_selectedPotion == potion) { _selectedPotion = null; ShowHint(""); return; }
+
+            if (potion.Def != null && potion.Def.NeedsTarget)
+            {
+                _selected = null;              // 药水与卡牌互斥，不能同时处于选目标态
+                _selectedPotion = potion;
+                ShowHint($"选择「{potion.DisplayName}」的目标");
+                return;
+            }
+
+            UsePotion(potion, null);
+        }
+
+        private void OnPotionDiscarded(int index)
+        {
+            var potions = Potions;
+            if (potions == null || index >= potions.Count || InputLocked) return;
+
+            var potion = potions[index];
+            if (_selectedPotion == potion) _selectedPotion = null;
+            if (_controller.DiscardPotion(potion)) ShowHint($"倒掉了「{potion.DisplayName}」。");
+        }
+
+        private void UsePotion(PotionInstance potion, BattleUnit target)
+        {
+            if (!_controller.TryUsePotion(potion, target, out var reason))
+                ShowHint(PotionReasonText(reason));
+            else
+                ShowHint("");
+
+            _selectedPotion = null;
+        }
+
+        private static string PotionReasonText(PotionFailReason r) => r switch
+        {
+            PotionFailReason.NeedTarget => "需要选择目标",
+            PotionFailReason.InvalidTarget => "目标无效",
+            PotionFailReason.NotPlayerTurn => "现在不是你的回合",
+            PotionFailReason.BattleEnded => "战斗已结束",
+            PotionFailReason.WaitingForSelection => "请先完成选牌",
+            _ => ""
+        };
 
         // ============================================================ 选牌面板
 

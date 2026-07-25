@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Cards;
 using Game.Enemies;
 using Game.Events;
+using Game.Potions;
 using Game.Relics;
 using Game.Statuses;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace Game.Core
         public List<EncounterDefinition> Encounters = new List<EncounterDefinition>();
         public List<RelicDefinition> Relics = new List<RelicDefinition>();
         public List<EventDefinition> Events = new List<EventDefinition>();
+        public List<PotionDefinition> Potions = new List<PotionDefinition>();
 
         private Dictionary<string, CardDefinition> _cards;
         private Dictionary<string, EnemyDefinition> _enemies;
@@ -25,9 +27,11 @@ namespace Game.Core
         private Dictionary<string, EncounterDefinition> _encounters;
         private Dictionary<string, RelicDefinition> _relics;
         private Dictionary<string, EventDefinition> _events;
+        private Dictionary<string, PotionDefinition> _potions;
 
         public void BuildIndex()
         {
+            _potions = Index(Potions, p => p.Id);
             _cards = Index(Cards, c => c.Id);
             _enemies = Index(Enemies, e => e.Id);
             _statuses = Index(Statuses, s => s.Id);
@@ -61,6 +65,7 @@ namespace Game.Core
         public EncounterDefinition GetEncounter(string id) { EnsureIndex(); return Get(_encounters, id); }
         public RelicDefinition GetRelic(string id) { EnsureIndex(); return Get(_relics, id); }
         public EventDefinition GetEvent(string id) { EnsureIndex(); return Get(_events, id); }
+        public PotionDefinition GetPotion(string id) { EnsureIndex(); return Get(_potions, id); }
 
         private static T Get<T>(Dictionary<string, T> dict, string id) where T : ScriptableObject
             => id != null && dict != null && dict.TryGetValue(id, out var v) ? v : null;
@@ -109,6 +114,18 @@ namespace Game.Core
                 if (r == null) continue;
                 if (rarity.HasValue) { if (r.Rarity == rarity.Value) buffer.Add(r); }
                 else if (r.Rarity != RelicRarity.Starter) buffer.Add(r);
+            }
+        }
+
+        /// <summary>取出某稀有度的全部药水。rarity 为 null 表示整个掉落池。</summary>
+        public void GetPotionsByRarity(List<PotionDefinition> buffer, PotionRarity? rarity)
+        {
+            buffer.Clear();
+            for (int i = 0; i < Potions.Count; i++)
+            {
+                var p = Potions[i];
+                if (p == null) continue;
+                if (!rarity.HasValue || p.Rarity == rarity.Value) buffer.Add(p);
             }
         }
 
