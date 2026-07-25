@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Cards;
 using Game.Core;
+using Game.Effects;
 using Game.Relics;
 using Game.Statuses;
 using Game.Units;
@@ -94,6 +95,139 @@ namespace Game.Battle
         private int _nextUnitUid = 1;
 
         public int NextUnitUid() => _nextUnitUid++;
+
+        // ================================================================= 效果结算栈
+
+        /// <summary>
+        /// 未跑完的效果。挂起等玩家选牌时，现场就保存在这里。
+        /// 详见 <see cref="EffectResolutionStack"/>。
+        /// </summary>
+        public readonly EffectResolutionStack Resolution = new EffectResolutionStack();
+
+        public BattleContext()
+        {
+            Resolution.ShouldSuspend = () => PendingSelection != null;
+        }
+
+        // ================================================================= 选牌
+
+        /// <summary>
+        /// 选牌策略。**非 null 表示「不需要问人」**——测试、自动模拟器、敌人回合都靠它
+        /// 当场同步给出答案，于是结算根本不会挂起。
+        /// UI 想接管时把它设成 null（见 <c>BattleScreen</c>）。
+        /// </summary>
+        public ICardSelector Selector = new RandomCardSelector();
+
+        /// <summary>正在等玩家作答的选牌请求。非 null 时整场战斗暂停推进。</summary>
+        public PendingCardSelection PendingSelection { get; private set; }
+
+        public bool IsWaitingForSelection => PendingSelection != null;
+
+        /// <summary>
+        /// Selector 为 null 但又不能挂起时（敌人回合中途）的兜底。
+        /// ★ 宁可随机选也绝不死锁：敌人回合是一个 for 循环，在里面挂起会把回合切成两半。
+        /// </summary>
+        private readonly RandomCardSelector _fallbackSelector = new RandomCardSelector();
+
+        private readonly List<CardInstance> _selectionBuffer = new List<CardInstance>(16);
+
+        /// <summary>
+        /// 发起一次选牌。
+        /// </summary>
+        /// <returns>true 表示已挂起等玩家作答；false 表示已当场结算完毕。</returns>
+        public bool RequestCardSelection(in CardSelectionRequest req, Action<List<CardInstance>> onResolved)
+        {
+            var pile = GetPile(req.Source);
+            if (pile == null || pile.Count == 0)
+            {
+                onResolved?.Invoke(new List<CardInstance>());
+                return false;
+            }
+
+            int pick = Math.Min(req.Count, pile.Count);
+            if (pick < req.Count && !req.AllowFewer)
+            {
+                // 候选不够又不允许少选：整个请求作废，而不是「能选几张算几张」。
+                onResolved?.Invoke(new List<CardInstance>());
+                return false;
+            }
+            if (pick <= 0)
+            {
+                onResolved?.Invoke(new List<CardInstance>());
+                return false;
+            }
+
+            // 只有「玩家回合 + UI 接管」才真的挂起去问人。
+            bool interactive = Selector == null && Phase == BattlePhase.PlayerTurn && !BattleEnded;
+
+            if (!interactive)
+            {
+                var selector = Selector ?? _fallbackSelector;
+                _selectionBuffer.Clear();
+                selector.Select(this, req, pile, _selectionBuffer);
+                var result = new List<CardInstance>(_selectionBuffer);
+                _selectionBuffer.Clear();
+                onResolved?.Invoke(result);
+                return false;
+            }
+
+            var pending = new PendingCardSelection
+            {
+                Request = req,
+                PickCount = pick,
+                OnResolved = onResolved,
+            };
+            pending.Candidates.AddRange(pile);
+            PendingSelection = pending;
+
+            Post(BattleEventType.CardSelectionRequested, 0, 0, pick);
+            return true;
+        }
+
+        /// <summary>
+        /// 玩家（或 UI）作答。清掉挂起状态、执行回调，然后把挂起的结算继续跑完。
+        /// </summary>
+        public void ResolveSelection(IReadOnlyList<CardInstance> chosen)
+        {
+            var pending = PendingSelection;
+            if (pending == null) return;
+
+            PendingSelection = null;
+
+            var list = new List<CardInstance>(pending.PickCount);
+            if (chosen != null)
+            {
+                for (int i = 0; i < chosen.Count; i++)
+                {
+                    // ★ 只认候选列表里的牌：UI 传回来的东西不能直接信任，
+                    //   面板弹出到玩家点确定之间，牌可能已经被别的效果挪走了。
+                    if (chosen[i] != null && pending.Candidates.Contains(chosen[i]))
+                        list.Add(chosen[i]);
+                }
+            }
+
+            pending.OnResolved?.Invoke(list);
+
+            RunTriggerQueue();
+            Resolution.Pump();
+        }
+
+        /// <summary>丢弃当前挂起的选牌请求，**不执行**它的回调。战斗结束时用。</summary>
+        public void CancelPendingSelection() => PendingSelection = null;
+
+        /// <summary>取某个牌堆的实际列表。<see cref="CardPile.None"/> 返回 null。</summary>
+        public List<CardInstance> GetPile(CardPile pile)
+        {
+            if (Deck == null) return null;
+            return pile switch
+            {
+                CardPile.Hand => Deck.Hand,
+                CardPile.Draw => Deck.DrawPile,
+                CardPile.Discard => Deck.DiscardPile,
+                CardPile.Exhaust => Deck.ExhaustPile,
+                _ => null,
+            };
+        }
 
         // ================================================================= 表现事件队列
 

@@ -11,6 +11,10 @@ namespace Game.Battle
         BattleStarted, BattleEnded,
         TurnStarted, TurnEnded, EnemyTurnStarted,
         CardDrawn, CardPlayed, CardDiscarded, CardExhausted, CardAdded, DeckShuffled,
+        /// <summary>一张牌临时获得「保留」。</summary>
+        CardRetained,
+        /// <summary>结算挂起，正在等玩家选牌。Value 为要选几张。</summary>
+        CardSelectionRequested,
         DamageDealt, DamageBlocked, Healed, BlockGained, BlockLost,
         StatusApplied, StatusRemoved, StatusTriggered,
         EnergyChanged, IntentChanged,
@@ -35,7 +39,9 @@ namespace Game.Battle
         None, NotPlayerTurn, NotInHand, NotEnoughEnergy, Unplayable,
         NeedTarget, InvalidTarget, EffectCannotApply, BattleEnded,
         /// <summary>被 <see cref="ICardFlowHook.PreCardPlay"/> 拦下（能量未消耗）。</summary>
-        Cancelled
+        Cancelled,
+        /// <summary>上一张牌的结算正挂起等玩家选牌。</summary>
+        WaitingForSelection
     }
 
     public enum DamageKind { Attack, Status, Thorns, Loss }

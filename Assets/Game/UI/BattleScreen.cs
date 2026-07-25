@@ -152,6 +152,10 @@ namespace Game.UI
             PopupLayer = UIFactory.CreateEmpty(root, "PopupLayer");
             UIFactory.Stretch(PopupLayer);
 
+            // ---- 模态层（选牌面板）。建在飘字层之后，保证它盖在飘字上面。
+            _modalLayer = UIFactory.CreateEmpty(root, "ModalLayer");
+            UIFactory.Stretch(_modalLayer);
+
             // ---- 结果面板
             _resultPanel = UIFactory.CreatePanel(root, "ResultPanel", new Color(0f, 0f, 0f, 0.75f));
             UIFactory.Stretch(_resultPanel);
@@ -208,6 +212,7 @@ namespace Game.UI
         /// </summary>
         private bool InputLocked
             => Ctx == null
+               || Ctx.IsWaitingForSelection
                || (Ctx.Events.Count > 0 && _presenter != null && _presenter.isActiveAndEnabled);
 
         public void OnCardClicked(CardView view)
@@ -291,7 +296,14 @@ namespace Game.UI
                 _intentVersion = -1;
                 BuildUnitViews();
                 if (_presenter != null) _presenter.Init(this, Ctx);
+
+                // ★ 把选牌的决定权交给玩家：Selector 置 null 就是「不要替我选，挂起等我点」。
+                //   非交互场合（EditMode 测试、自动模拟器）不会走到这里，
+                //   于是它们保留默认的随机选择器，全程同步跑完，一个测试都不用改。
+                Ctx.Selector = null;
             }
+
+            SyncSelectionPicker();
 
             // 状态一变就重算敌人意图数值。★ 不这样做的话，玩家给敌人上「虚弱」之后
             // 意图上显示的还是回合开始时算的旧数字，玩家会照着错的数字做决策。
@@ -403,6 +415,59 @@ namespace Game.UI
             }
         }
 
+        // ============================================================ 选牌面板
+
+        private RectTransform _modalLayer;
+        private CardPickerScreen _picker;
+
+        /// <summary>
+        /// 让面板的存在与否始终跟随 <see cref="BattleContext.PendingSelection"/>。
+        /// 写成「每帧对齐」而不是「请求时弹一次」，是因为请求可能在面板还开着的时候被作废
+        /// （战斗结束），那时面板必须自己收掉，否则会浮在结算界面上。
+        /// </summary>
+        private void SyncSelectionPicker()
+        {
+            var pending = _controller.PendingSelection;
+
+            if (pending == null)
+            {
+                if (_picker != null)
+                {
+                    Destroy(_picker.gameObject);
+                    _picker = null;
+                }
+                return;
+            }
+
+            if (_picker != null) return;
+
+            var panel = UIFactory.CreatePanel(_modalLayer, "SelectionPicker",
+                new Color(0.05f, 0.05f, 0.07f, 0.93f));
+            UIFactory.Stretch(panel);
+
+            _picker = panel.gameObject.AddComponent<CardPickerScreen>();
+
+            // ★ 拍一份候选快照：回调是下一帧之后才跑的，届时 PendingSelection 已经被清掉，
+            //   靠它反查候选会拿到 null。
+            var candidates = new List<CardInstance>(pending.Candidates);
+
+            _picker.Open(null, pending.Title, candidates, null,
+                pending.PickCount, pending.Request.Cancellable,
+                indices =>
+                {
+                    _picker = null;
+
+                    var chosen = new List<CardInstance>(indices.Count);
+                    for (int i = 0; i < indices.Count; i++)
+                    {
+                        int idx = indices[i];
+                        if (idx >= 0 && idx < candidates.Count) chosen.Add(candidates[idx]);
+                    }
+
+                    _controller.ResolveSelection(chosen);
+                });
+        }
+
         // ============================================================ 辅助
 
         private BattleUnit FirstAliveEnemy()
@@ -466,6 +531,7 @@ namespace Game.UI
             PlayFailReason.EffectCannotApply => "当前无法生效",
             PlayFailReason.NotPlayerTurn => "现在不是你的回合",
             PlayFailReason.BattleEnded => "战斗已结束",
+            PlayFailReason.WaitingForSelection => "请先完成选牌",
             _ => ""
         };
     }

@@ -30,14 +30,18 @@ namespace Game.Effects.Impl
             if (target == null && ctx.LastTargets.Count > 0) target = ctx.LastTargets[0];
 
             var child = ctx.Child();
-            EffectResolver.ResolveAll(Condition.Test(ctx, target) ? Then : Else, child);
 
-            // 把子上下文命中的目标带回父级，保证后续的 PreviousTargets 仍然有效
-            if (child.LastTargets.Count > 0)
+            // ★ 「把目标带回父级」必须写成 onComplete 回调，不能写在 ResolveAll 的下一行：
+            //   子效果里若有选牌，ResolveAll 会挂起并立刻返回，下一行就会在子效果
+            //   真正跑完之前先执行，带回一组还没产生的目标。
+            EffectResolver.ResolveAll(Condition.Test(ctx, target) ? Then : Else, child, () =>
             {
-                ctx.Targets.Clear();
-                ctx.Targets.AddRange(child.LastTargets);
-            }
+                if (child.LastTargets.Count > 0)
+                {
+                    ctx.Targets.Clear();
+                    ctx.Targets.AddRange(child.LastTargets);
+                }
+            });
         }
     }
 }

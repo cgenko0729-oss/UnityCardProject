@@ -41,6 +41,13 @@ namespace Game.Effects.Impl
             var pool = new List<Option>(Options);
             var child = ctx.Child();
 
+            // ★ 先把 PickCount 次抽取一次性抽完，再统一执行。
+            //   原来是「抽一个、跑一个、再抽下一个」，但子效果里若有选牌会挂起，
+            //   循环就断在半路。抽取本身只依赖权重表、不依赖执行结果，
+            //   所以提前抽完不改变抽取结果本身。
+            //   （副作用：PickCount > 1 且子效果会消耗随机流时，随机流的先后次序与旧版不同。
+            //     目前全工程无任何内容或测试使用本组合子，不存在回归面。）
+            var picked = new List<CardEffect>(PickCount);
             for (int k = 0; k < PickCount && pool.Count > 0; k++)
             {
                 int total = 0;
@@ -56,9 +63,22 @@ namespace Game.Effects.Impl
                 }
                 if (idx >= pool.Count) idx = pool.Count - 1;
 
-                EffectResolver.Resolve(pool[idx].Effect, child);
+                if (pool[idx].Effect != null) picked.Add(pool[idx].Effect);
                 if (!AllowDuplicates) pool.RemoveAt(idx);
             }
+
+            if (picked.Count == 0) return;
+
+            var stack = ctx.Battle.Resolution;
+            if (stack == null)
+            {
+                for (int i = 0; i < picked.Count; i++) EffectResolver.Resolve(picked[i], child);
+                return;
+            }
+
+            // 倒序压栈，保证抽到的第一个最先执行
+            for (int i = picked.Count - 1; i >= 0; i--)
+                stack.Push(new[] { picked[i] }, child);
         }
     }
 }
