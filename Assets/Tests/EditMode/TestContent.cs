@@ -408,6 +408,48 @@ namespace Game.Tests
                 }
             };
 
+            // ---- 关键字卡：Retain / Innate / Ethereal
+            var spareBlade = MakeCard("spare_blade", "备用刀刃", 0, CardType.Attack,
+                CardTargetKind.SingleEnemy, "造成 {0} 点伤害。保留。",
+                new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(5) });
+            spareBlade.Keywords = CardKeyword.Retain;
+            Cards["spare_blade"] = spareBlade;
+
+            var ambush = MakeCard("ambush", "伏击", 2, CardType.Attack,
+                CardTargetKind.SingleEnemy, "每有一张手牌造成 {0} 点伤害。保留。",
+                new DamageEffect
+                {
+                    Target = TargetSelector.Chosen,
+                    Amount = new EffectValue { Base = 0, Scale = ValueScale.PerCardInHand, PerUnit = 3 },
+                });
+            ambush.Keywords = CardKeyword.Retain;
+            Cards["ambush"] = ambush;
+
+            var opening = MakeCard("opening", "先手", 0, CardType.Skill,
+                CardTargetKind.None, "抽 {0} 张牌。固有。消耗。",
+                new DrawEffect { Count = EffectValue.Flat(2) });
+            opening.Keywords = CardKeyword.Innate | CardKeyword.Exhaust;
+            Cards["opening"] = opening;
+
+            var vigil = MakeCard("vigil", "守夜", 2, CardType.Skill,
+                CardTargetKind.None, "获得 {0} 点护甲。固有。",
+                new BlockEffect { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(12) });
+            vigil.Keywords = CardKeyword.Innate;
+            Cards["vigil"] = vigil;
+
+            var phantom = MakeCard("phantom_blade", "幻影之刃", 0, CardType.Attack,
+                CardTargetKind.SingleEnemy, "造成 {0} 点伤害。虚无。",
+                new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(12) });
+            phantom.Keywords = CardKeyword.Ethereal;
+            Cards["phantom_blade"] = phantom;
+
+            var fleeting = MakeCard("fleeting_insight", "转瞬顿悟", 0, CardType.Skill,
+                CardTargetKind.None, "抽 {0} 张牌，获得 {1} 点能量。虚无。消耗。",
+                new DrawEffect { Count = EffectValue.Flat(3) },
+                new EnergyEffect { Amount = EffectValue.Flat(1) });
+            fleeting.Keywords = CardKeyword.Ethereal | CardKeyword.Exhaust;
+            Cards["fleeting_insight"] = fleeting;
+
             // 递归保护测试用：自己嵌自己
             var deep = new RepeatEffect { Times = EffectValue.Flat(2), Effects = new List<CardEffect>() };
             var cur = deep;
