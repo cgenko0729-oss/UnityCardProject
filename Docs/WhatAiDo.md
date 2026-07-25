@@ -429,3 +429,36 @@ Assets/
   使用者需要在自己的 Unity 里跑一次菜单 `Tools/卡牌游戏/1. 生成示例内容`。
 - 药水栏、选牌面板、奖励/商店的药水行**只在编译与 EditMode 逻辑层验证过，尚未在 Play 模式下点过**。
 - `RunContext` 新增了 `Potions` / `PotionSlots` / `_nextPotionUid`，阶段 5 的存档要一并序列化。
+
+### 2026-07-25 — 第四次会话续：Play 模式修复（交互模式接线 + 药水栏可用性）
+
+使用者试玩后报告：**拿到药水但不知道在哪用、点不动；「映写」「弃牌」这类选牌卡打出后系统没让选**。
+
+**根因（一个，两个症状）：交互模式的开关从未被打开。**
+`BattleScreen.Bind` 结尾有 `_boundCtx = Ctx;`，而 `Ctx.Selector = null`
+（「不要替玩家选，挂起等他点」）只写在 `LateUpdate` 的「Ctx 变化了」分支里。
+第三次会话修过 `RunManager.StartBattle` 的顺序，现在 Bind 时 `Ctx` 已经非 null，
+于是 `_boundCtx == Ctx` 从一开始就成立，**那个分支永不执行**——
+选择器一直是默认的 `RandomCardSelector`，所有选牌被系统静默地随机决定。
+界面上毫无异常，只有玩家会觉得「怎么不问我」。
+
+**修法：把开关从界面的每帧循环挪到数据源头。**
+新增 `RunContext.InteractivePlayer`，由**创建这一局的人**设置
+（`GameApp.StartNewRun` / `BattleBootstrap` 置 true，测试与模拟器保持 false），
+`BattleController.StartBattle` 据此一次性决定 `Ctx.Selector`。
+界面的绑定时机会变，但「谁开的这一局」不会变。
+
+顺带修掉同一处的结构性隐患：`BattleScreen` 的上下文接管拆在 `Bind` 与 `LateUpdate`
+两半，而后者永不执行——**任何加在那里的新逻辑都会被静默跳过**。
+现在合并成单一的 `AdoptContext()`。
+
+**药水栏**（原本能渲染也能点，但基本不可发现）：加「药水」标题、空槽显示「空槽」、
+改成「先点选看说明、再确认使用」两步、选中的药水高亮且提示常驻
+（原提示 2 秒消失，玩家看不出自己正拿着一瓶药水在找目标）。
+
+**教训**：这个 bug 逃过了 17 个选牌用例，因为它们直接设 `Ctx.Selector = null`，
+**绕开了「谁来设」这一步**。EditMode 测不到 MonoBehaviour，
+所以凡是「UI 负责打开某个逻辑层开关」的设计都是脆的——开关要放在数据上，才钉得住。
+已补 2 个用例：`InteractiveRun_SuspendsWithoutAnyUiInvolvement` / `NonInteractiveRun_KeepsTheAutomaticSelector`。
+
+**验证**：EditMode **166/166 通过**。生成器产出的 57 张卡 / 10 瓶药水 / 7 个事件资产已提交。
