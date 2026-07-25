@@ -121,6 +121,48 @@ namespace Game.Tests
             CollectionAssert.Contains(Ctx.Deck.Hand, stashed, "下一张抽到的就该是它");
         }
 
+        [Test]
+        public void ToHand_CanPullACardOutOfTheDiscardPile()
+        {
+            // ★ 守的是「Source 真的可配」：整套选牌若只支持手牌，
+            //   「从弃牌堆回收」「从消耗堆复活」这类设计就全都做不出来。
+            StartBattle();
+            ClearHand();
+            Ctx.Deck.DiscardPile.Clear();
+
+            var buried = Run.NewCard(Content.Cards["bash"]);
+            Ctx.Deck.DiscardPile.Add(buried);
+            MakeInteractive();
+
+            PlayCard("recall");
+            Assert.IsNotNull(Ctrl.PendingSelection);
+            CollectionAssert.Contains(Ctrl.PendingSelection.Candidates, buried,
+                "候选应当来自弃牌堆而不是手牌");
+
+            Ctrl.ResolveSelection(new List<CardInstance> { buried });
+
+            CollectionAssert.Contains(Ctx.Deck.Hand, buried);
+            CollectionAssert.DoesNotContain(Ctx.Deck.DiscardPile, buried,
+                "移动类处置必须先摘再放，否则同一张牌会同时在两个堆里");
+        }
+
+        [Test]
+        public void ToDrawBottom_PutsTheCardAtTheFarEndOfTheDrawPile()
+        {
+            StartBattle();
+            ClearHand();
+            var card = GiveCard("bash");
+            MakeInteractive();
+
+            int drawBefore = Ctx.Deck.DrawPile.Count;
+            PlayCard("bury");
+            Ctrl.ResolveSelection(new List<CardInstance> { card });
+
+            Assert.AreEqual(drawBefore + 1, Ctx.Deck.DrawPile.Count);
+            Assert.AreNotSame(card, Ctx.Deck.DrawPile[Ctx.Deck.DrawPile.Count - 1],
+                "放回牌堆底就不该出现在牌堆顶（列表末尾）");
+        }
+
         // ================================================================= 挂起语义
 
         [Test]

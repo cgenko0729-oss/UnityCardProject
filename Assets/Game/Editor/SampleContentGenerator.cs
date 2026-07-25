@@ -55,6 +55,7 @@ namespace Game.Editor
             SampleContentCurses.CreateCurseAndStatusCards(Statuses, Cards);
             SampleContentKeywords.CreateKeywordCards(Statuses, Cards);
             SampleContentCombinators.CreateCombinatorCards(Statuses, Cards);
+            SampleContentSelection.CreateSelectionCards(Cards);
             CreateEnemies();
             CreateEncounters();
             SampleContentRelics.CreateRelics(RelicDir, Statuses, Relics);
