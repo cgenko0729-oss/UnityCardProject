@@ -333,6 +333,25 @@ namespace Game.Tests
                     Action = CardSelectionAction.ToDrawTop,
                 });
 
+            // 从弃牌堆里选：验证 Source 真的可配，而不是写死手牌
+            Cards["recall"] = MakeCard("recall", "回收", 2, CardType.Skill, CardTargetKind.None,
+                "从弃牌堆中选择 {0} 张牌加入手牌。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Discard,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.ToHand,
+                });
+
+            Cards["bury"] = MakeCard("bury", "深埋", 0, CardType.Skill, CardTargetKind.None,
+                "选择 {0} 张手牌放回抽牌堆底。",
+                new SelectCardsEffect
+                {
+                    Source = CardPile.Hand,
+                    Count = EffectValue.Flat(1),
+                    Action = CardSelectionAction.ToDrawBottom,
+                });
+
             // 组合子里嵌选牌：验证挂起能穿过 Conditional 恢复
             Cards["condselect"] = MakeCard("condselect", "择机弃牌", 0, CardType.Skill, CardTargetKind.None,
                 "若手牌至少 2 张，选择弃掉 1 张，然后获得 3 点护甲。",
