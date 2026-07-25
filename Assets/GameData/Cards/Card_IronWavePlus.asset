@@ -24,14 +24,14 @@ MonoBehaviour:
   DescriptionTemplate: "\u83B7\u5F97 {1} \u70B9\u62A4\u7532\uFF0C\u9020\u6210 {0}
     \u70B9\u4F24\u5BB3\u3002"
   Effects:
-  - rid: 1041046769074962547
-  - rid: 1041046769074962548
+  - rid: 1041046769074962714
+  - rid: 1041046769074962715
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962547
+    - rid: 1041046769074962714
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -56,7 +56,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962548
+    - rid: 1041046769074962715
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

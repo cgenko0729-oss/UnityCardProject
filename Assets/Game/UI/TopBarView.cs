@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-using System.Text;
 using Game.Core;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Game.UI
@@ -19,10 +17,8 @@ namespace Game.UI
         private Text _goldText;
         private Text _floorText;
         private RectTransform _relicRow;
-        private Text _relicTooltip;
 
         private readonly List<string> _shownRelics = new List<string>();
-        private readonly StringBuilder _sb = new StringBuilder(64);
 
         public static TopBarView Create(RectTransform parent, GameApp app)
         {
@@ -50,23 +46,13 @@ namespace Game.UI
             UIFactory.SetAnchored(view._relicRow, new Vector2(0, 0), new Vector2(1, 1),
                 new Vector2(400, 6), new Vector2(-270, -6));
 
-            view._relicTooltip = UIFactory.CreateText(parent, "RelicTooltip", "", 20,
-                TextAnchor.UpperLeft, new Color(1f, 0.95f, 0.8f));
-            UIFactory.SetAnchored(view._relicTooltip.rectTransform, new Vector2(0, 1), new Vector2(0, 1),
-                new Vector2(400, -180), new Vector2(1000, -60));
-            view._relicTooltip.gameObject.SetActive(false);
-
             return view;
         }
 
         public void Refresh(RunContext run, bool visible)
         {
             if (_root.gameObject.activeSelf != visible) _root.gameObject.SetActive(visible);
-            if (!visible || run == null)
-            {
-                if (_relicTooltip.gameObject.activeSelf) _relicTooltip.gameObject.SetActive(false);
-                return;
-            }
+            if (!visible || run == null) return;
 
             _hpText.text = $"♥ {run.Hp} / {run.MaxHp}";
             _goldText.text = $"◆ {run.Gold}";
@@ -109,40 +95,17 @@ namespace Game.UI
                 var label = UIFactory.CreateText(chip, "Ch", ShortLabel(relic.DisplayName), 20);
                 UIFactory.Stretch(label.rectTransform);
 
-                var hover = chip.gameObject.AddComponent<RelicHover>();
-                hover.Init(this, relic.DisplayName, relic.Def != null ? relic.Def.Description : "");
+                // ★ 原本这里挂的是本类私有的 RelicHover + 一个位置写死的 Text。
+                //   现在统一走 TooltipView：全局只有一套样式、一处摆放逻辑，
+                //   遗物 / 关键字 / 状态 / 意图 / 药水不会长出五种不同的提示框。
+                TooltipTarget.Attach(chip.gameObject, new StaticTooltipSource(
+                    relic.DisplayName,
+                    relic.Def != null ? relic.Def.Description : "",
+                    TooltipContent.KeywordAccent));
             }
         }
 
         private static string ShortLabel(string name)
             => string.IsNullOrEmpty(name) ? "?" : name.Substring(0, 1);
-
-        internal void ShowTooltip(string title, string body)
-        {
-            _sb.Clear();
-            _sb.Append("【").Append(title).Append("】\n").Append(body);
-            _relicTooltip.text = _sb.ToString();
-            _relicTooltip.gameObject.SetActive(true);
-        }
-
-        internal void HideTooltip() => _relicTooltip.gameObject.SetActive(false);
-
-        /// <summary>遗物图标的悬停提示。</summary>
-        private class RelicHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
-        {
-            private TopBarView _owner;
-            private string _title;
-            private string _body;
-
-            public void Init(TopBarView owner, string title, string body)
-            {
-                _owner = owner;
-                _title = title;
-                _body = body;
-            }
-
-            public void OnPointerEnter(PointerEventData e) => _owner.ShowTooltip(_title, _body);
-            public void OnPointerExit(PointerEventData e) => _owner.HideTooltip();
-        }
     }
 }

@@ -21,10 +21,10 @@ MonoBehaviour:
   Description: "\u56DE\u5408\u7ED3\u675F\u56DE\u590D {stacks} \u70B9\u751F\u547D\uFF0C\u7136\u540E\u5C42\u6570
     -1\u3002"
   Behaviours:
-  - rid: 1041046769074962566
+  - rid: 1041046769074962733
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962566
+    - rid: 1041046769074962733
       type: {class: RegenerateBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data: 

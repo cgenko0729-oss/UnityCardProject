@@ -18,12 +18,12 @@ MonoBehaviour:
   Rarity: 3
   Description: "\u6253\u51FA\u7684\u6280\u80FD\u724C\u6D17\u56DE\u62BD\u724C\u5806\uFF0C\u800C\u4E0D\u662F\u8FDB\u5165\u5F03\u724C\u5806\u3002"
   Behaviours:
-  - rid: 1041046769074962528
+  - rid: 1041046769074962695
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962528
+    - rid: 1041046769074962695
       type: {class: CardDestinationBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         CardType: 1

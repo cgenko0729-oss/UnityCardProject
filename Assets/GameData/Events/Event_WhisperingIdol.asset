@@ -26,8 +26,8 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u4F60\u62FF\u5230\u4E86\u60F3\u8981\u7684\u4E1C\u897F\u3002\u67D0\u79CD\u4E1C\u897F\u4E5F\u4F4F\u8FDB\u4E86\u4F60\u7684\u724C\u7EC4\u3002"
     Effects:
-    - rid: 1041046769074962580
-    - rid: 1041046769074962581
+    - rid: 1041046769074962747
+    - rid: 1041046769074962748
     EndsEvent: 1
   - Text: "\u63A0\u593A\u795E\u50CF\uFF08\u83B7\u5F97\u91D1\u5E01\uFF09"
     Condition:
@@ -38,8 +38,8 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u77F3\u50CF\u788E\u88C2\u65F6\uFF0C\u90A3\u4E2A\u58F0\u97F3\u7B11\u4E86\u3002"
     Effects:
-    - rid: 1041046769074962582
-    - rid: 1041046769074962583
+    - rid: 1041046769074962749
+    - rid: 1041046769074962750
     EndsEvent: 1
   - Text: "\u6342\u4F4F\u8033\u6735\u8D70\u5F00"
     Condition:
@@ -55,7 +55,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962580
+    - rid: 1041046769074962747
       type: {class: AddCardRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Card: {fileID: 0}
@@ -64,7 +64,7 @@ MonoBehaviour:
         Count: 3
         Upgraded: 0
         PlayerChooses: 1
-    - rid: 1041046769074962581
+    - rid: 1041046769074962748
       type: {class: AddCardRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Card: {fileID: 11400000, guid: d5e36ec9faf142446bc08be992705b09, type: 2}
@@ -73,11 +73,11 @@ MonoBehaviour:
         Count: 1
         Upgraded: 0
         PlayerChooses: 0
-    - rid: 1041046769074962582
+    - rid: 1041046769074962749
       type: {class: GoldRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 120
-    - rid: 1041046769074962583
+    - rid: 1041046769074962750
       type: {class: AddCardRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Card: {fileID: 11400000, guid: e6325114628088e4891c8b768f6786a3, type: 2}

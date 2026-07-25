@@ -30,12 +30,16 @@
 3. 菜单 `Tools/卡牌游戏/4. 创建完整流程场景` → 生成并打开 `Assets/Scenes/Main.unity`。
 4. 按 Play → 主菜单 → 开始新游戏 → 地图 → 一路打到 Boss。
    - 地图：点亮的节点可以进入；⚔ 战斗 / ☠ 精英 / ♨ 休息 / ◆ 商店 / ？事件 / ▣ 宝箱 / 王 首领
-   - 战斗：点卡牌 → 需要目标的卡进入选择态 → 点敌人出牌；右键 / Esc 取消；空格 或 E 结束回合
+   - 战斗出牌有两条路，都能用：
+     - **拖拽（推荐）**：需要目标的牌拖起来会举到半空并拉出一条箭头，把箭头指到敌人身上松手；
+       不需要目标的牌跟着鼠标走，拖过屏幕下方那条「松手出牌」的白线松手即出。
+     - **点击**：点卡牌 → 需要目标的卡进入选择态 → 点敌人出牌。
+   - 右键 / Esc 取消（牌、药水、正在进行的拖拽一起取消）；空格 或 E 结束回合
    - 战斗结束后要点「继续」才推进流程（等表现事件播完，否则看不到致命一击）
    - 想复现某一局：选中 `GameApp`，把 `Fixed Seed` 改成非 0
 5. 只调试单场战斗：菜单 `Tools/卡牌游戏/2. 创建战斗测试场景` → `Battle.unity`，
    选中 `BattleBootstrap` 改 `Encounter Id`。
-6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **164/164 通过**）。
+6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **166/166 通过**）。
 7. 校验内容与架构规则：菜单 `Tools/卡牌游戏/3. 校验内容与架构规则`（应为 0 错误 0 警告）。
    CI / 命令行用 `-executeMethod Game.Editor.ContentValidator.ValidateBatch`，有错误时退出码为 1。
 
@@ -59,11 +63,15 @@
 | 阶段 5 存档与内容 | ⬜ 未开始 | SaveSystem / MetaSave / 内容量产 / 自动对战模拟器 |
 | 阶段 6 动画音效打磨 | ⬜ 未开始 | DOTween / 音效 / 本地化 |
 
-**当前代码规模**：`Assets/Game/` 下 96 个 .cs 文件；测试 11 个文件 164 个用例。
-**内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水。
+**当前代码规模**：`Assets/Game/` 下 100 个 .cs 文件；测试 12 个文件 166 个用例。
+**内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水、5 个关键字。
 
-> ⚠️ **新会话第一件事**：如果 `Assets/GameData/Potions/` 不存在或卡池不足 57 张，
-> 说明内容资产还没生成，先跑菜单 `Tools/卡牌游戏/1. 生成示例内容`。
+> ⚠️ **新会话第一件事**：如果 `Assets/GameData/Potions/` 或 `Assets/GameData/Keywords/` 不存在、
+> 或卡池不足 57 张，说明内容资产还没生成，先跑菜单 `Tools/卡牌游戏/1. 生成示例内容`。
+>
+> `GameData/Keywords/` 是第六次会话新增的（5 个 `KeywordDefinition`）。**缺了它不会报错**，
+> 只是「消耗 / 保留 / 固有 / 虚无 / 不可打出」的悬停解释静默消失——
+> `Tools/卡牌游戏/3. 校验内容与架构规则` 会把这种情况报成警告。
 
 ---
 
@@ -75,9 +83,11 @@ Assets/
 │   ├── Game.Runtime.asmdef
 │   ├── Core/        Rng, GameDatabase, EncounterDefinition, RunContext,
 │   │                RunManager, RewardGenerator, ShopStock, ContentPicker
-│   ├── Cards/       CardEnums, CardDefinition, CardInstance, DeckController
+│   ├── Cards/       CardEnums, CardDefinition, CardInstance, DeckController,
+│   │                KeywordDefinition                                    ← 第六次会话
 │   ├── Effects/     CardEffect, EffectContext, EffectValue, EffectCondition,
-│   │                TargetSelector(+TargetResolver), EffectResolver
+│   │                TargetSelector(+TargetResolver), EffectResolver,
+│   │                EffectTree（效果树的唯一递归遍历入口，见铁律 22）
 │   │   └── Impl/    Damage, Block, Draw, Energy, ApplyStatus, Heal, Discard, Exhaust,
 │   │                AddCard, ModifyCardCost ｜ 组合子: Repeat, Conditional, RandomPick, Delayed
 │   ├── Units/       BattleUnit
@@ -94,6 +104,8 @@ Assets/
 │   │   └── Impl/    Resource / Deck / Combinator 三组共 11 个局外效果
 │   ├── Events/      EventDefinition                                       ← 阶段 4
 │   ├── UI/          Game.UI.asmdef, UIFactory, InputCompat, CardView, UnitView,
+│   │                HandFanLayout, TargetArrowView,                    ← 阶段 6 预支
+│   │                Tooltip(+TooltipView/TooltipContent),                ← 阶段 6 预支
 │   │                FloatingText, BattlePresenter, BattleScreen, BattleBootstrap,
 │   │                GameApp, ScreenBase, TopBarView, MapScreen(+MapNodeView),
 │   │                BattleHostScreen, RewardScreen, ShopScreen, EventScreen,
@@ -169,7 +181,7 @@ Assets/
 
 | # | 问题 | 位置 | 说明 |
 |---|---|---|---|
-| 1 | **手牌 UI 全量重建** | `BattleScreen.RefreshHandViews` | 手牌一变就销毁重建所有 CardView，做不了抽牌/出牌动画（阶段 6 的前置改动）。 |
+| ~~1~~ | ~~**手牌 UI 全量重建**~~ | `BattleScreen.RefreshHandViews` | ✅ 第五次会话已修：按 Uid 增量复用 + `CardView` 自己插值。 |
 | 2 | **每帧描述重算的 GC** | `CardInstance.GetDescription` | 每帧每张手牌 new 一个 `EffectContext` + 若干字符串。需要按「依赖指纹」缓存。 |
 | 3 | 文案硬编码 | UI 各处 | 本地化仍未引入，越晚做迁移成本越高。 |
 | 4 | 无召唤机制 | `BattleController.EnemyTurn` | 索引遍历 `AllUnits`，战斗中加入新单位会出问题；`BattleScreen` 也只在 Bind 时建 UnitView。 |
@@ -194,6 +206,65 @@ Assets/
     否则会出现在战斗奖励三选一和商店里。
 22. **`ContentValidator` 里凡是扫效果树的检查都必须递归进四个组合子**，
     否则「重复 3 次造成伤害」这种正常卡会被误报。
+
+---
+
+## 六之四、2026-07-25 第五次会话新增的铁律（手牌交互）
+
+23. **一张牌的位姿只能有一个出口。**
+    位置 / 角度 / 缩放一律由 `BattleScreen.LayoutHand` 写进 `CardView.SetLayoutTarget`，
+    再由 `CardView.Update` 插值。`CardView.Refresh` 只许改颜色和文字——
+    它每帧被调用，一旦在那里也写 `localScale`，就会和插值每帧对着打，缩放永远到不了目标值。
+
+24. **`_handArea` 必须建在能量球 / 药水栏 / 日志 / 结束回合按钮之后**（uGUI 的遮挡顺序就是兄弟顺序），
+    否则拖起来的牌会钻到 HUD 底下。代价是遮挡关系反过来了：
+    **牌一旦压到「结束回合」按钮上就会吃掉它的点击**，所以 `HandWidth` 与按钮位置是耦合的，
+    改任一边都要重算另一边（推导写在 `HandWidth` 的注释里）。
+
+25. **拖拽状态必须能自己收，不能只依赖 `OnEndDrag`。**
+    被拖的 `CardView` 可能在拖拽途中被销毁（战斗结束清手牌、某个效果把这张牌移出手牌），
+    对象一死 EventSystem 就再也不会发 `OnEndDrag`，界面会永久卡在拖拽态。
+    `UpdateDragVisuals` 每帧检查 `_dragCard` 是否还活着，是唯一的兜底。
+
+26. **`OnCardEndDrag` 里必须先复位拖拽状态、再调 `TryPlayCard`。**
+    出牌可能同步挂起并弹出选牌面板（铁律 16），那一刻界面必须已经不在拖拽态，
+    否则箭头会浮在面板上，而且拖拽状态再没有机会复位。
+
+27. **悬停判定区要比卡面往下多伸一块。**
+    pivot 在底边、悬停会抬牌，若判定区就是卡面本身，光标停在卡面下缘时会
+    「抬起 → 牌底离开光标 → 判定移出 → 落回 → 再进入」，每帧抖动。
+    `CardView` 的 `HoverPad` 就是为这个存在的，别当成多余节点删掉。
+
+28. **「当前悬停的是哪张牌」必须每帧扫，不能靠 `OnPointerEnter/Exit` 通知维护一个字段。**
+    进 / 出事件的先后顺序不由我们控制，`Enter(B)` 先于 `Exit(A)` 时字段会被清成 null。
+
+---
+
+## 六之五、2026-07-26 第六次会话新增的铁律（Tooltip）
+
+29. **Tooltip 的词条一律从数据推导，不做文案子串匹配。**
+    「这张牌牵扯到哪些状态」走 `EffectTree.CollectStatuses` 扫效果树；
+    「有哪些关键字」走 `CardKeyword` 的位。
+    拿描述文本去和状态名做子串匹配看起来更省事，但文案换个措辞
+    （「令目标变得脆弱」里没有「易伤」二字）词条就静默消失，而且没人会发现。
+
+30. **凡是「悬停才出现」的 UI，都必须在 `OnDisable` 里取消。**
+    光标停在上面时对象被销毁（打出这张牌、状态掉光、切界面），
+    `OnPointerExit` **永远不会来**，提示框会一直挂在屏幕上指着一个不存在的东西。
+    `TooltipTarget.OnDisable` 是唯一可靠的挂钩点。
+
+31. **`TooltipView.Suppressed` 是全局静态开关，谁打开谁负责在 `OnDisable` 里放开。**
+    `BattleScreen` 在拖拽时打开它；战斗界面若在拖拽途中被销毁而没放开，
+    **整个游戏的 tooltip 会永久哑掉，并且不报任何错**。
+
+32. **需要悬停的 `Text` 必须显式打开 `raycastTarget`。**
+    `UIFactory.CreateText` 默认把它关掉（文字不该吃点击），
+    忘了打开的话挂上去的 `TooltipTarget` 永远收不到 `OnPointerEnter`，
+    表现是「这个位置就是没反应」，查起来毫无线索。
+
+33. **两个列表「按下标一一对应」的前提是构建时没有 `continue`。**
+    `UnitView` 的状态小牌子会跳过 `Def == null` 的状态，一跳过下标就整体错位，
+    「易伤 2」会被写到「虚弱」的牌子上。一律另存一份 Id 列表按 Id 反查。
 
 ---
 
@@ -462,3 +533,123 @@ Assets/
 已补 2 个用例：`InteractiveRun_SuspendsWithoutAnyUiInvolvement` / `NonInteractiveRun_KeepsTheAutomaticSelector`。
 
 **验证**：EditMode **166/166 通过**。生成器产出的 57 张卡 / 10 瓶药水 / 7 个事件资产已提交。
+
+### 2026-07-25 — 第五次会话：手牌扇形排列 + 拖拽出牌
+
+对应 `Docs/Ideas-Backlog.md` 的 **C5**（顺带做掉 **C3** / 原「已知遗留 #1」）。
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 拖拽的目标指定方式 | **A. 尖塔式箭头**（需目标的牌举起来拉贝塞尔箭头；不需目标的牌跟手、拖过出牌线松手） |
+| 点击出牌 | 保留，与拖拽双轨并存 |
+| 手牌视图 | 改成增量复用 + 插值归位（= 顺手修掉遗留 #1） |
+| EditMode 测试 | 不写（纯手感代码，靠 Play 模式验证；166 个既有用例保持不变） |
+
+尖塔式方案与 `Docs/Architecture/04-完整执行流程.md` 第 5 节两年前写下的规划一致
+（`CardView.OnBeginDrag` → SingleEnemy 画箭头 / 其余拖到出牌区），本次算是把它兑现。
+
+**做了什么**
+
+1. **`HandFanLayout`（新）**：扇形排布的纯计算。
+   刻意**没用**圆周公式——纯圆周的横向间距由半径决定，手牌数一变间距就跟着变，
+   很难同时满足「2 张牌不要离太远」和「12 张牌不要溢出屏幕」。
+   改成「横向按间距线性排 + 纵向抛物线下沉 + 倾角按归一化位置线性插值」，
+   看起来和圆弧没区别，但三条曲线各自独立可调。牌多时自动压缩间距。
+2. **`TargetArrowView`（新）**：`MaskableGraphic` 子类，在 `OnPopulateMesh` 里自己生成
+   「由细到粗的二次贝塞尔带 + 三角箭头」。不用 `LineRenderer`（世界空间的，和 Overlay Canvas 对不上），
+   也不用「沿曲线摆一串小圆点 Image」（几十个 Graphic 每帧改位置，重建开销远大于一次 mesh）。
+   指到合法目标时从黄色变红色。
+3. **`CardView`**：加 `IBeginDrag/IDrag/IEndDragHandler`；位姿改成「BattleScreen 写目标、自己指数插值」；
+   pivot 移到底边中点（扇形要绕握牌那端转）；加 `HoverPad` 悬停判定垫。
+4. **`BattleScreen`**：
+   - `RefreshHandViews` 改增量复用（`Uid → CardView` 字典），新牌从抽牌堆位置飞入；
+   - `LayoutHand` 用 `HandFanLayout` 算目标位姿，并处理悬停 / 选中 / 拖拽三种抬牌；
+   - 兄弟顺序 = 遮挡顺序，悬停/拖拽那张提到最前，只在「谁在最前」变化时才重排；
+   - 新增拖拽状态机（`DragMode.Aim` / `Free`）、出牌线、箭头、目标锁定；
+   - 右键 / Esc / 空格统一走 `CancelTargeting()`（牌、药水、拖拽一起取消）。
+
+**实施中发现并修正的 3 个真实问题**
+
+| # | 问题 | 修正 |
+|---|---|---|
+| 1 | `_handArea` 为了不被 HUD 盖住而移到能量球/日志/按钮**之后**建，遮挡关系随之反转——手牌 12 张时最右那张会压在「结束回合」按钮上并**吃掉它的点击** | `HandWidth` 从 1600 收到 1360，让最外侧牌的右边缘停在按钮左边缘前 20px；推导过程写进常量注释，并立为铁律 24 |
+| 2 | `TargetArrowView` 的公开字段名 `Start` 与 `UIBehaviour.Start()` 撞名（编译器 CS0108 警告） | 改名 `From` / `To`。工程要求 0 警告，这条不能留 |
+| 3 | 「当前悬停的是哪张牌」原本靠 `OnPointerEnter/Exit` 通知维护字段，而进/出事件的先后顺序不受我们控制 | 改成 `LayoutHand` 每帧扫 `CardView.Hovered`，与事件顺序无关（铁律 28） |
+
+另外两处是写的时候就避开的坑，记在铁律 25 / 26 / 27：拖拽中卡牌被销毁时 `OnEndDrag` 不会来、
+出牌前必须先复位拖拽状态（否则会和挂起的选牌面板打架）、悬停判定要留垫子防抖。
+
+**验证**
+
+- 四个程序集 **0 error 0 warning**（Unity 编辑器占锁，用 VS2022 的 MSBuild 编译 Unity 生成的 csproj）
+- `Game.Runtime` **一行未改**，`Assets/Tests/` 未改 → 166 个 EditMode 用例不受影响
+- ⚠️ **手感本身只能在 Play 模式下确认**：扇形弧度 / 倾角 / 插值速度 / 举牌位高度 / 出牌线高度
+  全部是纯表现参数，EditMode 测不到。要调的话集中在两处：
+  `HandFanLayout` 顶部的 5 个常量、`BattleScreen` 的 `HoverLift` / `SelectedLift` / `PlayLineY` / `AimSlot`，
+  以及 `CardView.FollowSpeed`（越大越「硬」）。
+
+### 2026-07-26 — 第六次会话：关键字 / 状态 Tooltip
+
+对应 `Docs/Ideas-Backlog.md` 的 **C2**。
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 覆盖范围 | **全都要**：手牌 / 单位面板上的状态 / 敌人意图 / 遗物栏 / 药水栏 |
+| 「这张牌涉及哪些词条」怎么定位 | **扫效果树 + 整牌悬停**（否决了文案子串匹配与逐词热区） |
+| 触发与定位 | 悬停 0.25 秒后弹，面板贴着目标出现并自动避开屏幕边缘 |
+| 关键字文案存哪 | **新建 `KeywordDefinition` SO**（否决了 UI 层静态表） |
+
+> ⚠️ **必须手动跑一次 `Tools/卡牌游戏/1. 生成示例内容`**，
+> 否则 `Assets/GameData/Keywords/` 下的 5 个资产不存在，关键字的悬停解释会静默消失。
+> 校验器会把这种情况报成警告。
+
+**做了什么**
+
+1. **`EffectTree`（新，Runtime）**：效果树的唯一递归遍历入口。
+   铁律 22 原本只是一句「记得递归进四个组合子」，靠人记；现在递归收在一个类里，
+   将来加组合子只要改这一处，而不用去翻所有扫效果树的调用点。
+   目前提供 `CollectStatuses`（Tooltip 用它回答「这张牌牵扯到哪些状态」）。
+2. **`KeywordDefinition`（新，Runtime）** + `GameDatabase.Keywords` / `GetKeyword(CardKeyword)`。
+   索引用**枚举位**当键而不是字符串 Id，且只收单一位的定义
+   （`CardKeyword` 是 `[Flags]`，组合值按位反查永远匹配不到，收进来只会制造一个查不出的谜）。
+3. **`StatusDefinition.DescribeGeneric()`**：`{stacks}` 渲染成 `X`。
+   卡牌 tooltip 用它——那时玩家还没把状态挂上去，退而用 `Describe(1)` 会写出
+   「回合结束回复 1 点生命」这种看起来很确定、其实是编的数字。
+4. **通用 tooltip（新，UI）**：`TooltipEntry` / `ITooltipSource` / `TooltipTarget` / `TooltipView` / `TooltipContent`。
+   `TooltipView` 自建一个 `sortingOrder = 5000` 的独立 Canvas 并**关掉 GraphicRaycaster**：
+   - 独立 Canvas → 战斗界面、局外界面、选牌模态框、单场战斗调试场景（那里没有 GameApp）
+     全都不用再回答一次「该插在哪一层之后」；
+   - 关掉射线 → 提示框弹出的位置紧挨着玩家正要点的东西，能吃射线就一定会挡到点击。
+5. **接线**：`CardView` 实现 `ITooltipSource`；`UnitView` 把原来那一整段状态文字
+   **拆成逐条可悬停的小牌子**，并给意图加悬停；`TopBarView` 的遗物从自带的 `RelicHover`
+   + 位置写死的 Text **迁到同一套**（全局只剩一种提示框样式）；药水按钮加悬停。
+6. **生成器 / 校验器**：产出 5 个 `KeywordDefinition`；新增 `CheckKeywords`——
+   检查单一位、无重复、有文案，以及**卡池里用到的每个关键字位都配了定义**。
+
+**实施中发现并修正的 4 个真实问题**
+
+| # | 问题 | 修正 |
+|---|---|---|
+| 1 | `EffectTree` 最初用一个共享的静态 `List<CardEffect>` 中转单个子效果，「RandomPick 的选项又是一个 RandomPick」时会自己清掉自己正在遍历的列表 | 递归改成以**单个效果**为单位，彻底不需要中转 buffer |
+| 2 | `UnitView` 刷新状态牌子时按下标与 `Unit.Statuses` 对齐，但构建时会 `continue` 跳过 `Def == null` 的状态——一跳过下标就整体错位，「易伤 2」会写到「虚弱」的牌子上 | 另存一份 `_chipIds`，按 Id 反查（立为铁律 33） |
+| 3 | `TooltipView.Place` 用 `corners[0]`/`corners[2]` 当左下/右上，而扇形手牌是**带旋转**的，旋转后「左下角」未必还是 x 最小的点 | 取四个角的 min/max 算真正的包围盒 |
+| 4 | `TooltipContent` 缺 `using Game.Units;`（编译器抓出） | 补上 |
+
+另外三处是写的时候就避开的坑，记在铁律 30 / 31 / 32：
+悬停对象被销毁时 `OnPointerExit` 不会来、
+全局 `Suppressed` 开关必须由打开者在 `OnDisable` 里放开、
+`UIFactory.CreateText` 默认关闭 `raycastTarget`（意图文字必须手动打开）。
+
+**验证**
+
+- 四个程序集 **0 error 0 warning**（Unity 编辑器占锁，用 VS2022 的 MSBuild 编译 Unity 生成的 csproj）
+- `Assets/Tests/` 未改；Runtime 侧的改动都是**新增**（`EffectTree` / `KeywordDefinition` /
+  `GameDatabase.Keywords` / `StatusDefinition.DescribeGeneric`），没有改动既有行为，
+  166 个 EditMode 用例的断言对象一个未动
+- ⚠️ **尚未在 Play 模式下点过**。首次试玩重点看四处：
+  手牌悬停 0.25 秒后是否弹、单位面板的状态小牌子排版是否溢出得难看、
+  敌人意图能否悬停（`raycastTarget` 那条）、遗物提示是否还在

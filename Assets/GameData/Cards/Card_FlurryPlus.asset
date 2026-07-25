@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u9020\u6210 4 \u70B9\u4F24\u5BB3\uFF0C\u91CD\u590D {0} \u6B21\u3002"
   Effects:
-  - rid: 1041046769074962515
+  - rid: 1041046769074962682
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962515
+    - rid: 1041046769074962682
       type: {class: RepeatEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -46,8 +46,8 @@ MonoBehaviour:
           Min: 0
           Max: 0
         Effects:
-        - rid: 1041046769074962516
-    - rid: 1041046769074962516
+        - rid: 1041046769074962683
+    - rid: 1041046769074962683
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

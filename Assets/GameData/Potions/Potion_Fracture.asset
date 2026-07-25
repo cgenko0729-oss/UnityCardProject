@@ -20,12 +20,12 @@ MonoBehaviour:
     {0} \u6B21\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962494
+  - rid: 1041046769074962661
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962494
+    - rid: 1041046769074962661
       type: {class: RepeatEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -42,8 +42,8 @@ MonoBehaviour:
           Min: 0
           Max: 0
         Effects:
-        - rid: 1041046769074962495
-    - rid: 1041046769074962495
+        - rid: 1041046769074962662
+    - rid: 1041046769074962662
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

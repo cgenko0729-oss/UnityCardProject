@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u62A4\u7532\u4E0D\u518D\u4E8E\u56DE\u5408\u5F00\u59CB\u65F6\u6D88\u5931\u3002"
   Effects:
-  - rid: 1041046769074962647
+  - rid: 1041046769074962813
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962647
+    - rid: 1041046769074962813
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

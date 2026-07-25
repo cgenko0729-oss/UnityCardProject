@@ -19,12 +19,12 @@ MonoBehaviour:
   DescriptionTemplate: "\u5BF9\u4E00\u4E2A\u654C\u4EBA\u65BD\u52A0 {0} \u5C42\u4E2D\u6BD2\u3002"
   TargetKind: 1
   Effects:
-  - rid: 1041046769074962522
+  - rid: 1041046769074962689
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962522
+    - rid: 1041046769074962689
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

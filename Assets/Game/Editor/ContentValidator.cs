@@ -117,8 +117,77 @@ namespace Game.Editor
             warnings += CheckEvents(sb);
             warnings += CheckRewardPool(sb);
             warnings += CheckDuplicateIds(sb);
+            warnings += CheckKeywords(sb);
 
             return errors;
+        }
+
+        // ============================================================ 关键字定义
+
+        /// <summary>
+        /// 关键字定义的完整性。
+        ///
+        /// ★ 缺一个定义不会报任何错，只是那个关键字的悬停解释**静默消失**——
+        ///   而 tooltip 本来就是「不弹就是没内容」的东西，玩家和开发者都看不出少了什么。
+        ///   这类「失败是沉默的」缺口必须由校验器兜住。
+        /// </summary>
+        private static int CheckKeywords(StringBuilder sb)
+        {
+            int warnings = 0;
+
+            var defs = LoadAll<KeywordDefinition>();
+            var byBit = new Dictionary<CardKeyword, KeywordDefinition>();
+
+            foreach (var def in defs)
+            {
+                if (!def.IsSingleBit)
+                {
+                    // CardKeyword 是 [Flags]。写成组合值的定义按位反查永远匹配不到，
+                    // 于是它「明明存在却查不出来」，是最难查的那种配置错误。
+                    sb.AppendLine($"[警告] 关键字定义 {PathOf(def)} 的 Keyword = {def.Keyword}，" +
+                                  "不是单一位。每个资产只能描述一个关键字。");
+                    warnings++;
+                    continue;
+                }
+
+                if (byBit.TryGetValue(def.Keyword, out var other))
+                {
+                    sb.AppendLine($"[警告] 关键字 {def.Keyword} 有两份定义：" +
+                                  $"{PathOf(other)} 与 {PathOf(def)}。");
+                    warnings++;
+                    continue;
+                }
+
+                byBit[def.Keyword] = def;
+
+                if (string.IsNullOrWhiteSpace(def.DisplayName))
+                {
+                    sb.AppendLine($"[警告] 关键字定义 {PathOf(def)} 没有 DisplayName。");
+                    warnings++;
+                }
+                if (string.IsNullOrWhiteSpace(def.Description))
+                {
+                    sb.AppendLine($"[警告] 关键字定义 {PathOf(def)} 没有 Description，" +
+                                  "悬停时会弹出一个空白词条。");
+                    warnings++;
+                }
+            }
+
+            // 卡池里真正用到的每个位都必须有定义
+            var used = CardKeyword.None;
+            foreach (var card in LoadAll<CardDefinition>()) used |= card.Keywords;
+
+            foreach (CardKeyword bit in Enum.GetValues(typeof(CardKeyword)))
+            {
+                if (bit == CardKeyword.None || (used & bit) == 0) continue;
+                if (byBit.ContainsKey(bit)) continue;
+
+                sb.AppendLine($"[警告] 关键字 {bit} 被卡牌用到，但没有对应的 KeywordDefinition 资产，" +
+                              "悬停时不会有任何解释。请跑一次「1. 生成示例内容」。");
+                warnings++;
+            }
+
+            return warnings;
         }
 
         // ============================================================ 无状态检查

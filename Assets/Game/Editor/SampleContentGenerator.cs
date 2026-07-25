@@ -30,6 +30,7 @@ namespace Game.Editor
         private const string RelicDir = RootDir + "/Relics";
         private const string EventDir = RootDir + "/Events";
         private const string PotionDir = RootDir + "/Potions";
+        private const string KeywordDir = RootDir + "/Keywords";
 
         private static readonly Dictionary<string, StatusDefinition> Statuses = new Dictionary<string, StatusDefinition>();
         private static readonly Dictionary<string, CardDefinition> Cards = new Dictionary<string, CardDefinition>();
@@ -39,17 +40,20 @@ namespace Game.Editor
         private static readonly Dictionary<string, EventDefinition> Events = new Dictionary<string, EventDefinition>();
         private static readonly Dictionary<string, Potions.PotionDefinition> PotionDefs =
             new Dictionary<string, Potions.PotionDefinition>();
+        private static readonly List<KeywordDefinition> KeywordDefs = new List<KeywordDefinition>();
 
         [MenuItem("Tools/卡牌游戏/1. 生成示例内容", priority = 1)]
         public static void Generate()
         {
             Statuses.Clear(); Cards.Clear(); Enemies.Clear(); Encounters.Clear();
-            Relics.Clear(); Events.Clear(); PotionDefs.Clear();
+            Relics.Clear(); Events.Clear(); PotionDefs.Clear(); KeywordDefs.Clear();
 
             EnsureDir(RootDir); EnsureDir(StatusDir); EnsureDir(CardDir); EnsureDir(EnemyDir);
             EnsureDir(EncounterDir); EnsureDir(RelicDir); EnsureDir(EventDir); EnsureDir(PotionDir);
+            EnsureDir(KeywordDir);
 
             CreateStatuses();
+            CreateKeywordDefinitions();
             CreateCards();
             // ★ 必须在 CreateEnemies 之前：敌人的「塞牌」行动要引用这些卡的资产。
             SampleContentCurses.CreateCurseAndStatusCards(Statuses, Cards);
@@ -68,7 +72,7 @@ namespace Game.Editor
 
             Debug.Log($"[SampleContent] 生成完成：{Statuses.Count} 个状态、{Cards.Count} 张卡、" +
                       $"{Enemies.Count} 个敌人、{Encounters.Count} 场战斗、{Relics.Count} 个遗物、" +
-                      $"{Events.Count} 个事件、{PotionDefs.Count} 瓶药水。" +
+                      $"{Events.Count} 个事件、{PotionDefs.Count} 瓶药水、{KeywordDefs.Count} 个关键字。" +
                       $"数据库：{AssetDatabase.GetAssetPath(db)}");
             Selection.activeObject = db;
         }
@@ -134,6 +138,43 @@ namespace Game.Editor
             so.Behaviours = new List<StatusBehaviour>(behaviours);
             EditorUtility.SetDirty(so);
             Statuses[id] = so;
+            return so;
+        }
+
+        // ==================================================================== 关键字
+
+        /// <summary>
+        /// 五个卡牌关键字的显示名与解释文案。
+        ///
+        /// ★ 这些文案是 tooltip 唯一的来源。少一个资产，对应关键字的悬停解释就静默消失，
+        ///   所以 ContentValidator 会检查「卡池里用到的每个关键字位都配了定义」。
+        /// </summary>
+        private static void CreateKeywordDefinitions()
+        {
+            MakeKeyword(CardKeyword.Exhaust, "消耗",
+                "打出后不进弃牌堆，而是进入消耗堆。本场战斗剩下的时间里都不会再抽到它。");
+
+            MakeKeyword(CardKeyword.Retain, "保留",
+                "回合结束时不会被弃掉，会留在手上带进下一回合。");
+
+            MakeKeyword(CardKeyword.Innate, "固有",
+                "战斗开始的第一回合必定在你的起始手牌里。");
+
+            MakeKeyword(CardKeyword.Ethereal, "虚无",
+                "回合结束时如果还在手上，直接被消耗掉，而不是弃掉。");
+
+            MakeKeyword(CardKeyword.Unplayable, "不可打出",
+                "无法主动打出。只能靠其他效果把它弃掉、消耗掉或转化掉。");
+        }
+
+        private static KeywordDefinition MakeKeyword(CardKeyword keyword, string name, string desc)
+        {
+            var so = LoadOrCreate<KeywordDefinition>($"{KeywordDir}/Keyword_{keyword}.asset");
+            so.Keyword = keyword;
+            so.DisplayName = name;
+            so.Description = desc;
+            EditorUtility.SetDirty(so);
+            KeywordDefs.Add(so);
             return so;
         }
 
@@ -759,6 +800,7 @@ namespace Game.Editor
             db.Relics = new List<RelicDefinition>(Relics.Values);
             db.Events = new List<EventDefinition>(Events.Values);
             db.Potions = new List<Potions.PotionDefinition>(PotionDefs.Values);
+            db.Keywords = new List<KeywordDefinition>(KeywordDefs);
             db.BuildIndex();
             EditorUtility.SetDirty(db);
             return db;

@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962631
+    - rid: 1041046769074962798
   - Name: "\u97AD\u7B1E"
     Intent: 1
     Weight: 100
@@ -44,7 +44,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962632
+    - rid: 1041046769074962799
   FixedSequence: 00000000
   LoopSequence: 0
   PhaseHpThresholds: 
@@ -52,7 +52,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962631
+    - rid: 1041046769074962798
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -69,7 +69,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962632
+    - rid: 1041046769074962799
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

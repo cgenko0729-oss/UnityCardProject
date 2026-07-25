@@ -25,12 +25,12 @@ MonoBehaviour:
     1 \u5C42\u865A\u5F31\u3002"
   Effects: []
   InHandEndOfTurnEffects:
-  - rid: 1041046769074962640
+  - rid: 1041046769074962807
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962640
+    - rid: 1041046769074962807
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

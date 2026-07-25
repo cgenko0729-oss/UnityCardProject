@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using Game.Battle;
 using Game.Cards;
+using Game.Core;
 using Game.Potions;
 using Game.Units;
 using UnityEngine;
@@ -18,6 +19,9 @@ namespace Game.UI
     {
         private BattleController _controller;
         private BattleContext Ctx => _controller != null ? _controller.Ctx : null;
+
+        /// <summary>内容数据库。Tooltip 靠它按关键字位反查 <see cref="KeywordDefinition"/>。</summary>
+        public GameDatabase Database => Ctx != null && Ctx.Run != null ? Ctx.Run.Database : null;
 
         private BattlePresenter _presenter;
 
@@ -42,6 +46,38 @@ namespace Game.UI
         private readonly StringBuilder _sb = new StringBuilder(512);
 
         private CardView _selected;
+
+        // ---------------- 手牌区几何（全部是 _handArea 的本地坐标）
+
+        /// <summary>
+        /// 手牌区宽度。
+        ///
+        /// ★ 1360 不是随手取的：手牌区现在建在「结束回合」按钮之后（为了拖起来的牌不被 HUD 盖住），
+        ///   于是遮挡关系反过来了——牌只要压到按钮上就会把点击吃掉。
+        ///   最两侧那张牌的中心最远到 (HandWidth − CardWidth) / 2 = 595，加半张牌宽 85 = 680，
+        ///   而按钮左边缘在 1920/2 + 700 = 1660 处，正好留 20 的余量。
+        ///   要加宽手牌区，必须同时把按钮往外挪或把手牌整体压低。
+        /// </summary>
+        private const float HandWidth = 1360f;
+
+        private const float HandAreaBottom = 20f;
+        private const float HandAreaTop = 280f;
+
+        /// <summary>正中那张牌底边的 y。</summary>
+        private const float HandBaseY = 24f;
+
+        /// <summary>悬停抬高量。</summary>
+        private const float HoverLift = 46f;
+
+        /// <summary>点击选中后的抬高量（比悬停更明显，玩家要能分清「我只是划过」和「我选了它」）。</summary>
+        private const float SelectedLift = 72f;
+
+        /// <summary>
+        /// 出牌线的 y。不需要目标的牌只要**牌面中心**越过它，松手就出。
+        /// ★ 判定用牌面中心而不是光标：光标离牌底有一段距离（保留了抓取时的相对位置），
+        ///   用光标判定会出现「线还在牌上方，但已经算越过了」的怪事。
+        /// </summary>
+        private const float PlayLineY = 330f;
 
         // ============================================================ 构建
 
@@ -72,6 +108,7 @@ namespace Game.UI
         {
             _boundCtx = Ctx;
             _intentVersion = -1;
+            ClearHandViews();
             BuildUnitViews();
             if (_presenter != null) _presenter.Init(this, Ctx);
         }
@@ -129,11 +166,6 @@ namespace Game.UI
             UIFactory.SetAnchored(_playerSlot, new Vector2(0, 0.5f), new Vector2(0, 0.5f),
                 new Vector2(60, -100), new Vector2(320, 100));
 
-            // ---- 手牌区
-            _handArea = UIFactory.CreateEmpty(root, "HandArea");
-            UIFactory.SetAnchored(_handArea, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
-                new Vector2(-800, 20), new Vector2(800, 280));
-
             // ---- 能量
             var energyBg = UIFactory.CreatePanel(root, "Energy", new Color(0.85f, 0.7f, 0.2f, 0.9f));
             UIFactory.SetAnchored(energyBg, new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 120), new Vector2(150, 230));
@@ -167,7 +199,26 @@ namespace Game.UI
             _logText = UIFactory.CreateText(logBg, "LogText", "", 18, TextAnchor.LowerLeft);
             UIFactory.Stretch(_logText.rectTransform, 10);
 
-            // ---- 提示
+            // ---- 手牌区
+            //
+            // ★ 刻意建在能量球 / 药水栏 / 日志之后：uGUI 的遮挡顺序就是兄弟顺序，
+            //   建在前面的话，拖起来的牌会钻到这些面板底下去。
+            //   手牌区自己没有 Image，不会挡住任何点击。
+            _handArea = UIFactory.CreateEmpty(root, "HandArea");
+
+            // ★ pivot 必须先设再设 offset：pivot 定在底边中点后，手牌区的本地原点
+            //   就和子节点 anchor(0.5, 0) 的参考点重合，
+            //   于是「屏幕坐标 → 手牌区本地坐标」的结果可以直接当卡牌的 anchoredPosition 用。
+            //   否则默认 pivot 是正中，两套坐标会差半个手牌区高度，出牌线的判定会莫名偏。
+            _handArea.pivot = new Vector2(0.5f, 0f);
+            UIFactory.SetAnchored(_handArea, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
+                new Vector2(-HandWidth * 0.5f, HandAreaBottom), new Vector2(HandWidth * 0.5f, HandAreaTop));
+
+            // ---- 拖拽层（出牌线 + 指向箭头）。在手牌之后，箭头才压得住举起来的那张牌。
+            BuildDragLayer(root);
+
+            // ---- 提示。★ 在手牌与拖拽层之后：抬起 / 举起的牌会侵入这条提示的高度，
+            //      建在前面的话玩家正需要看提示的时候恰好被牌盖住。
             _hintText = UIFactory.CreateText(root, "Hint", "", 24, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
             UIFactory.SetAnchored(_hintText.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
                 new Vector2(-500, 290), new Vector2(500, 340));
@@ -239,9 +290,14 @@ namespace Game.UI
                || Ctx.IsWaitingForSelection
                || (Ctx.Events.Count > 0 && _presenter != null && _presenter.isActiveAndEnabled);
 
+        /// <summary>
+        /// 点击出牌（选中 → 点目标）。★ 与拖拽双轨并存，不是遗留代码：
+        /// 触屏、以及习惯了「先看清再确认」的玩家都需要它，药水栏也是同一套交互。
+        /// </summary>
         public void OnCardClicked(CardView view)
         {
             if (Ctx == null || Ctx.BattleEnded || InputLocked) return;
+            if (_dragMode != DragMode.None) return;
 
             if (_selected == view) { _selected = null; return; }
 
@@ -284,10 +340,20 @@ namespace Game.UI
             _selected = null;
         }
 
+        /// <summary>取消一切「正在指目标」的状态：选中的牌、选中的药水、正在进行的拖拽。</summary>
+        private void CancelTargeting()
+        {
+            _selected = null;
+            _selectedPotion = null;
+            EndDrag();
+            ShowHint("");
+        }
+
         private void OnEndTurnClicked()
         {
             if (Ctx == null || Ctx.BattleEnded || InputLocked) return;
             _selected = null;
+            EndDrag();
             _controller.EndTurn();
         }
 
@@ -296,9 +362,7 @@ namespace Game.UI
             // 取消选择永远允许——即使在播动画，玩家也该能反悔
             if (InputCompat.RightMouseDown || InputCompat.EscapeDown)
             {
-                _selected = null;
-                _selectedPotion = null;
-                ShowHint("");
+                CancelTargeting();
                 return;
             }
 
@@ -306,11 +370,9 @@ namespace Game.UI
             {
                 // ★ 正在选目标时，空格先取消选择而不是直接结束回合，
                 //   否则玩家会莫名其妙地把选好的牌 / 药水丢掉。
-                if (_selected != null || _selectedPotion != null)
+                if (_selected != null || _selectedPotion != null || _dragMode != DragMode.None)
                 {
-                    _selected = null;
-                    _selectedPotion = null;
-                    ShowHint("");
+                    CancelTargeting();
                     return;
                 }
                 OnEndTurnClicked();
@@ -337,6 +399,14 @@ namespace Game.UI
             }
 
             RefreshHandViews();
+
+            // ★ 顺序有讲究：先算拖拽状态（它会写 _dragCardSlot / _aimTarget），
+            //   LayoutHand 才排得出被拖那张牌的位置。
+            UpdateDragVisuals();
+
+            // 正举着一张牌找目标时不该有提示框跳出来碍事
+            TooltipView.Suppressed = _dragMode != DragMode.None;
+
             LayoutHand();
             RefreshCards();
             RefreshPotionBar();
@@ -344,6 +414,33 @@ namespace Game.UI
             RefreshHud();
         }
 
+        /// <summary>Uid → 已经建好的手牌视图。增量复用靠它。</summary>
+        private readonly Dictionary<int, CardView> _viewByUid = new Dictionary<int, CardView>();
+        private readonly List<CardView> _viewBuffer = new List<CardView>();
+        private readonly HashSet<int> _liveUids = new HashSet<int>();
+
+        /// <summary>手牌视图的兄弟顺序是否需要重排。</summary>
+        private bool _orderDirty;
+
+        /// <summary>当前被提到最前面的那张牌（悬停 / 选中 / 拖拽）。</summary>
+        private CardView _frontCard;
+
+        /// <summary>鼠标正悬停的牌。</summary>
+        private CardView _hoveredCard;
+
+        /// <summary>新建手牌视图的起点：抽牌堆信息所在的左下角，牌从那里飞进扇形。</summary>
+        private static readonly Vector2 SpawnSlot = new Vector2(-720f, -20f);
+        private const float SpawnRotation = -28f;
+        private const float SpawnScale = 0.55f;
+
+        /// <summary>
+        /// 手牌视图与 <c>Deck.Hand</c> 对齐。
+        ///
+        /// ★ 增量复用而不是全量重建：原来手牌一变就 Destroy 全部 CardView 再重建，
+        ///   于是打出一张牌之后其余牌是「瞬移」到新的扇形位置的——
+        ///   扇形排列的手感几乎全部来自这段滑动，全量重建等于把它抹掉。
+        ///   顺带这也是抽牌/出牌动画的硬前置（原「已知遗留 #1」）。
+        /// </summary>
         private void RefreshHandViews()
         {
             var hand = Ctx.Deck.Hand;
@@ -356,36 +453,145 @@ namespace Game.UI
             }
             if (!changed) return;
 
-            for (int i = 0; i < _cardViews.Count; i++)
-                if (_cardViews[i] != null) Destroy(_cardViews[i].gameObject);
-            _cardViews.Clear();
-            _handSignature.Clear();
-            _selected = null;
+            _liveUids.Clear();
+            for (int i = 0; i < hand.Count; i++) _liveUids.Add(hand[i].Uid);
 
+            // ---- 回收已经离手的牌
+            for (int i = 0; i < _cardViews.Count; i++)
+            {
+                var v = _cardViews[i];
+                if (v == null) continue;
+                if (v.Card != null && _liveUids.Contains(v.Card.Uid)) continue;
+
+                if (v.Card != null) _viewByUid.Remove(v.Card.Uid);
+                ForgetCardView(v);
+                Destroy(v.gameObject);
+            }
+
+            // ---- 按手牌顺序重排，缺的现建
+            _viewBuffer.Clear();
             for (int i = 0; i < hand.Count; i++)
             {
-                var v = CardView.Create(_handArea, this, hand[i]);
-                var rt = (RectTransform)v.transform;
-                rt.anchorMin = new Vector2(0.5f, 0f);
-                rt.anchorMax = new Vector2(0.5f, 0f);
-                rt.pivot = new Vector2(0.5f, 0f);
-                _cardViews.Add(v);
-                _handSignature.Add(hand[i].Uid);
+                var card = hand[i];
+                if (!_viewByUid.TryGetValue(card.Uid, out var v) || v == null)
+                {
+                    v = CardView.Create(_handArea, this, card);
+                    v.SnapTo(SpawnSlot, SpawnRotation, SpawnScale);
+                    _viewByUid[card.Uid] = v;
+                }
+                _viewBuffer.Add(v);
             }
+
+            _cardViews.Clear();
+            _cardViews.AddRange(_viewBuffer);
+
+            _handSignature.Clear();
+            for (int i = 0; i < hand.Count; i++) _handSignature.Add(hand[i].Uid);
+
+            _orderDirty = true;
         }
 
+        /// <summary>某张牌的视图即将消失：把所有指向它的引用清掉。</summary>
+        private void ForgetCardView(CardView v)
+        {
+            if (_selected == v) _selected = null;
+            if (_hoveredCard == v) _hoveredCard = null;
+            if (_frontCard == v) { _frontCard = null; _orderDirty = true; }
+            if (_dragCard == v) EndDrag();
+        }
+
+        /// <summary>换战斗时把手牌视图整批丢掉——它们属于上一场的 CardInstance。</summary>
+        private void ClearHandViews()
+        {
+            for (int i = 0; i < _cardViews.Count; i++)
+                if (_cardViews[i] != null) Destroy(_cardViews[i].gameObject);
+
+            _cardViews.Clear();
+            _viewByUid.Clear();
+            _handSignature.Clear();
+            _selected = null;
+            _hoveredCard = null;
+            _frontCard = null;
+            EndDrag();
+        }
+
+        /// <summary>
+        /// 算出每张牌的目标位姿。只写「目标」，实际移动由 <see cref="CardView"/> 自己插值。
+        /// </summary>
         private void LayoutHand()
         {
             int n = _cardViews.Count;
             if (n == 0) return;
 
-            float spacing = Mathf.Min(190f, 1500f / n);
+            _hoveredCard = null;
+            for (int i = 0; i < n; i++)
+                if (_cardViews[i] != null && _cardViews[i].Hovered) { _hoveredCard = _cardViews[i]; break; }
+
             for (int i = 0; i < n; i++)
             {
-                float x = (i - (n - 1) * 0.5f) * spacing;
-                _cardViews[i].BasePosition = new Vector2(x, 20f);
-                _cardViews[i].ApplyLayout(_cardViews[i] == _selected);
+                var v = _cardViews[i];
+                if (v == null) continue;
+
+                var slot = HandFanLayout.Compute(i, n, HandWidth, HandBaseY);
+                float scale = 1f;
+
+                if (v == _dragCard)
+                {
+                    if (_dragMode == DragMode.Free)
+                    {
+                        // 自由拖拽：牌跟着手走，扶正
+                        slot.Position = _dragCardSlot;
+                        slot.Rotation = 0f;
+                        scale = 1.06f;
+                    }
+                    else
+                    {
+                        // 举牌拉箭头：牌飞到固定的「举牌位」定住，不跟手——
+                        // 跟手的话牌本身会挡住玩家想点的敌人
+                        slot.Position = AimSlot;
+                        slot.Rotation = 0f;
+                        scale = 1.12f;
+                    }
+                }
+                else if (v == _selected)
+                {
+                    slot.Position.y += SelectedLift;
+                    slot.Rotation *= 0.35f;      // 选中的牌扶正一点，字更好读
+                    scale = 1.12f;
+                }
+                else if (v == _hoveredCard && _dragMode == DragMode.None)
+                {
+                    slot.Position.y += HoverLift;
+                    slot.Rotation *= 0.45f;
+                    scale = 1.10f;
+                }
+
+                v.SetLayoutTarget(slot.Position, slot.Rotation, scale);
             }
+
+            ApplyHandOrder();
+        }
+
+        /// <summary>
+        /// 兄弟顺序 = 遮挡顺序：左→右递增（右边的牌压住左边的），
+        /// 悬停 / 选中 / 拖拽的那张提到最前，否则它会被右边的邻居切掉一半。
+        /// ★ 只在「谁在最前」变了或视图列表重建过时才动——SetSiblingIndex 会让 Canvas 变脏。
+        /// </summary>
+        private void ApplyHandOrder()
+        {
+            CardView front = _dragCard != null ? _dragCard
+                           : _selected != null ? _selected
+                           : _hoveredCard;
+
+            if (!_orderDirty && front == _frontCard) return;
+
+            _frontCard = front;
+            _orderDirty = false;
+
+            for (int i = 0; i < _cardViews.Count; i++)
+                if (_cardViews[i] != null) _cardViews[i].transform.SetSiblingIndex(i);
+
+            if (front != null) front.transform.SetAsLastSibling();
         }
 
         private void RefreshCards()
@@ -399,18 +605,19 @@ namespace Game.UI
                 bool playable = !locked
                                 && (_controller.CanPlayCard(v.Card, probe, out var reason)
                                     || reason == PlayFailReason.NeedTarget);
-                v.Refresh(Ctx, playable, v == _selected);
+                v.Refresh(Ctx, playable, v == _selected || v == _dragCard);
             }
         }
 
         private void RefreshUnits()
         {
-            bool targeting = _selected != null || _selectedPotion != null;
+            bool targeting = _selected != null || _selectedPotion != null || _dragMode == DragMode.Aim;
             for (int i = 0; i < _unitViews.Count; i++)
             {
                 var v = _unitViews[i];
                 bool targetable = targeting && v.Unit != null && !v.Unit.IsPlayer && v.Unit.IsAlive;
-                v.Refresh(Ctx, targetable, false);
+                bool highlighted = _aimTarget != null && v.Unit == _aimTarget;
+                v.Refresh(Ctx, targetable, highlighted);
             }
         }
 
@@ -437,6 +644,253 @@ namespace Game.UI
                 _resultText.text = Ctx.Victory ? "战 斗 胜 利" : "战 斗 失 败";
                 _resultText.color = Ctx.Victory ? new Color(1f, 0.9f, 0.4f) : new Color(1f, 0.4f, 0.4f);
             }
+        }
+
+        // ============================================================ 拖拽出牌
+
+        /// <summary>
+        /// 拖拽的两种形态。分岔点是 <see cref="BattleController.NeedsTargetSelection"/>：
+        /// 要指定单个敌人的牌走 <see cref="Aim"/>，其余走 <see cref="Free"/>。
+        /// </summary>
+        private enum DragMode
+        {
+            None,
+
+            /// <summary>举牌 + 拉箭头指目标（SingleEnemy）。</summary>
+            Aim,
+
+            /// <summary>牌跟着手走，越过出牌线松手即出（None / Self / AllEnemies / RandomEnemy）。</summary>
+            Free
+        }
+
+        private CardView _dragCard;
+        private DragMode _dragMode;
+
+        /// <summary>光标屏幕坐标。★ 存下来而不是每次向输入系统要：
+        /// OnDrag 只在光标移动时才来，而箭头起点会因为手牌重排而移动，
+        /// 所以每帧都要用「最后一次已知的光标位置」重画。</summary>
+        private Vector2 _dragPointer;
+
+        /// <summary>抓取瞬间「牌的位置 − 光标位置」。保留它，拖起来时牌才不会跳一下。</summary>
+        private Vector2 _dragGrabOffset;
+
+        /// <summary>Free 模式下这张牌本帧该在哪（_handArea 本地坐标）。</summary>
+        private Vector2 _dragCardSlot;
+
+        /// <summary>Aim 模式下光标锁住的敌人。null 表示没指到任何合法目标。</summary>
+        private BattleUnit _aimTarget;
+        private BattleUnit _lastAimTarget;
+
+        /// <summary>Free 模式下当前松手能不能出牌。</summary>
+        private bool _freeDropReady;
+
+        private RectTransform _dragLayer;
+        private TargetArrowView _arrow;
+        private RectTransform _playLine;
+        private Image _playLineBar;
+        private Text _playLineLabel;
+
+        /// <summary>举牌位（_handArea 本地坐标）。选在敌人区与手牌区之间的空档上。</summary>
+        private static readonly Vector2 AimSlot = new Vector2(0f, 400f);
+
+        private static readonly Color ArrowFree = new Color(0.95f, 0.85f, 0.45f, 0.80f);
+        private static readonly Color ArrowLocked = new Color(1.00f, 0.42f, 0.35f, 0.95f);
+        private static readonly Color PlayLineIdle = new Color(1f, 1f, 1f, 0.22f);
+        private static readonly Color PlayLineReady = new Color(0.55f, 0.95f, 0.60f, 0.90f);
+
+        private void BuildDragLayer(RectTransform root)
+        {
+            _dragLayer = UIFactory.CreateEmpty(root, "DragLayer");
+            UIFactory.Stretch(_dragLayer);
+
+            // 出牌线。★ 用「屏幕底边 + HandAreaBottom + PlayLineY」定位，
+            //   这样它和 PlayLineY 的判定值永远指同一条线（PlayLineY 是手牌区本地坐标）。
+            float lineY = HandAreaBottom + PlayLineY;
+
+            _playLine = UIFactory.CreateEmpty(_dragLayer, "PlayLine");
+            UIFactory.SetAnchored(_playLine, new Vector2(0, 0), new Vector2(1, 0),
+                new Vector2(0, lineY), new Vector2(0, lineY + 34f));
+
+            var bar = UIFactory.CreatePanel(_playLine, "Bar", PlayLineIdle);
+            UIFactory.SetAnchored(bar, new Vector2(0, 0), new Vector2(1, 0),
+                new Vector2(120f, 0f), new Vector2(-120f, 3f));
+            _playLineBar = bar.GetComponent<Image>();
+            _playLineBar.raycastTarget = false;      // 这条线横穿屏幕，绝不能吃掉点击
+
+            _playLineLabel = UIFactory.CreateText(_playLine, "Label", "松 手 出 牌", 18,
+                TextAnchor.MiddleCenter, PlayLineIdle);
+            UIFactory.SetAnchored(_playLineLabel.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
+                new Vector2(-140f, 6f), new Vector2(140f, 32f));
+
+            _playLine.gameObject.SetActive(false);
+
+            _arrow = TargetArrowView.Create(_dragLayer, "TargetArrow");
+            _arrow.gameObject.SetActive(false);
+        }
+
+        public void OnCardBeginDrag(CardView view, PointerEventData e)
+        {
+            if (view == null || view.Card == null || Ctx == null || Ctx.BattleEnded || InputLocked) return;
+
+            // ★ 打不出的牌不给拖：让玩家拖到一半再被拒，比一开始就拖不动更让人困惑。
+            //   NeedTarget 不算失败——那正是拖拽要解决的事。
+            if (!_controller.CanPlayCard(view.Card, FirstAliveEnemy(), out var reason)
+                && reason != PlayFailReason.NeedTarget)
+            {
+                ShowHint(ReasonText(reason));
+                return;
+            }
+
+            _selected = null;
+            _selectedPotion = null;
+
+            _dragCard = view;
+            _dragMode = _controller.NeedsTargetSelection(view.Card) ? DragMode.Aim : DragMode.Free;
+            _dragPointer = e.position;
+            _dragGrabOffset = ((RectTransform)view.transform).anchoredPosition
+                              - ScreenToLocal(_handArea, e.position);
+            _dragCardSlot = ((RectTransform)view.transform).anchoredPosition;
+            _aimTarget = null;
+            _lastAimTarget = null;
+            _freeDropReady = false;
+
+            view.SnapPosition = _dragMode == DragMode.Free;
+
+            ShowHint(_dragMode == DragMode.Aim ? "把箭头拖到目标身上，松手出牌" : "拖过白线松手出牌");
+        }
+
+        public void OnCardDrag(CardView view, PointerEventData e)
+        {
+            if (_dragCard != view) return;
+            _dragPointer = e.position;      // 其余全部交给 UpdateDragVisuals，只有一处在算
+        }
+
+        public void OnCardEndDrag(CardView view, PointerEventData e)
+        {
+            if (_dragCard != view) return;
+            _dragPointer = e.position;
+
+            var card = view.Card;
+            var mode = _dragMode;
+            var target = _aimTarget;
+            bool dropReady = _freeDropReady;
+
+            // ★ 先把拖拽状态收干净再出牌：TryPlayCard 可能同步挂起并弹出选牌面板，
+            //   那一刻界面必须已经不在拖拽态，否则箭头会浮在面板上、拖拽状态也再没机会复位。
+            EndDrag();
+
+            if (Ctx == null || Ctx.BattleEnded || InputLocked) return;
+
+            if (mode == DragMode.Aim)
+            {
+                if (target == null) { ShowHint("需要选择目标"); return; }
+                PlaySelected(card, target);
+            }
+            else if (mode == DragMode.Free)
+            {
+                if (!dropReady) { ShowHint(""); return; }
+                PlaySelected(card, null);
+            }
+        }
+
+        /// <summary>
+        /// ★ 压制标记是**全局静态**的。战斗界面在拖拽途中被销毁（战斗结束切界面）时，
+        ///   若不在这里放开，整个游戏的 tooltip 都会永久哑掉——而且完全没有报错。
+        /// </summary>
+        private void OnDisable() => TooltipView.Suppressed = false;
+
+        private void EndDrag()
+        {
+            if (_dragCard != null) _dragCard.SnapPosition = false;
+
+            _dragCard = null;
+            _dragMode = DragMode.None;
+            _aimTarget = null;
+            _lastAimTarget = null;
+            _freeDropReady = false;
+
+            if (_arrow != null && _arrow.gameObject.activeSelf) _arrow.gameObject.SetActive(false);
+            if (_playLine != null && _playLine.gameObject.activeSelf) _playLine.gameObject.SetActive(false);
+        }
+
+        private void UpdateDragVisuals()
+        {
+            if (_dragMode == DragMode.None) return;
+
+            // ★ 拖拽途中卡牌可能被销毁（战斗结束清手牌、某个效果把它移出手牌）。
+            //   对象一死 EventSystem 就不会再发 OnEndDrag，状态只能自己收，
+            //   否则会永久留在拖拽态：箭头挂在屏幕上、手牌再也排不回扇形。
+            if (_dragCard == null || _dragCard.Card == null || Ctx == null || InputLocked)
+            {
+                EndDrag();
+                return;
+            }
+
+            if (_dragMode == DragMode.Aim)
+            {
+                _aimTarget = EnemyUnderPointer(_dragPointer, _dragCard.Card);
+                UpdateArrow();
+
+                if (_aimTarget != _lastAimTarget)
+                {
+                    _lastAimTarget = _aimTarget;
+                    ShowHint(_aimTarget != null
+                        ? $"松手，对「{_aimTarget.Name}」打出「{_dragCard.Card.DisplayName}」"
+                        : "把箭头拖到目标身上，松手出牌");
+                }
+                return;
+            }
+
+            _dragCardSlot = ScreenToLocal(_handArea, _dragPointer) + _dragGrabOffset;
+            _freeDropReady = _dragCardSlot.y + HandFanLayout.CardHeight * 0.5f >= PlayLineY;
+
+            if (!_playLine.gameObject.activeSelf) _playLine.gameObject.SetActive(true);
+            var col = _freeDropReady ? PlayLineReady : PlayLineIdle;
+            _playLineBar.color = col;
+            _playLineLabel.color = col;
+        }
+
+        private void UpdateArrow()
+        {
+            if (!_arrow.gameObject.activeSelf) _arrow.gameObject.SetActive(true);
+
+            // 箭头从牌的顶边中点出发。用 TransformPoint 而不是直接拿 anchoredPosition，
+            // 是因为牌正在被插值搬到举牌位、而且还带着缩放，只有实际的世界坐标是准的。
+            var cardRt = (RectTransform)_dragCard.transform;
+            Vector3 topWorld = cardRt.TransformPoint(new Vector3(cardRt.rect.center.x, cardRt.rect.yMax, 0f));
+            Vector2 topScreen = RectTransformUtility.WorldToScreenPoint(null, topWorld);
+
+            _arrow.From = ScreenToLocal(_arrow.rectTransform, topScreen);
+            _arrow.To = ScreenToLocal(_arrow.rectTransform, _dragPointer);
+            _arrow.color = _aimTarget != null ? ArrowLocked : ArrowFree;
+            _arrow.Refresh();
+        }
+
+        /// <summary>
+        /// 光标下的合法目标。
+        /// ★ 用矩形包含判定而不是 EventSystem 射线：拖拽中射线的第一个命中物永远是被拖的那张牌，
+        ///   要靠射线就得先把牌的 raycastTarget 关掉再开回来，多一个必须成对出现的状态。
+        /// </summary>
+        private BattleUnit EnemyUnderPointer(Vector2 screenPos, CardInstance card)
+        {
+            for (int i = 0; i < _unitViews.Count; i++)
+            {
+                var v = _unitViews[i];
+                if (v == null || v.Unit == null || v.Unit.IsPlayer || !v.Unit.IsAlive) continue;
+                if (!RectTransformUtility.RectangleContainsScreenPoint((RectTransform)v.transform, screenPos, null))
+                    continue;
+
+                // 顺手复查一遍：目标不合法就不该给出「已锁定」的红箭头
+                if (_controller.CanPlayCard(card, v.Unit, out _)) return v.Unit;
+            }
+            return null;
+        }
+
+        /// <summary>屏幕坐标 → 某个 RectTransform 的本地坐标。两个 Canvas 都是 Overlay，所以相机传 null。</summary>
+        private static Vector2 ScreenToLocal(RectTransform rt, Vector2 screenPos)
+        {
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screenPos, null, out var local);
+            return local;
         }
 
         // ============================================================ 药水栏
@@ -517,6 +971,10 @@ namespace Game.UI
                 UIFactory.SetAnchored((RectTransform)btn.transform, new Vector2(0, 1), new Vector2(1, 1),
                     new Vector2(0, y - 40), new Vector2(-42, y - 6));
 
+                // 悬停就能读到说明，不必先点一下「选中」。点选那条路依然保留：
+                // 药水是一次性资源，「先看清再确认」这一步不能因为有了 tooltip 就砍掉。
+                TooltipTarget.Attach(btn.gameObject, new PotionTooltipSource(this, potion));
+
                 // 倒掉按钮。★ 必须有：药水槽满了又买不到想要的东西时，
                 //   没有倒掉手段的话玩家会被永久卡住。
                 var drop = UIFactory.CreateTextButton(_potionBar, "PotionDrop" + i, "×", 18,
@@ -580,6 +1038,23 @@ namespace Game.UI
                 ShowHint("");
 
             _selectedPotion = null;
+        }
+
+        /// <summary>药水的悬停说明。★ 存 <see cref="PotionInstance"/> 而不是存槽位下标——
+        /// 喝掉前面一瓶之后下标会整体前移，抓着下标的提示会指到另一瓶药上。</summary>
+        private sealed class PotionTooltipSource : ITooltipSource
+        {
+            private readonly BattleScreen _screen;
+            private readonly PotionInstance _potion;
+
+            public PotionTooltipSource(BattleScreen screen, PotionInstance potion)
+            {
+                _screen = screen;
+                _potion = potion;
+            }
+
+            public bool BuildTooltip(List<TooltipEntry> buffer)
+                => _potion != null && TooltipContent.BuildForPotion(_potion.Def, _screen.Ctx, buffer);
         }
 
         private static string PotionReasonText(PotionFailReason r) => r switch
@@ -684,8 +1159,9 @@ namespace Game.UI
             if (_hintTimer > 0f)
             {
                 _hintTimer -= Time.fixedDeltaTime;
-                // 正在选目标（牌或药水）时提示必须一直挂着，否则玩家会忘了自己在选什么
-                if (_hintTimer <= 0f && _selected == null && _selectedPotion == null)
+                // 正在选目标（牌 / 药水 / 拖拽中）时提示必须一直挂着，否则玩家会忘了自己在选什么
+                if (_hintTimer <= 0f && _selected == null && _selectedPotion == null
+                    && _dragMode == DragMode.None)
                     _hintText.text = "";
             }
         }

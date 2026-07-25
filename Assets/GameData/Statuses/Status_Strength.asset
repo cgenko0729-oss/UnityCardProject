@@ -20,10 +20,10 @@ MonoBehaviour:
   MaxStacks: 999
   Description: "\u6240\u6709\u653B\u51FB\u4F24\u5BB3 +{stacks}\u3002"
   Behaviours:
-  - rid: 1041046769074962563
+  - rid: 1041046769074962730
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962563
+    - rid: 1041046769074962730
       type: {class: StrengthBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data: 

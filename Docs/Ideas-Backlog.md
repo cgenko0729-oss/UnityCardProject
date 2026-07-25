@@ -46,10 +46,10 @@
 | # | 项 | 说明 | 成本 |
 |---|---|---|---|
 | C1 | **卡牌美术接线** | `CardDefinition.Art`（`public Sprite Art`）字段已存在，但 **`Assets/Game/UI/` 全目录零引用**。你已经往 `GameData/Cards/` 丢了一张 AI 立绘。要做就一次做完：约定 `Assets/Art/Cards/<cardId>.png` 命名、`AssetPostprocessor` 统一导入设置、生成器按 id 自动挂接、`ContentValidator` 报缺图。 | S |
-| C2 | **关键字 / 状态 Tooltip** | 悬停"易伤"弹出解释。**对新手友好度的提升排所有 UI 项第一**，且 `StatusDefinition` 已有描述字段。 | S |
-| C3 | **手牌 UI 增量更新** | 遗留 #1。`BattleScreen.RefreshHandViews` 现在手牌一变就销毁重建全部 `CardView` —— 抽牌/出牌动画的**硬前置**。 | M |
+| C2 | ~~**关键字 / 状态 Tooltip**~~ | ✅ **已完成（2026-07-26 第六次会话）**。通用 `TooltipView`（独立高 sortingOrder Canvas）+ `TooltipTarget`，覆盖手牌 / 单位状态 / 敌人意图 / 遗物 / 药水；关键字文案落成 `KeywordDefinition` 资产。 | — |
+| C3 | ~~**手牌 UI 增量更新**~~ | ✅ **已完成（2026-07-25 第五次会话）**，随 C5 一起做掉。`RefreshHandViews` 改成按 Uid 增量复用 + `CardView` 自己朝目标位姿插值。原遗留 #1 已消除。 | — |
 | C4 | **卡牌描述缓存** | 遗留 #2。`CardInstance.GetDescription` 每帧每张手牌 new 一个 `EffectContext` + 若干字符串。按「依赖指纹」（力量层数 + 能量 + 手牌数 + `StateVersion`）缓存。 | S |
-| C5 | **手牌扇形排列 + 拖拽出牌** | 现在是点击选中再点目标。扇形 + 拖拽是这类游戏的手感基线。 | M |
+| C5 | ~~**手牌扇形排列 + 拖拽出牌**~~ | ✅ **已完成（2026-07-25 第五次会话）**。`HandFanLayout` 扇形排布 + 尖塔式拖拽（需目标的牌举牌拉 `TargetArrowView` 箭头，其余拖过出牌线松手）；点击出牌双轨保留。 | — |
 | C6 | **打击反馈** | 受击闪白、伤害数字弹跳（`FloatingText` 已有骨架）、屏幕轻震、致命一击慢放。 | M |
 | C7 | **音效 / 音乐** | 出牌 / 受击 / 获得遗物 / 洗牌。事件队列已经是天然的音效触发点。 | M |
 | C8 | **本地化** | 遗留 #3。**越晚做迁移成本越高** —— 现在文案硬编码散落在 8 个 Screen 里。至少先把所有中文字符串收进一个 `LocKeys` 静态表。 | M |

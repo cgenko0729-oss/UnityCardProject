@@ -18,12 +18,12 @@ MonoBehaviour:
   Rarity: 4
   Description: "\u6BCF\u56DE\u5408\u989D\u5916\u83B7\u5F97 1 \u70B9\u80FD\u91CF\u3002"
   Behaviours:
-  - rid: 1041046769074962562
+  - rid: 1041046769074962727
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962562
+    - rid: 1041046769074962727
       type: {class: TurnResourceBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         ExtraDraw: 0

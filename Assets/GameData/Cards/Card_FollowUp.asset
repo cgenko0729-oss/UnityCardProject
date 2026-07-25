@@ -24,14 +24,14 @@ MonoBehaviour:
   DescriptionTemplate: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u82E5\u4E0A\u4E00\u5F20\u6253\u51FA\u7684\u662F\u653B\u51FB\u724C\uFF0C\u62BD
     1 \u5F20\u724C\uFF1B\u5426\u5219\u83B7\u5F97 3 \u70B9\u62A4\u7532\u3002"
   Effects:
-  - rid: 1041046769074962627
-  - rid: 1041046769074962628
+  - rid: 1041046769074962794
+  - rid: 1041046769074962795
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962627
+    - rid: 1041046769074962794
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -56,7 +56,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962628
+    - rid: 1041046769074962795
       type: {class: ConditionalEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -71,10 +71,10 @@ MonoBehaviour:
           Value: 0
           Invert: 0
         Then:
-        - rid: 1041046769074962629
+        - rid: 1041046769074962796
         Else:
-        - rid: 1041046769074962630
-    - rid: 1041046769074962629
+        - rid: 1041046769074962797
+    - rid: 1041046769074962796
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -90,7 +90,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962630
+    - rid: 1041046769074962797
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

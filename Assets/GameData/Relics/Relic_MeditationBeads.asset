@@ -19,12 +19,12 @@ MonoBehaviour:
   Description: "\u6BCF\u6253\u51FA 3 \u5F20\u6280\u80FD\u724C\uFF0C\u56DE\u590D 2
     \u70B9\u751F\u547D\u3002"
   Behaviours:
-  - rid: 1041046769074962646
+  - rid: 1041046769074962811
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962646
+    - rid: 1041046769074962811
       type: {class: EveryNCardsHealBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         CardType: 1

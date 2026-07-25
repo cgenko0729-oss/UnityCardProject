@@ -39,6 +39,16 @@ namespace Game.Statuses
         public string Describe(int stacks)
             => string.IsNullOrEmpty(Description) ? DisplayName : Description.Replace("{stacks}", stacks.ToString());
 
+        /// <summary>
+        /// 不带具体层数的解释，<c>{stacks}</c> 渲染成 <c>X</c>。
+        ///
+        /// ★ 给「卡牌 tooltip」用：那时候玩家还没把状态挂上去，没有真实层数可填。
+        ///   退而用 <c>Describe(1)</c> 会写出「回合结束回复 1 点生命」这种
+        ///   看起来很确定、其实是编出来的数字——比写 X 更容易误导人。
+        /// </summary>
+        public string DescribeGeneric()
+            => string.IsNullOrEmpty(Description) ? DisplayName : Description.Replace("{stacks}", "X");
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

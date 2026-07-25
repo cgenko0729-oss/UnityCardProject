@@ -20,6 +20,7 @@ namespace Game.Core
         public List<RelicDefinition> Relics = new List<RelicDefinition>();
         public List<EventDefinition> Events = new List<EventDefinition>();
         public List<PotionDefinition> Potions = new List<PotionDefinition>();
+        public List<KeywordDefinition> Keywords = new List<KeywordDefinition>();
 
         private Dictionary<string, CardDefinition> _cards;
         private Dictionary<string, EnemyDefinition> _enemies;
@@ -28,6 +29,9 @@ namespace Game.Core
         private Dictionary<string, RelicDefinition> _relics;
         private Dictionary<string, EventDefinition> _events;
         private Dictionary<string, PotionDefinition> _potions;
+
+        /// <summary>关键字用枚举位当键，不像其余定义那样用字符串 Id。</summary>
+        private Dictionary<CardKeyword, KeywordDefinition> _keywords;
 
         public void BuildIndex()
         {
@@ -38,6 +42,18 @@ namespace Game.Core
             _encounters = Index(Encounters, e => e.Id);
             _relics = Index(Relics, r => r.Id);
             _events = Index(Events, e => e.Id);
+
+            _keywords = new Dictionary<CardKeyword, KeywordDefinition>(Keywords != null ? Keywords.Count : 0);
+            if (Keywords != null)
+            {
+                for (int i = 0; i < Keywords.Count; i++)
+                {
+                    var k = Keywords[i];
+                    // 只收单一位的定义。组合值（Exhaust | Retain）反查时永远匹配不到单个位，
+                    // 收进来只会让「有定义却查不到」变成一个难查的谜；校验器会另行报错。
+                    if (k != null && k.IsSingleBit) _keywords[k.Keyword] = k;
+                }
+            }
         }
 
         private static Dictionary<string, T> Index<T>(List<T> list, System.Func<T, string> idOf)
@@ -66,6 +82,13 @@ namespace Game.Core
         public RelicDefinition GetRelic(string id) { EnsureIndex(); return Get(_relics, id); }
         public EventDefinition GetEvent(string id) { EnsureIndex(); return Get(_events, id); }
         public PotionDefinition GetPotion(string id) { EnsureIndex(); return Get(_potions, id); }
+
+        /// <summary>按单个关键字位取定义。传组合值恒返回 null。</summary>
+        public KeywordDefinition GetKeyword(CardKeyword keyword)
+        {
+            EnsureIndex();
+            return _keywords != null && _keywords.TryGetValue(keyword, out var v) ? v : null;
+        }
 
         private static T Get<T>(Dictionary<string, T> dict, string id) where T : ScriptableObject
             => id != null && dict != null && dict.TryGetValue(id, out var v) ? v : null;
