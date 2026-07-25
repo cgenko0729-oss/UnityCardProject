@@ -219,16 +219,12 @@ namespace Game.Editor
             return warnings;
         }
 
+        /// <summary>
+        /// ★ 必须递归进组合子：「重复 3 次造成 4 点伤害」的 ChosenTarget 藏在 RepeatEffect 里，
+        ///   只看顶层会把这种完全正常的卡误报成配错。
+        /// </summary>
         private static bool HasNoChosenTarget(CardDefinition card)
-        {
-            if (card.Effects == null) return true;
-            for (int i = 0; i < card.Effects.Count; i++)
-            {
-                var e = card.Effects[i];
-                if (e != null && e.Target.Kind == TargetKind.ChosenTarget) return false;
-            }
-            return true;
-        }
+            => !UsesChosenTarget(card.Effects);
 
         private static int CheckEnemies(StringBuilder sb)
         {
@@ -384,7 +380,23 @@ namespace Game.Editor
                     case Game.Effects.Impl.ConditionalEffect cond
                         when UsesChosenTarget(cond.Then) || UsesChosenTarget(cond.Else):
                         return true;
+                    case Game.Effects.Impl.DelayedEffect del when UsesChosenTarget(del.Effects):
+                        return true;
+                    case Game.Effects.Impl.RandomPickEffect pick when PickUsesChosen(pick):
+                        return true;
                 }
+            }
+            return false;
+        }
+
+        private static bool PickUsesChosen(Game.Effects.Impl.RandomPickEffect pick)
+        {
+            if (pick.Options == null) return false;
+            for (int i = 0; i < pick.Options.Count; i++)
+            {
+                var opt = pick.Options[i];
+                if (opt?.Effect == null) continue;
+                if (UsesChosenTarget(new[] { opt.Effect })) return true;
             }
             return false;
         }

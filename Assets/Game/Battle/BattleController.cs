@@ -330,7 +330,6 @@ namespace Game.Battle
             Ctx.Deck.Hand.Remove(card);
             Ctx.CardsPlayedThisTurn++;
             if (card.Type == CardType.Attack) Ctx.AttacksPlayedThisTurn++;
-            Ctx.LastCardTypePlayed = card.Type;
 
             Ctx.Post(BattleEventType.CardPlayed, Ctx.Player.Uid, card.Uid, spend, card.Id);
 
@@ -374,6 +373,12 @@ namespace Game.Battle
         private void FinishPlay(CardInstance card)
         {
             SendCardToDestination(card);
+
+            // ★ 必须在效果结算完之后才更新「上一张牌」。
+            //   写在结算之前的话，ConditionKind.LastCardWasAttack 看到的永远是**这张牌自己**，
+            //   于是「若上一张是攻击牌」在任何一张攻击牌上都恒为真，条件形同虚设。
+            Ctx.LastCardTypePlayed = card.Type;
+
             CheckBattleEnd();
         }
 

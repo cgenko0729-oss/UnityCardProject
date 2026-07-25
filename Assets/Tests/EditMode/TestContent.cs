@@ -450,6 +450,98 @@ namespace Game.Tests
             fleeting.Keywords = CardKeyword.Ethereal | CardKeyword.Exhaust;
             Cards["fleeting_insight"] = fleeting;
 
+            // ---- 组合子卡
+            Cards["flurry"] = MakeCard("flurry", "疾风连打", 1, CardType.Attack,
+                CardTargetKind.SingleEnemy, "造成 4 点伤害，重复 {0} 次。",
+                new RepeatEffect
+                {
+                    Times = EffectValue.Flat(3),
+                    Effects = new List<CardEffect>
+                    {
+                        new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(4) }
+                    }
+                });
+
+            Cards["last_stand"] = MakeCard("last_stand", "背水一战", 2, CardType.Attack,
+                CardTargetKind.SingleEnemy, "造成 {0} 点伤害。若生命低于 50%，再造成一次。",
+                new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(10) },
+                new ConditionalEffect
+                {
+                    Condition = new EffectCondition { Kind = ConditionKind.SelfHpBelowPercent, Value = 50 },
+                    Then = new List<CardEffect>
+                    {
+                        new DamageEffect { Target = TargetSelector.Previous, Amount = EffectValue.Flat(10) }
+                    },
+                    Else = new List<CardEffect>(),
+                });
+
+            Cards["follow_up"] = MakeCard("follow_up", "乘胜追击", 1, CardType.Attack,
+                CardTargetKind.SingleEnemy, "造成 {0} 点伤害。上一张是攻击牌则抽 1 张，否则得 3 护甲。",
+                new DamageEffect { Target = TargetSelector.Chosen, Amount = EffectValue.Flat(7) },
+                new ConditionalEffect
+                {
+                    Condition = new EffectCondition { Kind = ConditionKind.LastCardWasAttack },
+                    Then = new List<CardEffect> { new DrawEffect { Count = EffectValue.Flat(1) } },
+                    Else = new List<CardEffect>
+                    {
+                        new BlockEffect { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(3) }
+                    },
+                });
+
+            Cards["wild_gamble"] = MakeCard("wild_gamble", "孤注一掷", 1, CardType.Skill,
+                CardTargetKind.None, "随机获得护甲 / 抽牌 / 能量之一。",
+                new RandomPickEffect
+                {
+                    PickCount = 1,
+                    Options = new List<RandomPickEffect.Option>
+                    {
+                        new RandomPickEffect.Option
+                        {
+                            Note = "护甲", Weight = 40,
+                            Effect = new BlockEffect
+                            { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(8) },
+                        },
+                        new RandomPickEffect.Option
+                        {
+                            Note = "抽牌", Weight = 40,
+                            Effect = new DrawEffect { Count = EffectValue.Flat(2) },
+                        },
+                        new RandomPickEffect.Option
+                        {
+                            Note = "能量", Weight = 20,
+                            Effect = new EnergyEffect { Amount = EffectValue.Flat(2) },
+                        },
+                    },
+                });
+
+            Cards["time_bomb"] = MakeCard("time_bomb", "延时炸弹", 1, CardType.Skill,
+                CardTargetKind.None, "回合结束时对所有敌人造成 14 点伤害。",
+                new DelayedEffect
+                {
+                    Timing = DelayTiming.EndOfThisTurn,
+                    Effects = new List<CardEffect>
+                    {
+                        new DamageEffect { Target = TargetSelector.AllEnemies, Amount = EffectValue.Flat(14) }
+                    }
+                });
+
+            Cards["gather_strength"] = MakeCard("gather_strength", "蓄力", 0, CardType.Skill,
+                CardTargetKind.None, "下回合开始时获得 2 层力量与 8 点护甲。",
+                new DelayedEffect
+                {
+                    Timing = DelayTiming.StartOfNextTurn,
+                    Effects = new List<CardEffect>
+                    {
+                        new ApplyStatusEffect
+                        {
+                            Target = TargetSelector.SelfOnly,
+                            Status = Statuses["strength"],
+                            Stacks = EffectValue.Flat(2),
+                        },
+                        new BlockEffect { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(8) },
+                    }
+                });
+
             // 递归保护测试用：自己嵌自己
             var deep = new RepeatEffect { Times = EffectValue.Flat(2), Effects = new List<CardEffect>() };
             var cur = deep;
