@@ -51,11 +51,13 @@ namespace Game.Editor
 
             CreateStatuses();
             CreateCards();
+            // ★ 必须在 CreateEnemies 之前：敌人的「塞牌」行动要引用这些卡的资产。
+            SampleContentCurses.CreateCurseAndStatusCards(Statuses, Cards);
             CreateEnemies();
             CreateEncounters();
             SampleContentRelics.CreateRelics(RelicDir, Statuses, Relics);
             SampleContentPotions.CreatePotions(PotionDir, Statuses, PotionDefs);
-            SampleContentEvents.CreateEvents(EventDir, Events);
+            SampleContentEvents.CreateEvents(EventDir, Events, Cards);
             var db = CreateDatabase();
 
             AssetDatabase.SaveAssets();
@@ -422,8 +424,22 @@ namespace Game.Editor
                         }
                     }
                 },
+                // ★ 塞牌行动：状态牌进弃牌堆而不是手牌，代价延后到下次洗牌才显现，
+                //   这样玩家不会在同一回合被打乱节奏，但牌组确实被稀释了。
+                new EnemyAction
+                {
+                    Name = "喷吐粘液", Intent = IntentKind.Debuff, Weight = 0,
+                    Effects = new List<CardEffect>
+                    {
+                        new AddCardEffect
+                        {
+                            Card = Cards["slimed"], Pile = CardPile.Discard,
+                            Count = EffectValue.Flat(2), Temporary = true
+                        }
+                    }
+                },
             };
-            slime.FixedSequence = new List<int> { 0, 0, 1 };
+            slime.FixedSequence = new List<int> { 0, 0, 1, 2 };
             slime.LoopSequence = true;
             slime.PhaseHpThresholds = new List<int>();
             slime.CustomBrainType = "";
@@ -580,6 +596,20 @@ namespace Game.Editor
                     Effects = new List<CardEffect>
                     {
                         new BlockEffect { Target = TargetSelector.SelfOnly, Amount = EffectValue.Flat(6) }
+                    }
+                },
+                // 眩晕直接进抽牌堆顶：下回合必定抽到，但它是虚无牌，会自己烧掉——
+                // 代价明确且有上限，不会滚雪球。
+                new EnemyAction
+                {
+                    Name = "扬尘", Intent = IntentKind.Debuff, Weight = 20, MaxConsecutive = 1,
+                    Effects = new List<CardEffect>
+                    {
+                        new AddCardEffect
+                        {
+                            Card = Cards["dazed"], Pile = CardPile.Draw,
+                            Count = EffectValue.Flat(1), Temporary = true
+                        }
                     }
                 },
             };

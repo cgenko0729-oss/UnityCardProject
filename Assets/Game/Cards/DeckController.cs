@@ -111,7 +111,7 @@ namespace Game.Cards
             _ctx.Post(BattleEventType.CardExhausted, 0, card.Uid, 0, card.Id);
         }
 
-        /// <summary>回合结束：虚无牌消耗，保留牌留下，其余弃掉。</summary>
+        /// <summary>回合结束的手牌清理：虚无牌消耗，保留牌留下，其余弃掉。</summary>
         public void EndTurnDiscard()
         {
             for (int i = Hand.Count - 1; i >= 0; i--)
@@ -123,6 +123,44 @@ namespace Game.Cards
                 if (c.HasKeyword(CardKeyword.Retain)) continue;
                 Discard(c);
             }
+        }
+
+        private readonly List<CardInstance> _endOfTurnBuffer = new List<CardInstance>(8);
+
+        /// <summary>
+        /// 结算所有「回合结束时仍在手牌」的效果（灼烧、疑虑一类）。
+        ///
+        /// ★ 由 <c>BattleController.EndTurn</c> 在**状态衰减之后、清理手牌之前**调用。
+        ///   两个时机都不能挪：
+        ///   - 放在衰减之前，「疑虑」施加的 1 层虚弱会当场被同一次衰减扣掉，等于没上；
+        ///   - 放在清理手牌之后，牌已经离手，「仍在手牌」的判定就永远为假。
+        ///
+        /// 先摘快照再执行，理由同 <c>BattleContext.FireDelayed</c>：效果会改动手牌。
+        /// </summary>
+        public void FireInHandEndOfTurnEffects()
+        {
+            _endOfTurnBuffer.Clear();
+            for (int i = 0; i < Hand.Count; i++)
+                if (Hand[i].Def != null && Hand[i].Def.HasInHandEndOfTurnEffects)
+                    _endOfTurnBuffer.Add(Hand[i]);
+
+            if (_endOfTurnBuffer.Count == 0) return;
+
+            for (int i = 0; i < _endOfTurnBuffer.Count; i++)
+            {
+                var card = _endOfTurnBuffer[i];
+
+                var ectx = new Game.Effects.EffectContext();
+                ectx.Reset(_ctx, _ctx.Player, null, card);
+                ectx.PreviewMode = false;
+
+                Game.Effects.EffectResolver.ResolveAll(card.Def.InHandEndOfTurnEffects, ectx);
+                _ctx.RunTriggerQueue();
+
+                if (_ctx.BattleEnded) break;
+            }
+
+            _endOfTurnBuffer.Clear();
         }
 
         // ===================================================== 加牌
