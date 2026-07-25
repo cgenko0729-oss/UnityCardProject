@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 448a5a7196c72334ab46f8e19e68eabc, type: 3}
+  m_Name: Status_Weak
+  m_EditorClassIdentifier: 
+  Id: weak
+  DisplayName: "\u865A\u5F31"
+  Icon: {fileID: 0}
+  Polarity: 1
+  Decay: 1
+  MaxStacks: 999
+  Description: "\u9020\u6210\u7684\u653B\u51FB\u4F24\u5BB3 -25%\uFF0C\u5269\u4F59
+    {stacks} \u56DE\u5408\u3002"
+  Behaviours:
+  - rid: 1041046762904355067
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355067
+      type: {class: WeakBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
+      data:
+        PercentPenalty: 25

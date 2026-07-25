@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 448a5a7196c72334ab46f8e19e68eabc, type: 3}
+  m_Name: Status_Revive
+  m_EditorClassIdentifier: 
+  Id: revive
+  DisplayName: "\u56DE\u5149"
+  Icon: {fileID: 0}
+  Polarity: 0
+  Decay: 0
+  MaxStacks: 9
+  Description: "\u53D7\u5230\u81F4\u6B7B\u4F24\u5BB3\u65F6\u4FDD\u7559 1 \u70B9\u751F\u547D\uFF0C\u5E76\u56DE\u590D
+    10 \u70B9\u751F\u547D\u3002\u6D88\u8017\u4E00\u5C42\u3002"
+  Behaviours:
+  - rid: 1041046762904355037
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355037
+      type: {class: ReviveBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
+      data:
+        HealAfter: 10

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16c027801e8b37147b9cbf1e14b0e896, type: 3}
+  m_Name: Relic_Recycler
+  m_EditorClassIdentifier: 
+  Id: recycler
+  DisplayName: "\u56DE\u6536\u5668"
+  Icon: {fileID: 0}
+  Rarity: 3
+  Description: "\u6253\u51FA\u7684\u6280\u80FD\u724C\u6D17\u56DE\u62BD\u724C\u5806\uFF0C\u800C\u4E0D\u662F\u8FDB\u5165\u5F03\u724C\u5806\u3002"
+  Behaviours:
+  - rid: 1041046762904355025
+  ShopPrice: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355025
+      type: {class: CardDestinationBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
+      data:
+        CardType: 1
+        Destination: 0

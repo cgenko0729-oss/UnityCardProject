@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16c027801e8b37147b9cbf1e14b0e896, type: 3}
+  m_Name: Relic_BronzeScales
+  m_EditorClassIdentifier: 
+  Id: bronze_scales
+  DisplayName: "\u9752\u94DC\u9CDE\u7247"
+  Icon: {fileID: 0}
+  Rarity: 1
+  Description: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u83B7\u5F97 3 \u5C42\u8346\u68D8\u3002"
+  Behaviours:
+  - rid: 1041046762904354977
+  ShopPrice: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904354977
+      type: {class: GrantStatusOnBattleStartBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
+      data:
+        Status: {fileID: 11400000, guid: 1693b1c9dc0841044afb92d2f78fff78, type: 2}
+        Stacks: 3

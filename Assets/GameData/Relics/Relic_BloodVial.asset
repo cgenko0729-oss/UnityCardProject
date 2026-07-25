@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16c027801e8b37147b9cbf1e14b0e896, type: 3}
+  m_Name: Relic_BloodVial
+  m_EditorClassIdentifier: 
+  Id: blood_vial
+  DisplayName: "\u8840\u74F6"
+  Icon: {fileID: 0}
+  Rarity: 1
+  Description: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u56DE\u590D 2 \u70B9\u751F\u547D\u3002"
+  Behaviours:
+  - rid: 1041046762904355034
+  ShopPrice: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355034
+      type: {class: BattleStartResourceBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
+      data:
+        Heal: 2
+        Block: 0

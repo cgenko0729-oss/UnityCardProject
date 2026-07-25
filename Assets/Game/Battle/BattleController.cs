@@ -1,0 +1,426 @@
+using System;
+using System.Collections.Generic;
+using Game.Cards;
+using Game.Core;
+using Game.Effects;
+using Game.Enemies;
+using Game.Relics;
+using Game.Statuses;
+using Game.Units;
+using UnityEngine;
+
+namespace Game.Battle
+{
+    /// <summary>
+    /// 战斗状态机。UI 只允许调用本类的 TryPlayCard / EndTurn / CanPlayCard。
+    ///
+    /// ★ 全类不含 IEnumerator、不含 Update、不引用任何 UI 类型。
+    /// ★ 阶段 4 起本类是**纯 C# 类**，不再继承 MonoBehaviour——它本来就没用过任何 Unity 生命周期，
+    ///   继承 MonoBehaviour 的唯一后果是「测试必须建 GameObject」和「无法在一个进程里并行跑多场战斗」。
+    ///   持有者（RunManager / BattleBootstrap）直接 new 一个就行，不需要挂在任何 GameObject 上。
+    /// </summary>
+    public class BattleController
+    {
+        public BattleContext Ctx { get; private set; }
+        public BattlePhase Phase => Ctx != null ? Ctx.Phase : BattlePhase.None;
+        public bool IsRunning => Ctx != null && !Ctx.BattleEnded;
+
+        /// <summary>战斗结束回调（RunManager 订阅）。参数为是否胜利。</summary>
+        public event Action<bool> BattleFinished;
+
+        /// <summary>实际结算用的上下文。</summary>
+        private readonly EffectContext _playCtx = new EffectContext();
+
+        /// <summary>
+        /// 预览专用上下文。★ 与 _playCtx 分开：CanPlayCard 每帧被 UI 调用，
+        /// 若与结算共用一个实例，一旦某个效果在 Apply 途中间接触发了 CanPlayCard，
+        /// 正在结算的 Targets / XValue 会被 Reset 掉，产生只在特定卡组合下出现的诡异 bug。
+        /// </summary>
+        private readonly EffectContext _previewCtx = new EffectContext();
+
+        // ================================================================= 开始
+
+        public void StartBattle(RunContext run, EncounterDefinition encounter)
+        {
+            if (run == null || encounter == null)
+            {
+                Debug.LogError("[BattleController] StartBattle 参数为空。");
+                return;
+            }
+
+            Ctx = new BattleContext
+            {
+                Rng = run.Rng,
+                Run = run,
+                EnergyPerTurn = run.EnergyPerTurn,
+                Deck = new DeckController(),
+            };
+
+            // 遗物的 Hook 与状态的 Hook 走同一套 Collect，这里只是把持有的遗物复制进来。
+            // ★ 验收标准之一：新增一个遗物不需要改本类任何一行结算代码。
+            Ctx.Relics.AddRange(run.Relics);
+
+            Ctx.Player = new BattleUnit(Ctx.NextUnitUid(), "Player", run.MaxHp, true) { Hp = run.Hp };
+            Ctx.AllUnits.Add(Ctx.Player);
+
+            for (int i = 0; i < encounter.Enemies.Count; i++)
+            {
+                var def = encounter.Enemies[i];
+                if (def == null) continue;
+
+                int hp = Ctx.Rng.Range(RngStream.Encounter, def.MinHp, def.MaxHp + 1);
+                var unit = new BattleUnit(Ctx.NextUnitUid(), def.DisplayName, hp, false) { EnemyDef = def };
+                unit.Brain = CreateBrain(def);
+                unit.Brain.Init(unit, def);
+                Ctx.AllUnits.Add(unit);
+            }
+
+            // 起始状态要在所有单位都进 AllUnits 之后再挂，否则 Collect 收不到
+            for (int i = 1; i < Ctx.AllUnits.Count; i++)
+            {
+                var unit = Ctx.AllUnits[i];
+                var def = unit.EnemyDef;
+                if (def?.StartingStatuses == null) continue;
+                for (int s = 0; s < def.StartingStatuses.Count; s++)
+                    unit.AddStatus(Ctx, def.StartingStatuses[s].Status, def.StartingStatuses[s].Stacks, null);
+            }
+
+            Ctx.Deck.Init(Ctx, run.Deck);
+
+            Ctx.Phase = BattlePhase.BattleStart;
+            Ctx.Post(BattleEventType.BattleStarted);
+
+            using (var flow = Ctx.Collect<IBattleFlowHook>())
+            {
+                for (int i = 0; i < flow.Count; i++) flow[i].Impl.OnBattleStart(Ctx, flow[i].Src);
+            }
+            Ctx.RunTriggerQueue();
+
+            BeginTurn();
+        }
+
+        private static EnemyBrain CreateBrain(EnemyDefinition def)
+        {
+            if (string.IsNullOrEmpty(def.CustomBrainType)) return new EnemyBrain();
+
+            var t = Type.GetType(def.CustomBrainType);
+            if (t == null || !typeof(EnemyBrain).IsAssignableFrom(t))
+            {
+                Debug.LogWarning($"[BattleController] 找不到 Brain 类型「{def.CustomBrainType}」({def.name})，改用默认 EnemyBrain。");
+                return new EnemyBrain();
+            }
+            return (EnemyBrain)Activator.CreateInstance(t);
+        }
+
+        // ================================================================= 回合
+
+        private void BeginTurn()
+        {
+            if (Ctx.BattleEnded) return;
+
+            Ctx.TurnNumber++;
+
+            // 双方都打不动时战斗会永远进行下去。手玩时玩家会自己退出，但自动模拟会挂死。
+            if (Ctx.TurnNumber > Ctx.MaxTurns)
+            {
+                Debug.LogWarning($"[BattleController] 超过 {Ctx.MaxTurns} 回合上限，判负结束。");
+                EndBattle(false);
+                return;
+            }
+
+            Ctx.Phase = BattlePhase.TurnStart;
+            Ctx.CardsPlayedThisTurn = 0;
+            Ctx.AttacksPlayedThisTurn = 0;
+
+            Ctx.Player.DecayBlock(Ctx);
+
+            int energy = Ctx.EnergyPerTurn;
+            using (var res = Ctx.Collect<IResourceHook>())
+            {
+                for (int i = 0; i < res.Count; i++) res[i].Impl.ModifyTurnEnergy(Ctx, res[i].Src, ref energy);
+            }
+            Ctx.Energy = 0;
+            Ctx.GainEnergy(energy);
+
+            using (var hooks = Ctx.Collect<ITurnHook>())
+            {
+                for (int i = 0; i < hooks.Count; i++) hooks[i].Impl.OnTurnStart(Ctx, hooks[i].Src);
+            }
+            Ctx.RunTriggerQueue();
+            Ctx.FireDelayed(DelayTiming.StartOfNextTurn);
+
+            TickStatusDecay(atTurnStart: true);
+
+            int draw = Ctx.Run.CardsPerTurn;
+            using (var res = Ctx.Collect<IResourceHook>())
+            {
+                for (int i = 0; i < res.Count; i++) res[i].Impl.ModifyTurnDraw(Ctx, res[i].Src, ref draw);
+            }
+            if (draw > 0) Ctx.Deck.Draw(draw);
+
+            for (int i = 0; i < Ctx.AllUnits.Count; i++)
+            {
+                var u = Ctx.AllUnits[i];
+                if (u.IsAlive && !u.IsPlayer && u.Brain != null) u.Brain.DecideIntent(Ctx);
+            }
+
+            Ctx.Phase = BattlePhase.PlayerTurn;
+            Ctx.Post(BattleEventType.TurnStarted, 0, 0, Ctx.TurnNumber);
+
+            CheckBattleEnd();
+        }
+
+        public void EndTurn()
+        {
+            if (Ctx == null || Ctx.Phase != BattlePhase.PlayerTurn) return;
+
+            Ctx.Phase = BattlePhase.TurnEnd;
+
+            Ctx.Deck.EndTurnDiscard();
+
+            using (var hooks = Ctx.Collect<ITurnHook>())
+            {
+                for (int i = 0; i < hooks.Count; i++) hooks[i].Impl.OnTurnEnd(Ctx, hooks[i].Src);
+            }
+            Ctx.RunTriggerQueue();
+            Ctx.FireDelayed(DelayTiming.EndOfThisTurn);
+
+            Ctx.Post(BattleEventType.TurnEnded, 0, 0, Ctx.TurnNumber);
+
+            // ★ 状态衰减必须在 OnTurnEnd 之后：中毒要先掉血再减层
+            TickStatusDecay(atTurnStart: false);
+
+            if (CheckBattleEnd()) return;
+
+            EnemyTurn();
+        }
+
+        private void EnemyTurn()
+        {
+            Ctx.Phase = BattlePhase.EnemyTurn;
+            Ctx.Post(BattleEventType.EnemyTurnStarted);
+
+            for (int i = 0; i < Ctx.AllUnits.Count; i++)
+            {
+                var u = Ctx.AllUnits[i];
+                if (!u.IsAlive || u.IsPlayer || u.Brain == null) continue;
+
+                u.DecayBlock(Ctx);
+                u.Brain.ExecuteIntent(Ctx);
+                Ctx.RunTriggerQueue();
+
+                if (CheckBattleEnd()) return;
+            }
+
+            BeginTurn();
+        }
+
+        /// <summary>状态层数的自然衰减。统一在这里做，保证结算顺序可控。</summary>
+        private void TickStatusDecay(bool atTurnStart)
+        {
+            for (int u = 0; u < Ctx.AllUnits.Count; u++)
+            {
+                var unit = Ctx.AllUnits[u];
+                if (!unit.IsAlive) continue;   // 死者的状态不再衰减，与 Collect 的语义保持一致
+
+                for (int s = unit.Statuses.Count - 1; s >= 0; s--)
+                {
+                    var inst = unit.Statuses[s];
+                    if (inst.Def == null) { unit.Statuses.RemoveAt(s); continue; }
+
+                    switch (inst.Def.Decay)
+                    {
+                        case StatusDecay.LoseOneAtTurnEnd:
+                            if (!atTurnStart) inst.Stacks--;
+                            break;
+                        case StatusDecay.RemoveAtTurnEnd:
+                            if (!atTurnStart) inst.Stacks = 0;
+                            break;
+                        case StatusDecay.LoseAllAtTurnStart:
+                            if (atTurnStart) inst.Stacks = 0;
+                            break;
+                    }
+
+                    if (inst.Stacks <= 0)
+                    {
+                        unit.Statuses.RemoveAt(s);
+                        Ctx.Post(BattleEventType.StatusRemoved, unit.Uid, unit.Uid, 0, inst.Def.Id);
+                    }
+                }
+            }
+        }
+
+        // ================================================================= 出牌
+
+        /// <summary>纯查询，无副作用，UI 可以每帧调用。</summary>
+        public bool CanPlayCard(CardInstance card, BattleUnit target, out PlayFailReason reason)
+        {
+            reason = PlayFailReason.None;
+
+            if (Ctx == null || Ctx.BattleEnded) { reason = PlayFailReason.BattleEnded; return false; }
+            if (Ctx.Phase != BattlePhase.PlayerTurn) { reason = PlayFailReason.NotPlayerTurn; return false; }
+            if (card == null || !Ctx.Deck.Hand.Contains(card)) { reason = PlayFailReason.NotInHand; return false; }
+
+            if (card.HasKeyword(CardKeyword.Unplayable) || card.Def.CostMode == CostMode.Unplayable)
+            {
+                reason = PlayFailReason.Unplayable;
+                return false;
+            }
+
+            int cost = card.GetCost(Ctx);
+            if (cost >= 0 && cost > Ctx.Energy) { reason = PlayFailReason.NotEnoughEnergy; return false; }
+
+            if (card.Def.TargetKind == CardTargetKind.SingleEnemy)
+            {
+                if (target == null) { reason = PlayFailReason.NeedTarget; return false; }
+                if (!target.IsAlive || target.IsPlayer) { reason = PlayFailReason.InvalidTarget; return false; }
+            }
+
+            PreparePreviewContext(card, target);
+            bool ok = EffectResolver.CanApplyAll(card.Def.Effects, _previewCtx);
+            _previewCtx.Targets.Clear();
+
+            if (!ok) { reason = PlayFailReason.EffectCannotApply; return false; }
+            return true;
+        }
+
+        private void PreparePreviewContext(CardInstance card, BattleUnit target)
+        {
+            _previewCtx.Reset(Ctx, Ctx.Player, target, card);
+            _previewCtx.PreviewMode = true;
+            _previewCtx.XValue = card.Def.CostMode == CostMode.X ? Ctx.Energy : 0;
+        }
+
+        public bool TryPlayCard(CardInstance card, BattleUnit target) => TryPlayCard(card, target, out _);
+
+        public bool TryPlayCard(CardInstance card, BattleUnit target, out PlayFailReason reason)
+        {
+            if (!CanPlayCard(card, target, out reason)) return false;
+
+            // 出牌前的拦截：取消出牌 / 额外结算几次（回响）
+            bool cancel = false;
+            int extraPlays = 0;
+            using (var flow = Ctx.Collect<ICardFlowHook>())
+            {
+                for (int i = 0; i < flow.Count; i++)
+                    flow[i].Impl.PreCardPlay(Ctx, flow[i].Src, card, ref cancel, ref extraPlays);
+            }
+            if (cancel) { reason = PlayFailReason.Cancelled; return false; }
+            if (extraPlays < 0) extraPlays = 0;
+            if (extraPlays > 8) extraPlays = 8;   // 防止配错导致卡死
+
+            int cost = card.GetCost(Ctx);
+            int spend = card.Def.CostMode == CostMode.X ? Ctx.Energy : cost;
+
+            Ctx.SpendEnergy(spend);
+
+            // ★ 先离手，防止「弃掉所有手牌」之类的效果把自己也算进去
+            Ctx.Deck.Hand.Remove(card);
+            Ctx.CardsPlayedThisTurn++;
+            if (card.Type == CardType.Attack) Ctx.AttacksPlayedThisTurn++;
+            Ctx.LastCardTypePlayed = card.Type;
+
+            Ctx.Post(BattleEventType.CardPlayed, Ctx.Player.Uid, card.Uid, spend, card.Id);
+
+            using (var hooks = Ctx.Collect<ICardPlayHook>())
+            {
+                for (int i = 0; i < hooks.Count; i++) hooks[i].Impl.OnCardPlayed(Ctx, hooks[i].Src, card);
+            }
+
+            for (int rep = 0; rep <= extraPlays; rep++)
+            {
+                _playCtx.Reset(Ctx, Ctx.Player, target, card);
+                _playCtx.PreviewMode = false;
+                _playCtx.XValue = card.Def.CostMode == CostMode.X ? spend : 0;
+
+                EffectResolver.ResolveAll(card.Def.Effects, _playCtx);
+                Ctx.RunTriggerQueue();
+
+                if (Ctx.BattleEnded) break;
+            }
+
+            SendCardToDestination(card);
+
+            CheckBattleEnd();
+            return true;
+        }
+
+        /// <summary>决定一张打完的牌进哪个堆。默认规则可被 ICardFlowHook 改写。</summary>
+        private void SendCardToDestination(CardInstance card)
+        {
+            CardPile dest;
+            if (card.Type == CardType.Power) dest = CardPile.None;                     // 能力牌打出后消失
+            else if (card.HasKeyword(CardKeyword.Exhaust) || card.IsTemporary) dest = CardPile.Exhaust;
+            else dest = CardPile.Discard;
+
+            using (var flow = Ctx.Collect<ICardFlowHook>())
+            {
+                for (int i = 0; i < flow.Count; i++)
+                    flow[i].Impl.ModifyCardDestination(Ctx, flow[i].Src, card, ref dest);
+            }
+
+            switch (dest)
+            {
+                case CardPile.None: break;
+                case CardPile.Exhaust: Ctx.Deck.Exhaust(card); break;
+                case CardPile.Discard: Ctx.Deck.Discard(card, fromHand: false); break;
+                default: Ctx.Deck.AddCard(card, dest); break;
+            }
+        }
+
+        // ================================================================= 结束
+
+        public bool CheckBattleEnd()
+        {
+            if (Ctx == null) return false;
+            if (Ctx.BattleEnded) return true;
+
+            if (!Ctx.Player.IsAlive) { EndBattle(false); return true; }
+            if (Ctx.AliveEnemyCount == 0) { EndBattle(true); return true; }
+            return false;
+        }
+
+        private void EndBattle(bool victory)
+        {
+            Ctx.BattleEnded = true;
+            Ctx.Victory = victory;
+            Ctx.Phase = victory ? BattlePhase.Victory : BattlePhase.Defeat;
+
+            using (var flow = Ctx.Collect<IBattleFlowHook>())
+            {
+                for (int i = 0; i < flow.Count; i++) flow[i].Impl.OnBattleEnd(Ctx, flow[i].Src, victory);
+            }
+
+            for (int i = 0; i < Ctx.Run.Deck.Count; i++) Ctx.Run.Deck[i].OnBattleEnd();
+            Ctx.Run.Hp = Ctx.Player.Hp;
+            Ctx.Run.LastBattleVictory = victory;
+            if (victory) Ctx.Run.BattlesWon++;
+
+            Ctx.Post(BattleEventType.BattleEnded, 0, 0, victory ? 1 : 0);
+            BattleFinished?.Invoke(victory);
+        }
+
+        // ================================================================= 辅助查询（给 UI 用）
+
+        public void GetAliveEnemies(List<BattleUnit> buffer) => Ctx?.GetAliveEnemies(buffer);
+
+        /// <summary>
+        /// 重算所有敌人意图上显示的数值（不重新选择行动）。
+        /// 玩家上了「虚弱」「易伤」之后必须调一次，否则 UI 上是过期数字。
+        /// 纯预览计算，无副作用，UI 可以放心调。
+        /// </summary>
+        public void RefreshIntents()
+        {
+            if (Ctx == null || Ctx.BattleEnded) return;
+
+            for (int i = 0; i < Ctx.AllUnits.Count; i++)
+            {
+                var u = Ctx.AllUnits[i];
+                if (u.IsAlive && !u.IsPlayer && u.Brain != null) u.Brain.RefreshIntentValue(Ctx);
+            }
+        }
+
+        public bool NeedsTargetSelection(CardInstance card)
+            => card != null && card.Def != null && card.Def.TargetKind == CardTargetKind.SingleEnemy;
+    }
+}

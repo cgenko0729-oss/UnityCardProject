@@ -1,0 +1,167 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e85091e05819634fb031b32b63144a8, type: 3}
+  m_Name: Enemy_JawWorm
+  m_EditorClassIdentifier: 
+  Id: jawworm
+  DisplayName: "\u989A\u866B"
+  Art: {fileID: 0}
+  MinHp: 40
+  MaxHp: 44
+  IsElite: 0
+  IsBoss: 0
+  StartingStatuses: []
+  Actions:
+  - Name: "\u731B\u51FB"
+    Intent: 1
+    Weight: 45
+    MaxConsecutive: 2
+    Condition:
+      Kind: 0
+      Id: 
+      Value: 0
+      Invert: 0
+    PhaseMask: 0
+    Effects:
+    - rid: 1041046762904355061
+  - Name: "\u8F70\u9E23"
+    Intent: 2
+    Weight: 30
+    MaxConsecutive: 1
+    Condition:
+      Kind: 0
+      Id: 
+      Value: 0
+      Invert: 0
+    PhaseMask: 0
+    Effects:
+    - rid: 1041046762904355062
+    - rid: 1041046762904355063
+  - Name: "\u786C\u5316"
+    Intent: 4
+    Weight: 25
+    MaxConsecutive: 1
+    Condition:
+      Kind: 0
+      Id: 
+      Value: 0
+      Invert: 0
+    PhaseMask: 0
+    Effects:
+    - rid: 1041046762904355064
+    - rid: 1041046762904355065
+  FixedSequence: 00000000
+  LoopSequence: 0
+  PhaseHpThresholds: 
+  CustomBrainType: 
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355061
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 2
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 11
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 0
+        IgnoreBlock: 0
+    - rid: 1041046762904355062
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 2
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 7
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 0
+        IgnoreBlock: 0
+    - rid: 1041046762904355063
+      type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 5
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+    - rid: 1041046762904355064
+      type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 6
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+    - rid: 1041046762904355065
+      type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Status: {fileID: 11400000, guid: a466306de74253a4183a502357a7d557, type: 2}
+        Stacks:
+          Base: 3
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_Reinforcements
+  m_EditorClassIdentifier: 
+  Id: reinforcements
+  DisplayName: "\u589E\u63F4"
+  Art: {fileID: 0}
+  Cost: 1
+  CostMode: 0
+  Type: 1
+  Rarity: 3
+  TargetKind: 0
+  Keywords: 1
+  DescriptionTemplate: "\u5C06 {0} \u5F20\u6253\u51FB\u52A0\u5165\u624B\u724C\uFF08\u672C\u573A\u6218\u6597\u540E\u6D88\u5931\uFF09\u3002\u62BD
+    {1} \u5F20\u724C\u3002\u6D88\u8017\u3002"
+  Effects:
+  - rid: 1041046762904354992
+  - rid: 1041046762904354993
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904354992
+      type: {class: AddCardEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Card: {fileID: 11400000, guid: 0a16cfd15fb0bad45847322d05e72e87, type: 2}
+        Pile: 1
+        Count:
+          Base: 2
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Temporary: 1
+        Upgraded: 0
+        CopySourceCard: 0
+    - rid: 1041046762904354993
+      type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Count:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

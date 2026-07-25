@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d255fa4e47d074646baef0fc7b72dc3a, type: 3}
+  m_Name: Event_ShrineOfBlood
+  m_EditorClassIdentifier: 
+  Id: shrine_of_blood
+  Title: "\u8840\u4E4B\u795E\u9F9B"
+  Art: {fileID: 0}
+  Description: "\u77F3\u53F0\u4E0A\u523B\u7740\u4E00\u884C\u5B57\uFF1A\u300C\u4EE5\u75DB\u695A\u6362\u53D6\u529B\u91CF\u3002\u300D\n\u51F9\u69FD\u91CC\u8FD8\u6B8B\u7559\u7740\u6697\u7EA2\u8272\u7684\u75D5\u8FF9\u3002"
+  Options:
+  - Text: "\u5272\u7834\u624B\u638C"
+    Condition:
+      Kind: 0
+      Id: 
+      Value: 0
+      Invert: 0
+    DisabledHint: 
+    ResultText: "\u523A\u75DB\u4E4B\u540E\uFF0C\u4F60\u611F\u5230\u67D0\u79CD\u4E1C\u897F\u88AB\u70B9\u71C3\u4E86\u3002"
+    Effects:
+    - rid: 1041046762904355035
+    - rid: 1041046762904355036
+    EndsEvent: 1
+  - Text: "\u79BB\u5F00"
+    Condition:
+      Kind: 0
+      Id: 
+      Value: 0
+      Invert: 0
+    DisabledHint: 
+    ResultText: "\u4F60\u51B3\u5B9A\u4E0D\u53BB\u78B0\u5B83\u3002"
+    Effects: []
+    EndsEvent: 1
+  MinRow: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355035
+      type: {class: HpRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
+      data:
+        Amount: -12
+        PercentOfMax: 0
+        MinMagnitude: 1
+    - rid: 1041046762904355036
+      type: {class: AddCardRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
+      data:
+        Card: {fileID: 0}
+        RandomRarity: 1
+        AnyRarity: 1
+        Count: 3
+        Upgraded: 0
+        PlayerChooses: 1

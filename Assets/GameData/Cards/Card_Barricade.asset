@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_Barricade
+  m_EditorClassIdentifier: 
+  Id: barricade
+  DisplayName: "\u58C1\u5792"
+  Art: {fileID: 0}
+  Cost: 3
+  CostMode: 0
+  Type: 2
+  Rarity: 3
+  TargetKind: 0
+  Keywords: 0
+  DescriptionTemplate: "\u62A4\u7532\u4E0D\u518D\u4E8E\u56DE\u5408\u5F00\u59CB\u65F6\u6D88\u5931\u3002"
+  Effects:
+  - rid: 1041046762904355060
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355060
+      type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 1
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Status: {fileID: 11400000, guid: 3a8cd53ca21e0b04ca32975965bf322b, type: 2}
+        Stacks:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_CleavePlus
+  m_EditorClassIdentifier: 
+  Id: cleave_plus
+  DisplayName: "\u6A2A\u626B+"
+  Art: {fileID: 0}
+  Cost: 1
+  CostMode: 0
+  Type: 0
+  Rarity: 4
+  TargetKind: 2
+  Keywords: 0
+  DescriptionTemplate: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  Effects:
+  - rid: 1041046762904355009
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046762904355009
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 3
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 11
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 0
+        IgnoreBlock: 0

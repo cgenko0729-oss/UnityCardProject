@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32dda4171e2e7e747991aa0edee6d783, type: 3}
+  m_Name: Encounter_WormAndCultist
+  m_EditorClassIdentifier: 
+  Id: worm_and_cultist
+  DisplayName: "\u989A\u866B\u4E0E\u90AA\u6559\u5F92"
+  Enemies:
+  - {fileID: 11400000, guid: 8c35a29b327b1574dab4f88e3bc1837a, type: 2}
+  - {fileID: 11400000, guid: fbee89b757fa3674fbc040f6e4957ba1, type: 2}
+  IsElite: 0
+  IsBoss: 0
