@@ -18,6 +18,7 @@ namespace Game.Battle
         DamageDealt, DamageBlocked, Healed, BlockGained, BlockLost,
         StatusApplied, StatusRemoved, StatusTriggered,
         EnergyChanged, IntentChanged,
+        PotionUsed, PotionDiscarded,
         UnitDied, Message
     }
 
@@ -42,6 +43,14 @@ namespace Game.Battle
         Cancelled,
         /// <summary>上一张牌的结算正挂起等玩家选牌。</summary>
         WaitingForSelection
+    }
+
+    public enum PotionFailReason
+    {
+        None, NotPlayerTurn, BattleEnded, WaitingForSelection,
+        /// <summary>这瓶药水不在玩家背包里。</summary>
+        NotHeld,
+        NeedTarget, InvalidTarget
     }
 
     public enum DamageKind { Attack, Status, Thorns, Loss }

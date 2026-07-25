@@ -4,6 +4,7 @@ using Game.Cards;
 using Game.Core;
 using Game.Effects;
 using Game.Enemies;
+using Game.Potions;
 using Game.Relics;
 using Game.Statuses;
 using Game.Units;
@@ -453,6 +454,71 @@ namespace Game.Battle
 
         public bool NeedsTargetSelection(CardInstance card)
             => card != null && card.Def != null && card.Def.TargetKind == CardTargetKind.SingleEnemy;
+
+        // ================================================================= 药水
+
+        /// <summary>纯查询，无副作用，UI 可以每帧调用。</summary>
+        public bool CanUsePotion(PotionInstance potion, BattleUnit target, out PotionFailReason reason)
+        {
+            reason = PotionFailReason.None;
+
+            if (Ctx == null || Ctx.BattleEnded) { reason = PotionFailReason.BattleEnded; return false; }
+            if (Ctx.Phase != BattlePhase.PlayerTurn) { reason = PotionFailReason.NotPlayerTurn; return false; }
+            if (Ctx.IsWaitingForSelection) { reason = PotionFailReason.WaitingForSelection; return false; }
+
+            if (potion?.Def == null || Ctx.Run == null || !Ctx.Run.Potions.Contains(potion))
+            {
+                reason = PotionFailReason.NotHeld;
+                return false;
+            }
+
+            if (potion.Def.NeedsTarget)
+            {
+                if (target == null) { reason = PotionFailReason.NeedTarget; return false; }
+                if (!target.IsAlive || target.IsPlayer) { reason = PotionFailReason.InvalidTarget; return false; }
+            }
+
+            return true;
+        }
+
+        public bool TryUsePotion(PotionInstance potion, BattleUnit target)
+            => TryUsePotion(potion, target, out _);
+
+        /// <summary>
+        /// 喝一瓶药水。效果走的是与卡牌完全相同的 <see cref="EffectResolver"/>，
+        /// 因此药水里也可以放选牌效果，结算同样会挂起等玩家作答。
+        /// </summary>
+        public bool TryUsePotion(PotionInstance potion, BattleUnit target, out PotionFailReason reason)
+        {
+            if (!CanUsePotion(potion, target, out reason)) return false;
+
+            // ★ 先从背包移除再结算：效果里若有「再获得一瓶药水」，
+            //   不先移除会算错槽位，甚至让这瓶药水复制自己。
+            Ctx.Run.RemovePotion(potion);
+
+            Ctx.Post(BattleEventType.PotionUsed, Ctx.Player.Uid, 0, 0, potion.Id);
+
+            var ectx = new EffectContext();
+            ectx.Reset(Ctx, Ctx.Player, target, null);
+            ectx.PreviewMode = false;
+
+            EffectResolver.ResolveAll(potion.Def.Effects, ectx, () =>
+            {
+                Ctx.RunTriggerQueue();
+                CheckBattleEnd();
+            });
+
+            return true;
+        }
+
+        /// <summary>倒掉一瓶药水腾出槽位。不产生任何效果。</summary>
+        public bool DiscardPotion(PotionInstance potion)
+        {
+            if (Ctx?.Run == null || potion == null) return false;
+            if (!Ctx.Run.RemovePotion(potion)) return false;
+            Ctx.Post(BattleEventType.PotionDiscarded, 0, 0, 0, potion.Id);
+            return true;
+        }
 
         // ================================================================= 选牌（给 UI 用）
 

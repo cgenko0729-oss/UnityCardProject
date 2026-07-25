@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Cards;
+using Game.Potions;
 using Game.Relics;
 
 namespace Game.Core
@@ -9,6 +10,7 @@ namespace Game.Core
     {
         public CardDefinition Card;
         public RelicDefinition Relic;
+        public PotionDefinition Potion;
 
         /// <summary>true 表示这是「删卡服务」而不是实物。</summary>
         public bool IsCardRemoval;
@@ -23,6 +25,7 @@ namespace Game.Core
                 if (IsCardRemoval) return "移除一张卡";
                 if (Card != null) return Card.DisplayName;
                 if (Relic != null) return Relic.DisplayName;
+                if (Potion != null) return Potion.DisplayName;
                 return "?";
             }
         }
@@ -39,6 +42,7 @@ namespace Game.Core
 
         public const int CardCount = 5;
         public const int RelicCount = 2;
+        public const int PotionCount = 3;
 
         public const int CardRemovalBasePrice = 75;
 
@@ -59,6 +63,13 @@ namespace Game.Core
             RelicRarity.Uncommon => 180,
             RelicRarity.Shop => 200,
             _ => 150,
+        };
+
+        public static int PriceOf(PotionRarity rarity) => rarity switch
+        {
+            PotionRarity.Rare => 100,
+            PotionRarity.Uncommon => 75,
+            _ => 50,
         };
 
         public static ShopStock Generate(RunContext run)
@@ -95,6 +106,19 @@ namespace Game.Core
                     Price = relic.ShopPrice > 0 ? relic.ShopPrice : PriceOf(relic.Rarity),
                 });
                 placed++;
+            }
+
+            // 药水允许重复上架——一次性消耗品，同款买两瓶很正常
+            for (int i = 0; i < PotionCount; i++)
+            {
+                var potion = ContentPicker.PickPotion(run.Rng, run.Database, RngStream.Shop);
+                if (potion == null) break;
+
+                stock.Items.Add(new ShopItem
+                {
+                    Potion = potion,
+                    Price = potion.ShopPrice > 0 ? potion.ShopPrice : PriceOf(potion.Rarity),
+                });
             }
 
             stock.Items.Add(new ShopItem

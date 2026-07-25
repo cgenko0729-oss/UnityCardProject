@@ -77,6 +77,7 @@ namespace Game.UI
         {
             if (item.IsCardRemoval) return new Color(0.36f, 0.22f, 0.28f);
             if (item.Relic != null) return new Color(0.36f, 0.26f, 0.44f);
+            if (item.Potion != null) return new Color(0.20f, 0.40f, 0.34f);
             return new Color(0.22f, 0.32f, 0.46f);
         }
 
@@ -95,6 +96,13 @@ namespace Game.UI
 
             if (item.IsCardRemoval) { BuyCardRemoval(item); return; }
 
+            // ★ 槽位检查必须在扣钱之前：先扣钱再发现装不下，玩家等于白付钱。
+            if (item.Potion != null && !Run.HasPotionSpace)
+            {
+                ShowHint("药水槽已满，先喝掉或倒掉一瓶再来。");
+                return;
+            }
+
             Run.Gold -= item.Price;
             item.Sold = true;
 
@@ -107,6 +115,11 @@ namespace Game.UI
             {
                 Run.AddRelic(item.Relic);
                 ShowHint($"买下了遗物「{item.Relic.DisplayName}」。");
+            }
+            else if (item.Potion != null)
+            {
+                Run.AddPotion(item.Potion);
+                ShowHint($"买下了药水「{item.Potion.DisplayName}」。");
             }
 
             RefreshRows();
@@ -149,13 +162,15 @@ namespace Game.UI
                 var item = _items[i];
                 var btn = _buttons[i];
 
-                bool affordable = !item.Sold && Run.Gold >= item.Price;
+                bool full = item.Potion != null && !Run.HasPotionSpace;
+                bool affordable = !item.Sold && Run.Gold >= item.Price && !full;
                 UIFactory.SetInteractable(btn, affordable, ColorOf(item));
 
                 var label = UIFactory.LabelOf(btn);
                 if (label == null) continue;
 
                 if (item.Sold) label.text = $"{item.DisplayName}　—　已售出";
+                else if (full) label.text = $"{Kind(item)}　{item.DisplayName}　—　◆ {item.Price}　（药水槽已满）";
                 else label.text = $"{Kind(item)}　{item.DisplayName}　—　◆ {item.Price}";
             }
         }
@@ -164,6 +179,7 @@ namespace Game.UI
         {
             if (item.IsCardRemoval) return "[服务]";
             if (item.Relic != null) return "[遗物]";
+            if (item.Potion != null) return "[药水]";
             return "[卡牌]";
         }
 

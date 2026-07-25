@@ -29,6 +29,7 @@ namespace Game.Editor
         private const string EncounterDir = RootDir + "/Encounters";
         private const string RelicDir = RootDir + "/Relics";
         private const string EventDir = RootDir + "/Events";
+        private const string PotionDir = RootDir + "/Potions";
 
         private static readonly Dictionary<string, StatusDefinition> Statuses = new Dictionary<string, StatusDefinition>();
         private static readonly Dictionary<string, CardDefinition> Cards = new Dictionary<string, CardDefinition>();
@@ -36,21 +37,24 @@ namespace Game.Editor
         private static readonly List<EncounterDefinition> Encounters = new List<EncounterDefinition>();
         private static readonly Dictionary<string, RelicDefinition> Relics = new Dictionary<string, RelicDefinition>();
         private static readonly Dictionary<string, EventDefinition> Events = new Dictionary<string, EventDefinition>();
+        private static readonly Dictionary<string, Potions.PotionDefinition> PotionDefs =
+            new Dictionary<string, Potions.PotionDefinition>();
 
         [MenuItem("Tools/卡牌游戏/1. 生成示例内容", priority = 1)]
         public static void Generate()
         {
             Statuses.Clear(); Cards.Clear(); Enemies.Clear(); Encounters.Clear();
-            Relics.Clear(); Events.Clear();
+            Relics.Clear(); Events.Clear(); PotionDefs.Clear();
 
             EnsureDir(RootDir); EnsureDir(StatusDir); EnsureDir(CardDir); EnsureDir(EnemyDir);
-            EnsureDir(EncounterDir); EnsureDir(RelicDir); EnsureDir(EventDir);
+            EnsureDir(EncounterDir); EnsureDir(RelicDir); EnsureDir(EventDir); EnsureDir(PotionDir);
 
             CreateStatuses();
             CreateCards();
             CreateEnemies();
             CreateEncounters();
             SampleContentRelics.CreateRelics(RelicDir, Statuses, Relics);
+            SampleContentPotions.CreatePotions(PotionDir, Statuses, PotionDefs);
             SampleContentEvents.CreateEvents(EventDir, Events);
             var db = CreateDatabase();
 
@@ -59,7 +63,8 @@ namespace Game.Editor
 
             Debug.Log($"[SampleContent] 生成完成：{Statuses.Count} 个状态、{Cards.Count} 张卡、" +
                       $"{Enemies.Count} 个敌人、{Encounters.Count} 场战斗、{Relics.Count} 个遗物、" +
-                      $"{Events.Count} 个事件。数据库：{AssetDatabase.GetAssetPath(db)}");
+                      $"{Events.Count} 个事件、{PotionDefs.Count} 瓶药水。" +
+                      $"数据库：{AssetDatabase.GetAssetPath(db)}");
             Selection.activeObject = db;
         }
 
@@ -720,6 +725,7 @@ namespace Game.Editor
             db.Encounters = new List<EncounterDefinition>(Encounters);
             db.Relics = new List<RelicDefinition>(Relics.Values);
             db.Events = new List<EventDefinition>(Events.Values);
+            db.Potions = new List<Potions.PotionDefinition>(PotionDefs.Values);
             db.BuildIndex();
             EditorUtility.SetDirty(db);
             return db;

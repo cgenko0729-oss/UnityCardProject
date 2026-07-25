@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Cards;
+using Game.Potions;
 using Game.Relics;
 
 namespace Game.Core
@@ -15,14 +16,19 @@ namespace Game.Core
         /// <summary>精英 / Boss 掉落的遗物，可能为 null。</summary>
         public RelicDefinition Relic;
 
+        /// <summary>本次掉落的药水，可能为 null。</summary>
+        public PotionDefinition Potion;
+
         /// <summary>玩家已经领过卡了（三选一只能拿一张）。</summary>
         public bool CardTaken;
         public bool GoldTaken;
         public bool RelicTaken;
+        public bool PotionTaken;
 
         public bool AllTaken => GoldTaken
                                 && (CardTaken || CardChoices.Count == 0)
-                                && (RelicTaken || Relic == null);
+                                && (RelicTaken || Relic == null)
+                                && (PotionTaken || Potion == null);
     }
 
     /// <summary>
@@ -39,6 +45,11 @@ namespace Game.Core
         public const int BossGoldMax = 101;
 
         public const int CardChoiceCount = 3;
+
+        /// <summary>普通战斗掉药水的概率（百分比）。精英 / Boss 另加。</summary>
+        public const int PotionChanceNormal = 40;
+        public const int PotionChanceElite = 60;
+        public const int PotionChanceBoss = 100;
 
         public static BattleReward Generate(RunContext run, EncounterDefinition encounter)
         {
@@ -62,6 +73,12 @@ namespace Game.Core
                 var rarity = boss ? RelicRarity.Boss : (RelicRarity?)null;
                 reward.Relic = ContentPicker.PickRelic(run.Rng, run.Database, RngStream.Reward, run, rarity);
             }
+
+            // ★ 掷骰无论如何都要掷：只有掷了才推进 Potion 流。
+            //   写成「背包满就不掷」的话，同一个种子会因为玩家背包状态不同而错开后续掉落。
+            int chance = boss ? PotionChanceBoss : elite ? PotionChanceElite : PotionChanceNormal;
+            if (run.Rng.Chance(RngStream.Potion, chance))
+                reward.Potion = ContentPicker.PickPotion(run.Rng, run.Database, RngStream.Potion);
 
             return reward;
         }

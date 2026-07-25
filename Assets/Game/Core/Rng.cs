@@ -18,6 +18,12 @@ namespace Game.Core
         Shop = 6,
         Event = 7,
         CardEffect = 8,
+        /// <summary>
+        /// 药水掉落 / 抽取。★ 单独开一条流而不是复用 Reward：
+        /// 复用会让「加了药水」这件事改变所有既有种子的卡牌奖励序列。
+        /// 每条流由 Hash(seed, stream+1) 独立起头，新增一条不影响任何旧流。
+        /// </summary>
+        Potion = 9,
     }
 
     /// <summary>确定性随机数。xorshift32，可存档可恢复。</summary>
