@@ -59,8 +59,11 @@
 | 阶段 5 存档与内容 | ⬜ 未开始 | SaveSystem / MetaSave / 内容量产 / 自动对战模拟器 |
 | 阶段 6 动画音效打磨 | ⬜ 未开始 | DOTween / 音效 / 本地化 |
 
-**当前代码规模**：`Assets/Game/` 下 87 个 .cs 文件；测试 7 个文件 89 个用例。
-**内容规模**：10 个状态、24 张卡、6 个敌人、11 场战斗、16 个遗物、6 个事件。
+**当前代码规模**：`Assets/Game/` 下 96 个 .cs 文件；测试 11 个文件 164 个用例。
+**内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水。
+
+> ⚠️ **新会话第一件事**：如果 `Assets/GameData/Potions/` 不存在或卡池不足 57 张，
+> 说明内容资产还没生成，先跑菜单 `Tools/卡牌游戏/1. 生成示例内容`。
 
 ---
 
@@ -170,6 +173,27 @@ Assets/
 | 2 | **每帧描述重算的 GC** | `CardInstance.GetDescription` | 每帧每张手牌 new 一个 `EffectContext` + 若干字符串。需要按「依赖指纹」缓存。 |
 | 3 | 文案硬编码 | UI 各处 | 本地化仍未引入，越晚做迁移成本越高。 |
 | 4 | 无召唤机制 | `BattleController.EnemyTurn` | 索引遍历 `AllUnits`，战斗中加入新单位会出问题；`BattleScreen` 也只在 Bind 时建 UnitView。 |
+
+---
+
+## 六之三、2026-07-25 第四次会话新增的铁律
+
+16. **选牌效果不能把「跑完之后要做的事」写在 `ResolveAll` 的下一行。**
+    结算可能挂起等玩家作答，挂起时 C# 调用栈会展开，下一行会抢在效果真正跑完之前执行。
+    一律用 `ResolveAll(effects, ctx, onComplete: () => ...)` 的回调形式。
+17. **组合子里不能用 for 循环内联跑子效果。** 循环变量活在调用栈上，挂起后回不来。
+    改为把每次迭代压进 `ctx.Battle.Resolution`（倒序压，栈是后进先出）。
+18. **`BattleContext.Selector` 非 null = 「不用问人」。** EditMode 测试、自动模拟器、
+    敌人回合全靠它当场同步作答，所以它们永远不会挂起。只有 UI 把它置 null 才进入交互模式。
+19. **药水的效果就是 `List<CardEffect>`，不许为药水另写效果类。**
+    需要新效果类时，先问「这个效果卡牌是不是也该有」——答案通常是「是」。
+20. **`DamageKind` 与 `IgnoreBlock` 是两个独立开关。**
+    `Kind = Loss` 只是告诉荆棘「这不是攻击，别反弹」，**它不穿透护甲**。
+    想无视护甲必须另外勾 `IgnoreBlock`。
+21. **状态牌 / 诅咒牌的稀有度必须是 `Special`**，规则与升级版完全一致，
+    否则会出现在战斗奖励三选一和商店里。
+22. **`ContentValidator` 里凡是扫效果树的检查都必须递归进四个组合子**，
+    否则「重复 3 次造成伤害」这种正常卡会被误报。
 
 ---
 
@@ -349,3 +373,59 @@ Assets/
 
 **验证**：四个程序集 0 error 0 warning，EditMode **89/89 通过**。
 界面泄漏本身是 MonoBehaviour 层的问题，EditMode 测不到，只能靠 Play 模式确认。
+
+### 2026-07-25 — 第四次会话：选牌 / 药水 / 三批内容
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 选牌的阻塞模型 | **A. 续延挂起**（否决了「出牌前一次问完」与「只支持卡牌级选牌」） |
+| 药水范围 | 完整版（槽位 / 目标 / 掉落 / 商店 / 事件全通） |
+| 内容量 | 中量，卡池 24 → 57 |
+| Git 流程 | 每个 feature 一个分支，`--no-ff` 合回 main，分支全部保留并推送 |
+
+**六个分支（全部已合并进 main，均未删除）**
+
+| 分支 | 内容 |
+|---|---|
+| `feature/in-battle-card-selection` | 可挂起的结算栈 + `SelectCardsEffect` |
+| `feature/potion-system` | 药水系统 |
+| `feature/curse-status-cards` | 诅咒牌 / 状态牌 |
+| `feature/keyword-cards` | Retain / Innate / Ethereal |
+| `feature/combinator-cards` | 四个组合子的实战卡 |
+| `feature/selection-cards` | 选牌机制的实际卡牌 |
+
+**架构上唯一的大改：`EffectResolutionStack`**
+
+原来「跑到第几个效果」这个状态活在 C# 调用栈上。为了等玩家选牌而返回时，
+栈会展开——组合子里剩下的循环回不来，写在 `ResolveAll` 下一行的收尾代码还会抢跑。
+现在把它显式存进帧栈：挂起 = 停止 Pump，恢复 = 继续 Pump，调用栈长什么样完全无关。
+
+代价是三个组合子必须改写成「压栈」而不是「内联循环」，
+`BattleController` 的出牌收尾也改成了回调链。
+**`BattleContext.Selector` 是让这次改造零回归的关键**：非 null 表示「不用问人」，
+测试 / 模拟器 / 敌人回合全部当场同步作答，因此既有 89 个用例一行未改。
+
+**实施中被测试抓出的 4 个真实问题**
+
+| # | 问题 | 修正 |
+|---|---|---|
+| 1 | `LastCardTypePlayed` 在结算**之前**就被设成当前卡类型，于是「若上一张是攻击牌」在任何攻击牌上恒为真，条件形同虚设 | 赋值挪到 `FinishPlay`（结算完成后） |
+| 2 | `DamageKind.Loss` 并不穿透护甲——它只影响荆棘判定 | 灼烧类效果另勾 `IgnoreBlock` |
+| 3 | 「留在手上的代价」放在状态衰减之前，疑虑施加的 1 层虚弱会被同一次衰减当场扣掉 | `EndTurn` 重排：衰减 → 留手代价 → 清理手牌 |
+| 4 | `ContentValidator` 的 ChosenTarget 检查不递归进组合子，把「重复 3 次造成伤害」误报成配错 | 改为递归覆盖四个组合子 |
+
+**验证**
+
+- 四个程序集 0 error 0 warning（Unity 编辑器占锁，用托管 DLL 建临时 csproj 编译）
+- EditMode **164/164 通过**（原 89 + 新增 75），在工程副本里 batchmode 跑
+- 内容生成 57 张卡 / 10 瓶药水 / 7 个事件，`ContentValidator` **0 错误 0 警告**
+
+**已知限制 / 尚未验证**
+
+- ⚠️ **`Assets/GameData/` 下的新资产尚未在真实工程里生成**——本机 Unity 编辑器占着工程锁，
+  生成与校验都是在工程副本 `D:\UnityAiProject\_TestCopy` 里跑的。
+  使用者需要在自己的 Unity 里跑一次菜单 `Tools/卡牌游戏/1. 生成示例内容`。
+- 药水栏、选牌面板、奖励/商店的药水行**只在编译与 EditMode 逻辑层验证过，尚未在 Play 模式下点过**。
+- `RunContext` 新增了 `Potions` / `PotionSlots` / `_nextPotionUid`，阶段 5 的存档要一并序列化。
