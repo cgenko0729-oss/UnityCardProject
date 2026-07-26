@@ -163,10 +163,22 @@ namespace Game.UI
                 var relic = run.Relics[i];
                 _shownRelics.Add(relic.Id);
 
-                var chip = UIFactory.CreatePanel(_relicRow, "Relic_" + relic.Id, new Color(0.35f, 0.30f, 0.16f));
+                var chip = UIFactory.CreatePanel(_relicRow, "Relic_" + relic.Id, RelicIdleColor);
                 UIFactory.SetSize(chip, RelicChipSize, RelicChipSize);
+
+                // ★ **高度也必须报**，不能只报宽度。
+                //   `CreateHorizontalGroup` 建的 HorizontalLayoutGroup 是 `childControlHeight = true`，
+                //   也就是「子节点的高度由我来定」。它去问这块 chip 要 preferredHeight：
+                //   LayoutElement 没设 → 返回 -1（忽略）→ 退回去问 chip 上的 Image，
+                //   而那个 Image 没有 sprite，preferredHeight 恒为 **0**。
+                //   于是上面那句 SetSize 的 40 当场被覆盖成 0，chip 变成一条零高度的缝：
+                //   ① 悬停判定区面积为 0 → **tooltip 永远弹不出来**；
+                //   ② 底色画不出来 → FlashRelic 那圈「遗物生效」的闪光也一起静默消失（铁律 48 白做了）。
+                //   而屏幕上仍然看得见那个字——占位用的 Text 会溢出零高度的父矩形照常渲染，
+                //   所以表象是「遗物明明在那儿，就是没反应」，没有任何线索指向布局。
                 var le = chip.gameObject.AddComponent<LayoutElement>();
                 le.preferredWidth = RelicChipSize; le.minWidth = RelicChipSize;
+                le.preferredHeight = RelicChipSize; le.minHeight = RelicChipSize;
 
                 // ★ 图标**留 3px 内边距**，不铺满整格。看着是审美，实际是功能：
                 //   FlashRelic 靠 tween 这块 chip 的底色来表示「这个遗物刚刚触发了」，
