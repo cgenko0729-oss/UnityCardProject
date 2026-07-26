@@ -33,23 +33,41 @@ namespace Game.UI
             { "Microsoft YaHei", "Segoe UI", "Arial", "Arial Unicode MS" };
 
         /// <summary>
-        /// 缺字兜底用的字体族。
+        /// 缺字兜底用的字体族，**按顺序全部挂上**。
         ///
-        /// ★ 界面里混着大量<b>非拉丁符号</b>：♥ ◆ ⚔ ☠ ♨ ▣ ▤ ✦ ♒ ▲ ▼ 以及提示框的 【】。
-        ///   英文候选链选中的 Segoe UI 只覆盖其中一部分，缺的那些 TMP 会渲染成 □
-        ///   并在 Console 刷 "was not found in the font asset or any potential fallbacks"。
-        ///   把一个 CJK 大字体挂成 fallback，缺什么就从它那里取。
+        /// ★ 界面里混着大量<b>非拉丁符号</b>：♥ ◆ ⚔ ☠ ♨ ▣ ▤ ✦ ♒ ▲ ▼ 🛡 以及提示框的 【】。
+        ///   缺的字形 TMP 会渲染成 □，并在 Console 刷
+        ///   "was not found in the font asset or any potential fallbacks"。
+        ///
+        /// ★ 顺序不是随手排的，是查过 cmap 的：微软雅黑这一批符号里**只有 ◆**，
+        ///   ⚔ ☠ ♨ ▣ ▤ ✦ ♒ 🛡 一个都没有；Segoe UI Symbol 则**全部覆盖**。
+        ///   所以它必须排第一。
+        ///   刻意<b>不</b>收 Segoe UI Emoji：它能补的字形 Segoe UI Symbol 已经全有，
+        ///   而它是 COLR/CPAL 彩色字体，TMP 动态光栅化它只会取轮廓，收益为零、风险不为零。
+        ///
+        /// ★★ 这里必须是「把整条链都挂上」，不能只取第一个装了的。
+        ///    原来的写法是 <c>TryBuild(FallbackFonts)</c>——它**返回第一个命中的**，
+        ///    于是简中下兜底字体就是「微软雅黑」，而主字体本来就是微软雅黑：
+        ///    等于给一个字体挂了一份自己当兜底，覆盖范围一模一样，一个字都补不了，
+        ///    而真正需要的 Segoe UI Symbol **永远不会被构建**。
+        ///    表现就是地图上的战斗 / 精英 / 休息 / 宝箱节点、敌人意图的 ⚔ 全是方块，
+        ///    而 ♥ ◆ 却好好的——因为后两个雅黑自己就有。
         ///
         /// ★ 这比「把符号也翻译掉」更根本：翻译只能处理已知的那几个，
         ///   而 fallback 对<b>将来任何人加的任何字符</b>都有效。
         /// </summary>
         private static readonly string[] FallbackFonts =
-            { "Microsoft YaHei", "微软雅黑", "Segoe UI Symbol", "Arial Unicode MS", "Noto Sans SC" };
+        {
+            "Segoe UI Symbol",   // ⚔ ☠ ♨ ▣ ▤ ✦ ♒ 🛡 这一整批全靠它
+            "Microsoft YaHei",   // 英文主字体时的中日韩兜底
+            "微软雅黑",
+            "Arial Unicode MS",
+            "Noto Sans SC",
+        };
 
         private static TMP_FontAsset _fontAsset;
         private static string _fontAssetLanguage;
-        private static TMP_FontAsset _fallbackAsset;
-        private static bool _fallbackTried;
+        private static List<TMP_FontAsset> _fallbackAssets;
         private static HashSet<string> _installedFonts;
 
         /// <summary>
@@ -90,29 +108,68 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 给主字体挂上缺字兜底。
+        /// 给主字体挂上整条缺字兜底链。
         ///
         /// ★ 必须防「把自己挂成自己的 fallback」：简中语言下主字体就是微软雅黑，
         ///   自引用会让 TMP 在查不到字形时无限绕圈。
+        ///   判据是**字族名**而不是对象引用——同一个字体用 CreateFontAsset 建两次
+        ///   会得到两个不同的实例，引用比较看起来「不是同一个」，但覆盖范围完全一样。
+        ///   原来那条 <c>_fallbackAsset == primary</c> 正是这样漏掉的。
         /// </summary>
         private static void AttachFallback(TMP_FontAsset primary)
         {
             if (primary == null) return;
 
-            if (!_fallbackTried)
-            {
-                _fallbackTried = true;
-                _fallbackAsset = TryBuild(FallbackFonts);
-            }
-
-            if (_fallbackAsset == null || _fallbackAsset == primary) return;
+            EnsureFallbackAssets();
+            if (_fallbackAssets.Count == 0) return;
 
             if (primary.fallbackFontAssetTable == null)
-                primary.fallbackFontAssetTable = new List<TMP_FontAsset>(1);
+                primary.fallbackFontAssetTable = new List<TMP_FontAsset>(_fallbackAssets.Count);
 
-            if (!primary.fallbackFontAssetTable.Contains(_fallbackAsset))
-                primary.fallbackFontAssetTable.Add(_fallbackAsset);
+            string primaryFamily = FamilyOf(primary);
+
+            for (int i = 0; i < _fallbackAssets.Count; i++)
+            {
+                var fb = _fallbackAssets[i];
+                if (fb == null || fb == primary) continue;
+                if (FamilyOf(fb) == primaryFamily) continue;
+                if (primary.fallbackFontAssetTable.Contains(fb)) continue;
+
+                primary.fallbackFontAssetTable.Add(fb);
+            }
         }
+
+        /// <summary>
+        /// 一次性构建全部装了的兜底字体。★ 与语言无关，所以 <see cref="InvalidateFont"/> 不重建它们
+        /// ——重建一次要重新光栅化整批图集，而它们的内容不会因为切语言而变化。
+        /// </summary>
+        private static void EnsureFallbackAssets()
+        {
+            if (_fallbackAssets != null) return;
+            _fallbackAssets = new List<TMP_FontAsset>(FallbackFonts.Length);
+
+            var seenFamilies = new HashSet<string>();
+
+            for (int i = 0; i < FallbackFonts.Length; i++)
+            {
+                if (!IsInstalled(FallbackFonts[i])) continue;
+
+                var fa = TMP_FontAsset.CreateFontAsset(FallbackFonts[i], "Regular");
+                if (fa == null) continue;
+
+                // 「Microsoft YaHei」和「微软雅黑」是同一个字体的两个名字，
+                // 建两份只是白占一张图集。按字族名去重。
+                if (!seenFamilies.Add(FamilyOf(fa))) continue;
+
+                // 兜底字体自己不再挂兜底，否则会连成一张互相指来指去的网，
+                // 查一个不存在的字形要把整张网走一遍。
+                fa.fallbackFontAssetTable = new List<TMP_FontAsset>(0);
+                _fallbackAssets.Add(fa);
+            }
+        }
+
+        private static string FamilyOf(TMP_FontAsset fa)
+            => fa != null ? fa.faceInfo.familyName : null;
 
         private static TMP_FontAsset BuildFontAsset(string lang)
         {
@@ -144,6 +201,10 @@ namespace Game.UI
 
         private static bool IsInstalled(string family)
         {
+            // ★ 自己保证初始化：兜底链的构建时机不一定在 BuildFontAsset 之后
+            if (_installedFonts == null)
+                _installedFonts = new HashSet<string>(Font.GetOSInstalledFontNames(), StringComparer.OrdinalIgnoreCase);
+
             if (_installedFonts.Contains(family)) return true;
 
             // 系统字体名常带样式后缀（"Microsoft YaHei" ↔ "Microsoft YaHei Regular"），做一次前缀匹配
