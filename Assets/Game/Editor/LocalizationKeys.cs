@@ -56,6 +56,24 @@ namespace Game.Editor
         private static readonly Regex FirstString = new Regex(
             @"""(?<s>(?:[^""\\]|\\.)*)""", RegexOptions.Compiled);
 
+        /// <summary>行注释与块注释。★ 见 <see cref="StripComments"/>。</summary>
+        private static readonly Regex Comments = new Regex(
+            @"/\*.*?\*/|//[^\r\n]*", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        /// <summary>
+        /// 扫描前先把注释去掉。
+        ///
+        /// ★ 不去的话，文档注释里写的示例（本文件顶部那句 <c>Loc.T("key", "原文")</c>）
+        ///   会被当成真调用收进待翻译清单，于是表里凭空多出一条叫「key」的文案。
+        ///   这条谁也不知道是什么、翻不翻都没影响，但它会一直待在那儿，
+        ///   并且让「还有几条没翻译」这个数字永远差一。
+        ///
+        /// ★ 这是个粗糙的剥法——字符串字面量里的 <c>"http://…"</c> 会被误当成注释开头。
+        ///   对本工程够用（没有这种字面量），真出问题时表现是某条 key 收不到，
+        ///   而校验器的「缺翻译」警告会把它顶出来。
+        /// </summary>
+        private static string StripComments(string source) => Comments.Replace(source, " ");
+
         public static List<LocSourceEntry> CollectAll()
         {
             var list = new List<LocSourceEntry>(700);
@@ -140,7 +158,7 @@ namespace Game.Editor
             foreach (var file in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
             {
                 string text;
-                try { text = File.ReadAllText(file); }
+                try { text = StripComments(File.ReadAllText(file)); }
                 catch (IOException) { continue; }
 
                 string rel = file.Replace('\\', '/');
