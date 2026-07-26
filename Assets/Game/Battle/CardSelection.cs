@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Cards;
 using Game.Core;
+using Game.Localization;
 
 namespace Game.Battle
 {
@@ -101,20 +102,29 @@ namespace Game.Battle
         {
             get
             {
+                // ★ Prompt 是「这张卡自己写死的提示语」，目前全工程没有一张卡填它。
+                //   将来若真要用，它得按 card.<id>.effect.<n>.prompt 建 key，
+                //   而 SelectCardsEffect 并不知道自己属于哪张卡——所以在那之前，
+                //   请一直让它留空、走下面这条可翻译的兜底。
                 if (!string.IsNullOrEmpty(Request.Prompt)) return Request.Prompt;
+
                 string verb = Request.Action switch
                 {
-                    CardSelectionAction.Discard => "弃掉",
-                    CardSelectionAction.Exhaust => "消耗",
-                    CardSelectionAction.Retain => "保留",
-                    CardSelectionAction.Duplicate => "复制",
-                    CardSelectionAction.ToDrawTop => "放回牌堆顶",
-                    CardSelectionAction.ToDrawBottom => "放回牌堆底",
-                    CardSelectionAction.ToHand => "拿回手牌",
-                    CardSelectionAction.ToDiscard => "放进弃牌堆",
-                    _ => "选择",
+                    CardSelectionAction.Discard => Loc.T("selection.verb.discard", "弃掉"),
+                    CardSelectionAction.Exhaust => Loc.T("selection.verb.exhaust", "消耗"),
+                    CardSelectionAction.Retain => Loc.T("selection.verb.retain", "保留"),
+                    CardSelectionAction.Duplicate => Loc.T("selection.verb.duplicate", "复制"),
+                    CardSelectionAction.ToDrawTop => Loc.T("selection.verb.to_draw_top", "放回牌堆顶"),
+                    CardSelectionAction.ToDrawBottom => Loc.T("selection.verb.to_draw_bottom", "放回牌堆底"),
+                    CardSelectionAction.ToHand => Loc.T("selection.verb.to_hand", "拿回手牌"),
+                    CardSelectionAction.ToDiscard => Loc.T("selection.verb.to_discard", "放进弃牌堆"),
+                    _ => Loc.T("selection.verb.default", "选择"),
                 };
-                return $"选择 {PickCount} 张牌{verb}";
+
+                // ★ 动词必须当参数传进去，不能在外面拼。
+                //   中文是「选择 N 张牌 + 弃掉」，英文是「Choose N card(s) to + discard」——
+                //   动词在句子里的位置不一样，字符串拼接表达不了这件事。
+                return Loc.T("selection.title", "选择 {0} 张牌{1}", PickCount, verb);
             }
         }
     }

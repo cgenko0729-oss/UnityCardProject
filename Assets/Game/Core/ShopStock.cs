@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Cards;
+using Game.Localization;
 using Game.Potions;
 using Game.Relics;
 
@@ -22,10 +23,10 @@ namespace Game.Core
         {
             get
             {
-                if (IsCardRemoval) return "移除一张卡";
-                if (Card != null) return Card.DisplayName;
-                if (Relic != null) return Relic.DisplayName;
-                if (Potion != null) return Potion.DisplayName;
+                if (IsCardRemoval) return Loc.T("shop.item.card_removal", "移除一张卡");
+                if (Card != null) return Card.LocalizedName;
+                if (Relic != null) return Relic.LocalizedName;
+                if (Potion != null) return Potion.LocalizedName;
                 return "?";
             }
         }

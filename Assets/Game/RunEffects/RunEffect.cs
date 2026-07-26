@@ -132,9 +132,17 @@ namespace Game.RunEffects
             effect.Apply(ctx);
         }
 
-        public static string DescribeAll(IReadOnlyList<RunEffect> effects, RunEffectContext ctx, string separator = "，")
+        /// <summary>
+        /// 把若干效果的描述串成一句。
+        ///
+        /// ★ 分隔符本身也要翻译：中文用全角逗号「，」，英文是半角逗号加空格「, 」。
+        ///   这类「看起来是标点、其实是文案」的东西最容易漏——漏了的表现是
+        ///   英文句子里冒出一个全角逗号，没人会觉得那是本地化的锅。
+        /// </summary>
+        public static string DescribeAll(IReadOnlyList<RunEffect> effects, RunEffectContext ctx, string separator = null)
         {
             if (effects == null || effects.Count == 0) return string.Empty;
+            separator ??= Localization.Loc.T("punct.list_separator", "，");
 
             var sb = new System.Text.StringBuilder(64);
             for (int i = 0; i < effects.Count; i++)

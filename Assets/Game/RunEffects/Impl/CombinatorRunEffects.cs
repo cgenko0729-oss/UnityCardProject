@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Core;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.RunEffects.Impl
@@ -68,7 +69,7 @@ namespace Game.RunEffects.Impl
             ctx.Absorb(child);
         }
 
-        public override string Describe(RunEffectContext ctx) => "结果随机";
+        public override string Describe(RunEffectContext ctx) => Loc.T("run.random.desc", "结果随机");
     }
 
     /// <summary>
@@ -101,9 +102,9 @@ namespace Game.RunEffects.Impl
 
             ctx.Run.PendingBattleEncounterId = id;
             ctx.Run.PendingBattleGivesReward = GiveReward;
-            ctx.AddLog("战斗开始了！");
+            ctx.AddLog(Loc.T("run.startbattle.log", "战斗开始了！"));
         }
 
-        public override string Describe(RunEffectContext ctx) => "进入战斗";
+        public override string Describe(RunEffectContext ctx) => Loc.T("run.startbattle.desc", "进入战斗");
     }
 }

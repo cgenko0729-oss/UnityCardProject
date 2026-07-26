@@ -1,5 +1,6 @@
 using System;
 using Game.Core;
+using Game.Localization;
 using Game.Potions;
 using UnityEngine;
 
@@ -34,12 +35,12 @@ namespace Game.RunEffects.Impl
                 //   玩家看到「获得药水」却发现背包没变，会以为是 bug。
                 if (!run.HasPotionSpace)
                 {
-                    ctx.AddLog("药水槽已满，无法携带更多");
+                    ctx.AddLog(Loc.T("run.gainpotion.full", "药水槽已满，无法携带更多"));
                     return;
                 }
 
                 run.AddPotion(def);
-                ctx.AddLog($"获得药水「{def.DisplayName}」");
+                ctx.AddLog(Loc.T("run.gainpotion.done", "获得药水「{0}」", def.LocalizedName));
             }
         }
 
@@ -64,9 +65,14 @@ namespace Game.RunEffects.Impl
             if (!string.IsNullOrEmpty(PotionId) && ctx?.Run?.Database != null)
             {
                 var def = ctx.Run.Database.GetPotion(PotionId);
-                if (def != null) return Count > 1 ? $"获得 {Count} 瓶「{def.DisplayName}」" : $"获得「{def.DisplayName}」";
+                if (def != null)
+                    return Count > 1
+                        ? Loc.T("run.gainpotion.many", "获得 {0} 瓶「{1}」", Count, def.LocalizedName)
+                        : Loc.T("run.gainpotion.one", "获得「{0}」", def.LocalizedName);
             }
-            return Count > 1 ? $"获得 {Count} 瓶随机药水" : "获得一瓶随机药水";
+            return Count > 1
+                ? Loc.T("run.gainpotion.random_many", "获得 {0} 瓶随机药水", Count)
+                : Loc.T("run.gainpotion.random_one", "获得一瓶随机药水");
         }
     }
 
@@ -85,10 +91,14 @@ namespace Game.RunEffects.Impl
             while (ctx.Run.Potions.Count > ctx.Run.PotionSlots)
                 ctx.Run.Potions.RemoveAt(ctx.Run.Potions.Count - 1);
 
-            ctx.AddLog(Amount >= 0 ? $"药水槽 +{Amount}" : $"药水槽 {Amount}");
+            ctx.AddLog(DescribeSlots());
         }
 
-        public override string Describe(RunEffectContext ctx)
-            => Amount >= 0 ? $"药水槽 +{Amount}" : $"药水槽 {Amount}";
+        public override string Describe(RunEffectContext ctx) => DescribeSlots();
+
+        private string DescribeSlots()
+            => Amount >= 0
+                ? Loc.T("run.potionslots.gain", "药水槽 +{0}", Amount)
+                : Loc.T("run.potionslots.lose", "药水槽 -{0}", -Amount);
     }
 }

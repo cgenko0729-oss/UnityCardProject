@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.Statuses
@@ -36,8 +37,15 @@ namespace Game.Statuses
         [SerializeReference]
         public List<StatusBehaviour> Behaviours = new List<StatusBehaviour>();
 
+        public string LocalizedName => Loc.T($"status.{Id}.name", DisplayName);
+
+        private string LocalizedDescription => Loc.T($"status.{Id}.desc", Description);
+
         public string Describe(int stacks)
-            => string.IsNullOrEmpty(Description) ? DisplayName : Description.Replace("{stacks}", stacks.ToString());
+        {
+            var desc = LocalizedDescription;
+            return string.IsNullOrEmpty(desc) ? LocalizedName : desc.Replace("{stacks}", stacks.ToString());
+        }
 
         /// <summary>
         /// 不带具体层数的解释，<c>{stacks}</c> 渲染成 <c>X</c>。
@@ -47,7 +55,10 @@ namespace Game.Statuses
         ///   看起来很确定、其实是编出来的数字——比写 X 更容易误导人。
         /// </summary>
         public string DescribeGeneric()
-            => string.IsNullOrEmpty(Description) ? DisplayName : Description.Replace("{stacks}", "X");
+        {
+            var desc = LocalizedDescription;
+            return string.IsNullOrEmpty(desc) ? LocalizedName : desc.Replace("{stacks}", "X");
+        }
 
 #if UNITY_EDITOR
         private void OnValidate()

@@ -1,3 +1,4 @@
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.Cards
@@ -23,6 +24,15 @@ namespace Game.Cards
 
         [TextArea(2, 4)]
         public string Description;
+
+        /// <summary>
+        /// 本地化 key 的词干。关键字没有字符串 Id（它用枚举位当键），
+        /// 所以拿枚举名派生：<c>Exhaust</c> → <c>keyword.exhaust</c>。
+        /// </summary>
+        private string KeyStem => "keyword." + Keyword.ToString().ToLowerInvariant();
+
+        public string LocalizedName => Loc.T($"{KeyStem}.name", DisplayName);
+        public string LocalizedDescription => Loc.T($"{KeyStem}.desc", Description);
 
         /// <summary>是否只带一个位（0 和多位组合都算非法）。</summary>
         public bool IsSingleBit

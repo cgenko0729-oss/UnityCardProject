@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Localization;
 using Game.Statuses;
 using UnityEngine;
 
@@ -43,6 +44,9 @@ namespace Game.Relics
         [Header("商店")]
         [Tooltip("商店售价。0 表示用稀有度默认价。")]
         public int ShopPrice;
+
+        public string LocalizedName => Loc.T($"relic.{Id}.name", DisplayName);
+        public string LocalizedDescription => Loc.T($"relic.{Id}.desc", Description);
 
 #if UNITY_EDITOR
         private void OnValidate()
