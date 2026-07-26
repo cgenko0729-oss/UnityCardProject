@@ -11,9 +11,13 @@ namespace Game.UI
     ///   ② 「动画速度 2×/4×」是这类游戏的标配，玩家二周目之后不会想再看完整演出。
     ///      它必须是**播放节奏**的一个乘数，而不是每个特效各自缩短时长。
     ///
-    /// ★ 暂时没有设置界面，值走 PlayerPrefs（与 <see cref="GameApp.LanguagePrefKey"/> 同一套路）。
+    /// ★ 暂时没有设置界面，值走 PlayerPrefs。
     ///   将来做统一设置菜单时，界面只要读写这几个属性即可，特效那边一行都不用改。
-    ///   阶段 5 做 MetaSave 时，这几个键与语言一起迁进去。
+    ///
+    /// ★ 语言已经在第十次会话迁进 <see cref="Game.Save.MetaSave"/> 了，这五个键还没有。
+    ///   要迁的话照 <see cref="SaveService.LoadLanguage"/> 那个写法办：
+    ///   meta 里没有值时去 PlayerPrefs 找一次并搬过去，
+    ///   否则老玩家调好的震屏强度会在更新后被静默重置。
     /// </summary>
     public static class FeedbackSettings
     {

@@ -39,7 +39,7 @@
    - 想复现某一局：选中 `GameApp`，把 `Fixed Seed` 改成非 0
 5. 只调试单场战斗：菜单 `Tools/卡牌游戏/2. 创建战斗测试场景` → `Battle.unity`，
    选中 `BattleBootstrap` 改 `Encounter Id`。
-6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **166/166 通过**）。
+6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **198/198 通过**）。
 7. 校验内容与架构规则：菜单 `Tools/卡牌游戏/3. 校验内容与架构规则`（应为 0 错误 0 警告）。
    CI / 命令行用 `-executeMethod Game.Editor.ContentValidator.ValidateBatch`，有错误时退出码为 1。
 
@@ -60,10 +60,10 @@
 | 阶段 2 卡牌与效果扩展 | ✅ 完成并通过测试 | 14 个效果类、5 个关键字、X 费、升级、动态描述、4 个组合子 |
 | 阶段 3 状态与敌人 AI | ✅ 完成并通过测试 | 8 个 Hook 接口、6 个状态、权重/条件/连续限制/多阶段 AI、意图预览 |
 | 阶段 4 地图与奖励 | ✅ 完成并通过测试 | 12 个 Hook、地图、RunManager、RunEffect、遗物、奖励/商店/事件/休息、8 个界面 |
-| 阶段 5 存档与内容 | ⬜ 未开始 | SaveSystem / MetaSave / 内容量产 / 自动对战模拟器 |
+| 阶段 5 存档与内容 | 🔶 部分完成 | ✅ SaveSystem / MetaSave；⬜ 自动对战模拟器 / 内容量产 / Fuzz |
 | 阶段 6 动画音效打磨 | 🔶 部分完成 | ✅ 本地化 / ✅ TextMeshPro；⬜ DOTween / 音效 |
 
-**当前代码规模**：`Assets/Game/` 下 105 个 .cs 文件；测试 12 个文件 166 个用例。
+**当前代码规模**：`Assets/Game/` 下 123 个 .cs 文件；测试 12 个文件 198 个用例。
 **内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水、5 个关键字。
 **本地化规模**：495 条文案，简体中文（源语言）+ 英文。
 
@@ -98,6 +98,8 @@ Assets/
 │   ├── Enemies/     Intent, EnemyAction, EnemyDefinition, EnemyBrain
 │   │   └── Impl/    GuardianBrain
 │   ├── Battle/      BattleEnums, BattleEvent, BattleHooks, BattleContext, BattleController
+│   ├── Save/        SaveConstants, RunSave(+8 个 DTO), MetaSave,          ← 阶段 5
+│   │                RunSaveWriter, RunSaveReader, SaveJson, SaveMigration
 │   ├── Map/         MapNode, GameMap, MapGenerator                        ← 阶段 4
 │   ├── Relics/      RelicDefinition, RelicInstance                        ← 阶段 4
 │   │   └── Impl/    RelicBehaviours（8 类行为，覆盖 4 个新 Hook）
@@ -160,11 +162,7 @@ Assets/
 
 按依赖顺序：
 
-1. `Game/Save/`：`RunSave` / `MetaSave` / `SaveConstants`，`Game/Core/SaveSystem.cs`。
-   - **只存 Id，绝不存 Definition 引用**。
-   - `RunContext` 已经是唯一的可变数据源，序列化它即可；注意一并存
-     `_nextCardUid`（读档后用 `EnsureCardUidAtLeast` 恢复）与 `Rng.Save()` 的各条流状态。
-   - 只在节点级安全点存档，明确不做战斗中途存档。
+1. ~~`Game/Save/`：存档系统~~ ✅ **第十次会话已完成**，见下面的会话记录与铁律 41–45。
 2. `Editor/AutoBattleSimulator.cs`：无 UI 跑 1000 场，输出胜率 / 平均回合数 / 每张卡的贡献。
    `BattleController` 已是纯 C# 类且 Uid 不再是 static，可以在一个进程里并行跑多场。
 3. 内容量产：卡池扩到 60+，敌人 15+，遗物 30+。
@@ -307,6 +305,56 @@ Assets/
     注册表漏一条不会报错，表现只是某个语言下突然冒出一句中文）。
     源文写成变量拼接的话，那条就永远进不了清单。
     扫描前会先剥注释，否则文档注释里的示例会被当成真调用收进去。
+
+---
+
+## 六之七、2026-07-26 第十次会话新增的铁律（存档）
+
+41. **存档 = 安全时刻的完整快照，不是增量。**
+    一个节点内部的所有修改，**要么整体落盘，要么整体丢弃**。
+    这条不是洁癖，是唯一能吃掉「半完成态」的规则：`EventScreen.Choose` 跑完效果时
+    金币和生命已经扣了，而选牌请求还挂在 UI 层的 `_pendingChoices` 队列里——
+    那个队列不在 `RunContext` 里，存不下来。
+    如果那一刻存过盘，读档回到事件界面就能**再选一次选项**，代价扣两次或好处拿两次。
+    按快照语义，磁盘上留的是进事件之前那一份，代价与好处一起回滚，玩家重选一次，不多不少。
+
+42. **三个存档点的刀口位置都是有讲究的，别挪。**
+
+    | 存档点 | 位置 | 挪早了 | 挪晚了 |
+    |---|---|---|---|
+    | 节点 | `EnterNode` 里，锁定节点之后、`ExecuteNode` 之前 | 读档能改选别的节点 | 商店库存 / 宝箱奖励已掷骰，读档重来结果不同 = 刷商品 |
+    | 战斗 | `StartBattle` 里，`Battle.StartBattle` **之前** | — | 起手牌已抽完、`RngStream.CardDraw` 已推进，读档重打就是**刷起手牌** |
+    | 奖励 | `AcknowledgeBattleEnd` 里，奖励生成**之后** | 读档重掷三选一 | — |
+
+    配套：`EnterNode` 必须在存盘前把 `Run.Phase` 写成目标阶段（**只赋值不广播**）。
+    还留着 `Map` 的话，`CurrentNodeId` 已指向新节点却读档回到地图，玩家白嫖跳过一个节点。
+
+43. **`Game.Runtime` 不认识文件系统。**
+    `RunManager` 只发 `AutosaveRequested` 事件，写盘的是 `Game.UI.SaveService`。
+    直接在 `RunManager` 里调 `SaveSystem.SaveRun` 的话，198 个 EditMode 用例和将来的
+    自动对战模拟器每跑一局就往 `persistentDataPath` 砸一次文件。
+    这是第四次会话 `InteractivePlayer` 那条教训的同一形状：**开关挂在数据/创建者身上，不挂在流程里**。
+
+44. **往 `RunContext` 加字段，必须同步 `RunSave` / `RunSaveWriter` / `RunSaveReader`。**
+    这是存档系统的头号死因：没有任何东西会提醒你，表现是「读档后某个东西回到了初始值」，
+    往往几周后才被发现。`SaveSystemTests.EveryRunContextFieldIsAccountedForBySave`
+    用反射把字段集合钉死了——加字段会当场变红，逼你在「存它」与
+    「明确决定不存它（写进 `notSaved` 并说明理由）」之间选一个。
+    另一条 `LoadedRun_ContinuesExactlyLikeAnUninterruptedRun` 从行为上兜同一件事，两者互补。
+
+45. **`CardSave.DefId` 存的是**当前**的 `Def.Id`，不是基础版的 Id。**
+    `CardInstance.Upgrade()` 是把 `Def` 换成 `Def.UpgradedVersion`，所以升过级的「打击」
+    它的 `Def.Id` 已经是 `strike_plus`。架构文档 03 那份两年前的草稿写的是
+    「存基础 Id + 读档时 `Upgrade()` N 次」，照抄会**双重升级**。
+    还原走 `CardInstance.Restore(uid, def, upgradeLevel)`，只补计数不再升级。
+
+46. **存档格式有三条硬约束**：
+    ① DTO **不复用运行时类型**（运行时类的集合全是 `readonly`，装的又是 SO 引用；
+    有独立 DTO，改运行时类会在映射处**编译不过**，而不是默默产出读不回来的存档）；
+    ② 枚举**写成字符串**（写成整数的话，往 `MapNodeType` 中间插一个新类型，
+    所有老存档的节点类型会整体偏移一位——商店变成事件，且不报任何错）；
+    ③ 写盘必须**原子**（`.tmp` → `File.Replace` → `.bak`）：直接覆写正档时写到一半断电，
+    玩家整局游戏就没了。
 
 ---
 
@@ -765,6 +813,90 @@ Assets/
 - 语言选择目前存 `PlayerPrefs`（key = `game.language`），阶段 5 做 `MetaSave` 时要迁进去。
 - 繁体中文 / 日文：`UIFactory` 的字体候选链、`LocalizationTool` 的导出列都已经准备好，
   补一个 `LocaleTable` 资产即可，**零代码改动**。
+
+> ⚠️ **本文件缺一次会话**：git 上「打击反馈第 0/1/2 层」三个分支与「符号字形兜底链修复」
+> （`feature/feedback-foundation` / `feature/hit-feedback` / `feature/feedback-polish` /
+> `fix/font-symbol-fallback`，即第九次会话）没有补进下面的记录。
+> 那次的产出可以从 `git log` 与 `Game/UI/FeedbackSettings.cs`、`BattlePresenter` 读出来。
+
+### 2026-07-26 — 第十次会话：存档系统（阶段 5 第 1 项）
+
+对应「六、下一步」的第 1 条。
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 战斗中途退出 | **回到该场战斗开始前，重打一次**（否决了「回地图改选节点」与「直接判定本局结束」） |
+| 地图 | **整图存进存档**（先选了「只存种子」，看过故障场景后改的，见下） |
+| 槽位 | 单槽自动存档 + 主菜单「继续游戏」「放弃本局」 |
+| MetaSave | 只装语言，从 `PlayerPrefs` 一次性迁移 |
+| 序列化 | **Newtonsoft.Json**（否决了 JsonUtility——`Dictionary` 与嵌套泛型都不支持） |
+| 内容缺失 | 跳过该项 + 警告，继续读档 |
+| 商店 | 也走快照，整个商店可以反悔 |
+| 防篡改 | 不加，明文 JSON（开发期能拿记事本改存档复现 bug，这个价值比防作弊大） |
+| 本次范围 | 只做存档，不含自动模拟器 / Fuzz / 内容量产 |
+
+**「只存种子」被推翻的那个故障场景**
+
+使用者一开始选的是「只存种子，读档时重新生成地图」。但
+`MapGenerator.Generate(rng, cfg)` 的 `cfg` 装的是**当前数据库里有哪些 encounter / event 的 Id
+及其顺序**（`RunManager.GenerateMap`），而阶段 5 的路线图第 3 条就是「内容量产：敌人 15+」。
+于是**加一个新敌人 → 老存档读出来是另一张地图**，而 `CurrentNodeId` / `VisitedNodeIds`
+是按下标索引的，玩家会被瞬移到一个类型完全不同的节点上——**全程不报任何错**。
+省下的只有约 5 KB 和一个 40 行的 DTO。摆出这个场景后改成了存整图。
+
+**做了什么（分支 `feature/save-system`，五笔提交）**
+
+1. `Game/Save/`：8 个 DTO + `RunSaveWriter` / `RunSaveReader` / `SaveJson` / `SaveMigration`，
+   **全是纯函数**，不碰文件、不碰 Unity API。存档的全部风险都在「哪些字段被存了、读回来对不对」，
+   拆开之后这一部分 100% 可以在 EditMode 里断言。
+2. `Game/Core/SaveSystem.cs`：只剩路径、原子写（`.tmp` → `File.Replace` → `.bak`）、
+   读不出来时退到 `.bak`、出错只打日志不抛异常（存档失败绝不该打断玩家正在玩的这一局）。
+3. `RunManager`：`EnterNode` 拆成「锁定节点 + 快照」与 `ExecuteNode`（准备数据 + 广播），
+   新增 `Resume` 重放后者；新增 `AutosaveRequested` 事件；
+   新增 `RunContext.ActiveBattleEncounterId`（读档重开战斗不能拿 `CurrentNode.ContentId` 推——
+   事件里开的战斗，当前节点是那个事件）。
+4. `Game/UI/SaveService.cs`：唯一决定何时写盘的地方；`GameOver` / `Victory` 时删档。
+   语言从 `PlayerPrefs` 迁进 `MetaSave`，带一次性导入。
+5. 主菜单加「继续游戏」（无存档置灰）与「放弃本局」，两颗都用**同一颗按钮点两次**做确认——
+   本工程只有选牌面板一种模态框，为一句是非题再造一套（遮罩 / 层级 / Esc / 切界面时销毁）
+   每一件做漏了都是一个真 bug，第三次会话的界面泄漏就是这么来的。
+
+**实施中发现并修正的 3 个真实问题**
+
+| # | 问题 | 修正 |
+|---|---|---|
+| 1 | 架构文档 03 的草稿是「存基础 Id + 读档时 Upgrade N 次」，而 `Upgrade()` 会把 `Def` 换成 `UpgradedVersion`，升过级的牌 `Def.Id` 已经是 `*_plus`——照抄会双重升级 | 存当前 `Def.Id`，新增 `CardInstance.Restore` 只补计数不再升级（铁律 45） |
+| 2 | 同一份草稿里的 `Map = run.Map` 根本跑不通：`GameMap` / `MapNode` 的集合全是 `readonly`（Unity 序列化器不碰），`Rows` 是嵌套泛型，`ShopStocks` 是 `Dictionary` | 独立 DTO；顺带成为「改运行时类不会无声改掉存档格式」的保证（铁律 46） |
+| 3 | `RunSave.Version` 若默认成 `CurrentVersion`，一份根本没有 Version 键的坏文件（被截断的、别的程序写的）会**冒充成一份合法的当前存档**走进 Reader | 默认 0，只由 Writer 显式赋值；`SaveMigration` 见 0 直接拒绝 |
+
+**验证**
+
+- 四个程序集 **0 error 0 warning**（Unity 编辑器占锁，用 VS2022 MSBuild 编译 Unity 生成的 csproj）
+- EditMode **198 通过**（原 175 + 新增 23），在工程副本里 batchmode 跑。
+  注：原有数字是 175 而不是本文件别处写的 166——第九次会话的 `FeedbackEventTests` 加了 9 条，
+  当时没同步进本文件，这次一并订正
+- 其中两条是本次最值钱的：
+  - `LoadedRun_ContinuesExactlyLikeAnUninterruptedRun`——存档后继续走 3 步，
+    与从未中断的那一局逐字段比对。**它不枚举字段**，所以「加了字段忘了存」会被它抓到，
+    而所有逐字段断言的用例都对这种漏洞免疫；
+  - `EveryRunContextFieldIsAccountedForBySave`——反射把 `RunContext` 的字段集合钉死，
+    从结构上兜同一件事，且给得出人话的错误信息。
+
+**已知限制 / 尚未验证**
+
+- ⚠️ **尚未在 Play 模式下点过。** 首次试玩重点看四处：
+  ① 开局 → 打两场 → 关掉 → 重开点「继续游戏」，牌库 / 金币 / 遗物 / 地图进度是否原样；
+  ② 战斗打到一半关掉，重开是否回到**该场战斗开头**且起手牌与第一次相同；
+  ③ 「放弃本局」→「继续游戏」是否变灰；「开始新游戏」在有存档时是否要点两次；
+  ④ 英文下主菜单两颗新按钮的文字是否溢出（`ui.menu.abandon_confirm` 那条最长）。
+- **Newtonsoft + IL2CPP**：纯 POCO + `List<T>` 一般安全，但泛型反序列化在 AOT 下有踩雷史。
+  工程目前只在 Editor 跑，**出包前要实测一次**，必要时加 `link.xml`。
+- `FeedbackSettings` 的 5 个键仍在 `PlayerPrefs`，没跟着语言一起迁进 `MetaSave`。
+  要迁的话照 `SaveService.LoadLanguage` 那个写法办（meta 里没有值时去 PlayerPrefs 找一次再搬过去），
+  否则老玩家调好的震屏强度会在更新后被静默重置。
+- 存档路径是 `Application.persistentDataPath`；测试用 `SaveSystem.OverrideDirectory` 引到临时目录。
 
 ### 2026-07-26 — 第八次会话：项目使用指南 + 手工资产安全合并
 

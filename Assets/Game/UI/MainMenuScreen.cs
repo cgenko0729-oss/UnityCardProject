@@ -21,9 +21,27 @@ namespace Game.UI
             UIFactory.SetAnchored(subtitle.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(0, -370), new Vector2(0, -320));
 
-            var newRun = UIFactory.CreateTextButton(Root, "NewRun", Loc.T("ui.menu.new_run", "开始新游戏"), 32,
-                new Color(0.30f, 0.45f, 0.32f), () => App.StartNewRun());
-            Center((RectTransform)newRun.transform, 0, 380, 100);
+            bool hasSave = App.Save != null && App.Save.HasSave;
+
+            _continueButton = UIFactory.CreateTextButton(Root, "Continue",
+                Loc.T("ui.menu.continue", "继续游戏"), 32,
+                new Color(0.28f, 0.40f, 0.52f), Continue);
+            Center((RectTransform)_continueButton.transform, 110, 380, 100);
+            // 没有存档时置灰而不是隐藏：一颗时有时无的按钮会让「开始新游戏」的位置每次都在跳
+            if (!hasSave) UIFactory.SetInteractable(_continueButton, false, new Color(0.20f, 0.22f, 0.26f));
+
+            _newRunButton = UIFactory.CreateTextButton(Root, "NewRun", Loc.T("ui.menu.new_run", "开始新游戏"), 32,
+                new Color(0.30f, 0.45f, 0.32f), StartNewRun);
+            Center((RectTransform)_newRunButton.transform, 0, 380, 100);
+
+            // 「放弃本局」只在真有东西可放弃时才建——没有存档时它是纯噪音
+            if (hasSave)
+            {
+                _abandonButton = UIFactory.CreateTextButton(Root, "Abandon",
+                    Loc.T("ui.menu.abandon", "放弃本局"), 22,
+                    new Color(0.36f, 0.24f, 0.24f), Abandon);
+                Center((RectTransform)_abandonButton.transform, -95, 260, 56);
+            }
 
             var seedInfo = UIFactory.CreateText(Root, "SeedInfo",
                 App.FixedSeed != 0
@@ -31,13 +49,13 @@ namespace Game.UI
                     : Loc.T("ui.menu.seed_random", "种子：每局随机"), 20,
                 TextAnchor.MiddleCenter, new Color(0.55f, 0.6f, 0.7f));
             UIFactory.SetAnchored(seedInfo.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(-260, -110), new Vector2(260, -70));
+                new Vector2(-260, -180), new Vector2(260, -145));
 
             BuildLanguageRow();
 
             var quit = UIFactory.CreateTextButton(Root, "Quit", Loc.T("ui.menu.quit", "退出"), 26,
                 new Color(0.32f, 0.22f, 0.22f), Quit);
-            Center((RectTransform)quit.transform, -280, 260, 70);
+            Center((RectTransform)quit.transform, -330, 260, 70);
 
             var hint = UIFactory.CreateText(Root, "Hint",
                 Loc.T("ui.menu.hint", "地图上点亮的节点可以进入 ／ 战斗中：点牌选目标，空格结束回合"), 20,
@@ -96,11 +114,105 @@ namespace Game.UI
                 rt.anchorMax = new Vector2(0.5f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0.5f);
                 rt.sizeDelta = new Vector2(ButtonWidth, 56);
-                rt.anchoredPosition = new Vector2(x + i * (ButtonWidth + Spacing), -180);
+                rt.anchoredPosition = new Vector2(x + i * (ButtonWidth + Spacing), -240);
 
                 // 当前语言那颗按不动——按下去只会重建一遍界面，什么也不变
                 if (active) btn.interactable = false;
             }
+        }
+
+        // ================================================================= 存档
+
+        private Button _continueButton;
+        private Button _newRunButton;
+        private Button _abandonButton;
+
+        /// <summary>哪一颗按钮正处在「再点一次确认」的状态。null 表示都没有。</summary>
+        private Button _armed;
+
+        private void Continue()
+        {
+            if (App.Save != null && App.Save.TryContinue()) return;
+
+            // 走到这里说明存档在主菜单建好之后才失效（被别的进程删了 / 读出来是坏的）。
+            // 原因已经由 SaveSystem 打进 Console，这里只负责把按钮变成它该有的样子。
+            UIFactory.SetInteractable(_continueButton, false, new Color(0.20f, 0.22f, 0.26f));
+            SetLabel(_continueButton, Loc.T("ui.menu.continue_failed", "存档读不出来"));
+            Disarm();
+        }
+
+        /// <summary>
+        /// 开新局。有存档时要二次确认——这颗按钮会**覆盖**掉玩家上一局的进度。
+        ///
+        /// ★ 用「同一颗按钮点两次」而不是弹一个确认框：本工程只有选牌面板一种模态框，
+        ///   为一句是非题新造一套模态框（遮罩、层级、Esc 关闭、切界面时销毁）不划算，
+        ///   而这四件事每一件做漏了都是一个真 bug（第三次会话的界面泄漏就是这么来的）。
+        /// </summary>
+        private void StartNewRun()
+        {
+            if (App.Save != null && App.Save.HasSave && _armed != _newRunButton)
+            {
+                Arm(_newRunButton, Loc.T("ui.menu.new_run_confirm", "会覆盖存档，再点一次"));
+                return;
+            }
+
+            App.StartNewRun();
+        }
+
+        private void Abandon()
+        {
+            if (_armed != _abandonButton)
+            {
+                Arm(_abandonButton, Loc.T("ui.menu.abandon_confirm", "确定放弃？再点一次"));
+                return;
+            }
+
+            App.Save?.Abandon();
+
+            // 重建主菜单：「继续游戏」要变灰、「放弃本局」要消失。
+            // 走 SetPhase 而不是手动改按钮，是为了让「主菜单长什么样」只有 Build 一个出口。
+            Manager.GoToMainMenu();
+        }
+
+        /// <summary>把某颗按钮切进「再点一次确认」状态，同时解除另一颗的。</summary>
+        private void Arm(Button btn, string confirmLabel)
+        {
+            Disarm();
+            _armed = btn;
+            SetLabel(btn, confirmLabel);
+
+            var img = btn != null ? btn.targetGraphic as Image : null;
+            if (img != null) img.color = new Color(0.52f, 0.28f, 0.24f);
+        }
+
+        private void Disarm()
+        {
+            if (_armed == null) return;
+
+            if (_armed == _newRunButton)
+            {
+                SetLabel(_newRunButton, Loc.T("ui.menu.new_run", "开始新游戏"));
+                SetColor(_newRunButton, new Color(0.30f, 0.45f, 0.32f));
+            }
+            else if (_armed == _abandonButton)
+            {
+                SetLabel(_abandonButton, Loc.T("ui.menu.abandon", "放弃本局"));
+                SetColor(_abandonButton, new Color(0.36f, 0.24f, 0.24f));
+            }
+
+            _armed = null;
+        }
+
+        private static void SetLabel(Button btn, string text)
+        {
+            var label = UIFactory.LabelOf(btn);
+            if (label != null) label.text = text;
+        }
+
+        private static void SetColor(Button btn, Color color)
+        {
+            var img = btn != null ? btn.targetGraphic as Image : null;
+            if (img != null) img.color = color;
         }
 
         private static void Center(RectTransform rt, float y, float width, float height)

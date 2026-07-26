@@ -37,6 +37,9 @@ namespace Game.UI
 
         public RunManager Manager { get; private set; }
 
+        /// <summary>存档。主菜单靠它决定「继续游戏」能不能按。</summary>
+        public SaveService Save { get; private set; }
+
         private RectTransform _uiRoot;
         private TopBarView _topBar;
         private ScreenBase _current;
@@ -66,8 +69,13 @@ namespace Game.UI
             }
             Database.Invalidate();
 
-            // ★ 必须在建任何 UI 之前应用语言：字体资产是按语言建的，
-            //   先建界面再切语言等于把所有文字节点重做一遍。
+            // ★ 顺序有讲究：Manager 和 SaveService 必须在建任何 UI 之前就位。
+            //   ① SaveService 要订阅 Manager 的事件，所以 Manager 先建；
+            //   ② 语言现在从 MetaSave 读，而字体资产是按语言建的——
+            //      先建界面再切语言等于把所有文字节点重做一遍。
+            Manager = new RunManager();
+            Save = new SaveService(Database, Manager);
+
             ApplySavedLanguage();
             Loc.LanguageChanged += OnLanguageChanged;
 
@@ -90,7 +98,6 @@ namespace Game.UI
             OverlayLayer = UIFactory.CreateEmpty(_uiRoot, "OverlayLayer");
             UIFactory.Stretch(OverlayLayer);
 
-            Manager = new RunManager();
             Manager.PhaseChanged += OnPhaseChanged;
             Manager.GoToMainMenu();
         }
@@ -100,18 +107,16 @@ namespace Game.UI
         private void OnDestroy()
         {
             if (Manager != null) Manager.PhaseChanged -= OnPhaseChanged;
+            if (Save != null) Save.Dispose();
             Loc.LanguageChanged -= OnLanguageChanged;
             if (Instance == this) Instance = null;
         }
 
         // ================================================================= 语言
 
-        /// <summary>玩家选的语言存这里。阶段 5 做 MetaSave 时把它一并迁进去。</summary>
-        public const string LanguagePrefKey = "game.language";
-
         private void ApplySavedLanguage()
         {
-            string code = PlayerPrefs.GetString(LanguagePrefKey, Loc.SourceLanguage);
+            string code = SaveService.LoadLanguage();
             Loc.Use(Database.GetLocale(code));
             UIFactory.CurrentFontLanguage = Loc.Current;
         }
@@ -119,8 +124,7 @@ namespace Game.UI
         /// <summary>切语言。会重建当前界面——程序化 UI 没有别的办法刷新已经写进去的文字。</summary>
         public void SetLanguage(string code)
         {
-            PlayerPrefs.SetString(LanguagePrefKey, code ?? Loc.SourceLanguage);
-            PlayerPrefs.Save();
+            SaveService.SaveLanguage(code);
             Loc.Use(Database.GetLocale(code));
         }
 

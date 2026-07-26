@@ -87,6 +87,19 @@ namespace Game.Core
         public string PendingBattleEncounterId;
         public bool PendingBattleGivesReward;
 
+        /// <summary>
+        /// 正在进行的那场战斗的 Encounter Id。非战斗阶段为 null。
+        ///
+        /// <para>★ 存档专用。<see cref="Phase"/> 为 <c>Battle</c> 时读档要重开这一场，
+        ///   而「打的是哪一场」不能靠 <c>CurrentNode.ContentId</c> 推——
+        ///   事件里的 <c>StartBattleRunEffect</c> 会在一个**事件节点**上开战，
+        ///   那时候 CurrentNode 指的是事件，照它重开会打成另一场战斗。</para>
+        ///
+        /// <para>与 <see cref="PendingBattleEncounterId"/> 的区别：那个是「待开战」的中转位，
+        ///   被 RunManager 读走后立刻清空；这个是「正在打」的记录，打完才清。</para>
+        /// </summary>
+        public string ActiveBattleEncounterId;
+
         /// <summary>当前正在结算的战斗奖励 / 宝箱奖励。领完后置 null。</summary>
         public BattleReward PendingReward;
 
@@ -110,6 +123,16 @@ namespace Game.Core
 
         /// <summary>分配一个药水 Uid。存档规则与卡牌 Uid 完全相同。</summary>
         public int NextPotionUid() => _nextPotionUid++;
+
+        /// <summary>
+        /// 存档写入用：看一眼下一个会发出去的卡牌 Uid，不消耗它。
+        /// ★ 不能用「牌库里最大的 Uid + 1」代替——被移除的牌（商店删卡、事件删卡）
+        ///   会在编号里留下空洞，用最大值恢复会让读档后新发的号撞上一个刚被删掉的号；
+        ///   万一将来有什么东西按 Uid 记住了那张牌，就会指到新牌上。
+        /// </summary>
+        public int PeekNextCardUid => _nextCardUid;
+
+        public int PeekNextPotionUid => _nextPotionUid;
 
         /// <summary>存档恢复用：把计数器推到不小于 value 的位置。</summary>
         public void EnsureCardUidAtLeast(int value)
