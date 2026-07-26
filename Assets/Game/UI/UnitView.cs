@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using Game.Battle;
 using Game.Enemies;
 using Game.Localization;
@@ -30,31 +31,56 @@ namespace Game.UI
         private float _flashTimer;
         private Color _baseColor;
 
+        /// <summary>
+        /// 打击反应（击退 / 挤压）作用的节点。★ 所有可见内容都在它下面，面板根节点是空的。
+        ///
+        /// ★ 为什么要多这一层：面板根的位置是**布局**说了算的——
+        ///   玩家面板拉伸填满 <c>_playerSlot</c>，敌人面板按下标算锚点。
+        ///   打击反应如果直接动根节点，就变成「布局」和「特效」两个来源同时写一个位姿，
+        ///   正是铁律 23 在手牌那边已经踩过的坑（一处每帧设 1，一处每帧插值到 1.1，永远打架）。
+        ///   拆开之后，根节点只归布局管、Body 只归打击反应管，两边永远不会碰面。
+        ///
+        /// ★ 附带的好处：飘字位置取的是**根节点**的中心（<c>BattleScreen.AnchoredPosOf</c>），
+        ///   于是伤害数字不会跟着被击退的身体一起乱跑，多段攻击时读数依然稳定。
+        /// </summary>
+        private RectTransform _body;
+
         public static UnitView Create(Transform parent, BattleScreen screen, BattleUnit unit, bool isPlayer)
         {
             var baseColor = isPlayer ? new Color(0.16f, 0.28f, 0.20f) : new Color(0.30f, 0.16f, 0.16f);
-            var rt = UIFactory.CreatePanel(parent, "Unit_" + unit.Name, baseColor);
+
+            // 根节点只负责「占位 + 吃点击」。alpha 不能真的是 0——完全透明时调试起来看不见范围，
+            // 但只要 raycastTarget 为真它照样收事件（同 CardView 的 HoverPad 的做法）。
+            var rt = UIFactory.CreatePanel(parent, "Unit_" + unit.Name, new Color(0f, 0f, 0f, 0.004f));
             UIFactory.SetSize(rt, 260, 200);
 
             var v = rt.gameObject.AddComponent<UnitView>();
             v._screen = screen;
             v.Unit = unit;
-            v._bg = rt.GetComponent<Image>();
             v._baseColor = baseColor;
+
+            var body = UIFactory.CreatePanel(rt, "Body", baseColor);
+            UIFactory.Stretch(body);
+            v._body = body;
+            v._bg = body.GetComponent<Image>();
+
+            // ★ Body 不吃射线：它会被击退，判定区跟着跑的话「点哪儿算点中这个敌人」会随特效漂移。
+            //   点击一律由不动的根节点接。
+            v._bg.raycastTarget = false;
 
             // 面板刚建出来时，表现值就是当前的逻辑值——此刻没有任何待播事件
             v._shownHp = unit.Hp;
             v._shownBlock = unit.Block;
 
-            v._intentText = UIFactory.CreateText(rt, "Intent", "", 20, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.4f));
+            v._intentText = UIFactory.CreateText(body, "Intent", "", 20, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.4f));
             UIFactory.SetAnchored(v._intentText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(4, -34), new Vector2(-4, -2));
 
-            v._nameText = UIFactory.CreateText(rt, "Name", unit.Name, 22, TextAnchor.MiddleCenter);
+            v._nameText = UIFactory.CreateText(body, "Name", unit.Name, 22, TextAnchor.MiddleCenter);
             UIFactory.SetAnchored(v._nameText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(4, -70), new Vector2(-4, -36));
 
-            var hpBg = UIFactory.CreatePanel(rt, "HpBg", new Color(0.1f, 0.1f, 0.1f));
+            var hpBg = UIFactory.CreatePanel(body, "HpBg", new Color(0.1f, 0.1f, 0.1f));
             UIFactory.SetAnchored(hpBg, new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -104), new Vector2(-10, -74));
 
             var fill = UIFactory.CreatePanel(hpBg, "HpFill", new Color(0.75f, 0.22f, 0.22f));
@@ -71,12 +97,12 @@ namespace Game.UI
             v._hpText = UIFactory.CreateText(hpBg, "HpText", "", 18);
             UIFactory.Stretch(v._hpText.rectTransform);
 
-            v._blockText = UIFactory.CreateText(rt, "Block", "", 20, TextAnchor.MiddleCenter,
+            v._blockText = UIFactory.CreateText(body, "Block", "", 20, TextAnchor.MiddleCenter,
                 new Color(0.6f, 0.8f, 1f));
             UIFactory.SetAnchored(v._blockText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(4, -134), new Vector2(-4, -106));
 
-            v._statusArea = UIFactory.CreateEmpty(rt, "Statuses");
+            v._statusArea = UIFactory.CreateEmpty(body, "Statuses");
             UIFactory.SetAnchored(v._statusArea, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(4, -138 - StatusRowsShown * StatusRowHeight), new Vector2(-4, -138));
 
@@ -159,17 +185,22 @@ namespace Game.UI
             if (ctx == null || ctx.Events.Count > 0) return;
             _shownHp = Unit.Hp;
             _shownBlock = Unit.Block;
+
+            // 队列空了 = 这一波打完了，下一波飘字重新从正中那个槽位开始
+            _floatSlot = 0;
         }
 
         // 下面这几个只由 BattlePresenter 在播到对应事件时调用。
         // ★ 不要在别处调——「谁能改表现值」必须和「谁在播事件」是同一个人，
         //   否则就退回成了两个来源互相覆盖的老问题（同铁律 23 的道理）。
 
-        public void OnDamaged(int amount)
-        {
-            _shownHp = Mathf.Max(0, _shownHp - amount);
-            Flash();
-        }
+        /// <summary>
+        /// 只改表现血量，不播任何特效。
+        /// ★ 特效由 <see cref="PlayHit"/> 单独播，两件事分开：
+        ///   「血掉了多少」是信息，「怎么表现」受 <see cref="FeedbackSettings"/> 控制，
+        ///   关掉闪白的玩家仍然必须看到血条正确地掉。
+        /// </summary>
+        public void OnDamaged(int amount) => _shownHp = Mathf.Max(0, _shownHp - amount);
 
         public void OnHealed(int amount)
         {
@@ -203,10 +234,124 @@ namespace Game.UI
         }
 
         /// <summary>受击闪白。★ 受 <see cref="FeedbackSettings.FlashEnabled"/> 控制（光敏感 / 减少动态效果）。</summary>
-        public void Flash()
+        public void Flash(float duration = FlashNormal)
         {
             if (!FeedbackSettings.FlashEnabled) return;
-            _flashTimer = 0.25f;
+            _flashTimer = Mathf.Max(_flashTimer, duration);
+        }
+
+        // ============================================================ 打击反应
+
+        // ★ 手感参数集中在这里（同 HandFanLayout 的写法）。要调就调这几个数。
+
+        private const float FlashNormal = 0.25f;
+        private const float FlashLethal = 0.55f;
+
+        /// <summary>击退距离：轻伤 → 重伤。</summary>
+        private const float KnockMin = 10f;
+        private const float KnockMax = 46f;
+
+        /// <summary>挤压量（横向拉伸 = 纵向压缩的比例）。</summary>
+        private const float SquashMin = 0.04f;
+        private const float SquashMax = 0.17f;
+
+        /// <summary>致命一击额外放大多少倍。</summary>
+        private const float LethalBoost = 1.5f;
+
+        /// <summary>回位耗时。用 OutElastic 会带一点回弹，看起来像被打了而不是被推了。</summary>
+        private const float RecoverTime = 0.34f;
+
+        /// <summary>
+        /// 播一次受击反应。
+        /// </summary>
+        /// <param name="severity">这一下占最大生命的比例（0~1），决定所有幅度。</param>
+        /// <param name="direction">击退方向（已归一化）。<see cref="Vector2.zero"/> 表示没有攻击者
+        ///   ——中毒、灼烧这类掉血不该有击退，只挤一下。</param>
+        /// <param name="lethal">是不是致命的那一下。</param>
+        public void PlayHit(float severity, Vector2 direction, bool lethal)
+        {
+            Flash(lethal ? FlashLethal : FlashNormal);
+
+            if (_body == null) return;
+
+            severity = Mathf.Clamp01(severity);
+            float boost = (lethal ? LethalBoost : 1f) * FeedbackSettings.HitMotionScale;
+            if (boost <= 0.001f)
+            {
+                // 「减少动态效果」：只闪不动。血条与飘字照常——那是信息不是特效。
+                DOTween.Kill(_body);
+                _body.anchoredPosition = Vector2.zero;
+                _body.localScale = Vector3.one;
+                return;
+            }
+
+            // ★ 上一次的击退还没回位就又挨一下（多段攻击）：直接接管，
+            //   不 Kill 的话两条 tween 会同时写 anchoredPosition，后写的赢，看起来是「卡住不动」。
+            DOTween.Kill(_body);
+
+            float squash = Mathf.Lerp(SquashMin, SquashMax, severity) * boost;
+            _body.localScale = new Vector3(1f + squash, 1f - squash, 1f);
+            _body.DOScale(Vector3.one, RecoverTime).SetEase(Ease.OutElastic);
+
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                float knock = Mathf.Lerp(KnockMin, KnockMax, severity) * boost;
+                _body.anchoredPosition = direction * knock;
+
+                // ★ 用 DOTween.To 而不是 DOAnchorPos：后者在 DOTweenModuleUI.cs 里，
+                //   那些模块脚本没有 asmdef、编进 Assembly-CSharp，而 Game.UI 是 asmdef
+                //   程序集，引用不到它们。核心 DLL 里的 DOTween.To / DOScale 才够得着。
+                DOTween.To(() => _body.anchoredPosition, v => _body.anchoredPosition = v,
+                           Vector2.zero, RecoverTime)
+                       .SetEase(Ease.OutElastic)
+                       .SetTarget(_body);
+            }
+            else
+            {
+                _body.anchoredPosition = Vector2.zero;
+            }
+        }
+
+        /// <summary>
+        /// ★ 铁律 45：对象要没了就必须把它身上的 tween 收掉。
+        ///   战斗结束、切界面、敌人面板重建都会销毁本组件，而 tween 活在 DOTween 的全局队列里，
+        ///   没人收的话它会继续去写一个已经销毁的 RectTransform。
+        /// </summary>
+        private void OnDisable()
+        {
+            if (_body == null) return;
+
+            DOTween.Kill(_body);
+            _body.anchoredPosition = Vector2.zero;
+            _body.localScale = Vector3.one;
+        }
+
+        // ============================================================ 飘字槽位
+
+        /// <summary>
+        /// 飘字的落点轮转表（相对面板中心）。
+        ///
+        /// ★ 必须有：飘字活 0.9 秒，而伤害事件之间只隔 0.18 秒——
+        ///   五段攻击时屏幕上同时有五个数字。原来只有 ±18 像素的随机横向抖动，
+        ///   五个「-6」会叠成一坨谁也读不出来。轮转固定槽位才能保证它们互相错开。
+        /// </summary>
+        private static readonly Vector2[] FloatSlots =
+        {
+            new Vector2(0f, 0f),
+            new Vector2(-66f, 20f),
+            new Vector2(64f, 12f),
+            new Vector2(-36f, 44f),
+            new Vector2(40f, 50f),
+        };
+
+        private int _floatSlot;
+
+        /// <summary>取下一个飘字落点。由 <see cref="BattlePresenter"/> 调用。</summary>
+        public Vector2 NextFloatOffset()
+        {
+            var o = FloatSlots[_floatSlot % FloatSlots.Length];
+            _floatSlot++;
+            return o;
         }
 
         public void OnPointerClick(PointerEventData e) => _screen.OnUnitClicked(this);

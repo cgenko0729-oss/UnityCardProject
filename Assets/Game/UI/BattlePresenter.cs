@@ -149,8 +149,7 @@ namespace Game.UI
                     {
                         // ★ 血条在这一刻才掉，不是在逻辑结算的那一帧。见 UnitView._shownHp 的注释。
                         view.OnDamaged(e.Value);
-                        FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), $"-{e.Value}",
-                            new Color(1f, 0.45f, 0.4f));
+                        PlayHitFeedback(e, view);
                     }
                     AddLog(Loc.T("log.damaged", "{0} 受到 {1} 点伤害", NameOf(e.TargetUid), e.Value));
                     break;
@@ -252,6 +251,8 @@ namespace Game.UI
                     break;
 
                 case BattleEventType.UnitDied:
+                    // 倒下也震一下——它和挨打是两件事，中间隔着完整的一拍
+                    _screen.Shake(DeathShake, DeathShakeTime);
                     AddLog(Loc.T("log.died", "{0} 倒下了", NameOf(e.TargetUid)));
                     break;
 
@@ -263,6 +264,134 @@ namespace Game.UI
                     AddLog($"[{e.Id}]");
                     break;
             }
+        }
+
+        // ============================================================ 打击反馈
+
+        // ★ 手感参数集中在这里。要调震幅 / 慢放就改这几个数（同 HandFanLayout 的写法）。
+
+        /// <summary>震屏振幅（像素）：轻伤 → 重伤。</summary>
+        private const float ShakeMin = 5f;
+        private const float ShakeMax = 30f;
+        private const float ShakeTime = 0.26f;
+
+        /// <summary>玩家挨打时的震幅倍率。★ 挨打比打人更该有分量，不然玩家不会有紧张感。</summary>
+        private const float PlayerHitShakeBoost = 1.4f;
+
+        /// <summary>低于这个伤害占比就不震——每一下都震等于一直在震，等于没震。</summary>
+        private const float ShakeThreshold = 0.025f;
+
+        private const float DeathShake = 20f;
+        private const float DeathShakeTime = 0.4f;
+
+        /// <summary>重击的顿帧时长。超过这个伤害占比才给。</summary>
+        private const float HeavyHitThreshold = 0.14f;
+        private const float HeavyHitStop = 0.05f;
+
+        /// <summary>致命一击：先冻住，再慢放。两段都是真实秒。</summary>
+        private const float LethalHitStop = 0.09f;
+        private const float LethalSlowScale = 0.25f;
+        private const float LethalSlowTime = 0.45f;
+
+        /// <summary>飘字字号的分级门槛（按伤害占最大生命的比例）。</summary>
+        private const float BigDamageRatio = 0.09f;
+        private const float HugeDamageRatio = 0.20f;
+
+        /// <summary>
+        /// 一次伤害的全部表现：闪白 + 击退 + 挤压 + 飘字 + 震屏 +（致命时）顿帧慢放。
+        ///
+        /// ★ 一切幅度都由「这一下占目标最大生命的比例」推出来，而不是伤害的绝对值。
+        ///   30 点打在 200 血的 Boss 身上和打在 40 血的小怪身上，是两件完全不同的事；
+        ///   按绝对值缩放的话，前期每一刀都像天崩地裂，后期打 Boss 反而毫无反应。
+        /// </summary>
+        private void PlayHitFeedback(in BattleEvent e, UnitView view)
+        {
+            var target = view.Unit;
+            int maxHp = target != null && target.MaxHp > 0 ? target.MaxHp : 1;
+            float severity = Mathf.Clamp01((float)e.Value / maxHp);
+            bool lethal = e.Has(BattleEventFlags.Lethal);
+
+            // ---- 受击反应
+            view.PlayHit(severity, KnockbackDir(e.SourceUid, e.TargetUid), lethal);
+
+            // ---- 飘字
+            FloatingText.Spawn(
+                _screen.PopupLayer,
+                _screen.AnchoredPosOf(view) + view.NextFloatOffset(),
+                $"-{e.Value}",
+                DamageColor(e.Kind, lethal),
+                DamageFontSize(severity, lethal),
+                lethal ? FloatKind.Lethal : FloatKind.Damage);
+
+            // ---- 震屏
+            if (severity >= ShakeThreshold)
+            {
+                float amp = Mathf.Lerp(ShakeMin, ShakeMax, severity);
+                if (target != null && target.IsPlayer) amp *= PlayerHitShakeBoost;
+                _screen.Shake(amp, ShakeTime);
+            }
+
+            // ---- 顿帧 / 慢放
+            if (lethal)
+            {
+                var tf = TimeFeedback.Instance;
+                tf.HitStop(LethalHitStop);
+                tf.SlowMotion(LethalSlowScale, LethalSlowTime);
+            }
+            else if (severity >= HeavyHitThreshold)
+            {
+                TimeFeedback.Instance.HitStop(HeavyHitStop);
+            }
+        }
+
+        /// <summary>
+        /// 击退方向：从攻击者指向被打者，取近似水平。
+        ///
+        /// ★ 竖直分量被压得很扁：单位面板上的血条和数字是要读的，
+        ///   上下猛跳会让它们在最需要看清的那一刻糊掉。
+        ///
+        /// ★ 没有攻击者（<c>SourceUid == 0</c>，中毒 / 灼烧）或自伤时返回零向量，
+        ///   由 <see cref="UnitView.PlayHit"/> 退化成「只挤压不击退」——
+        ///   中毒把人推开一段在观感上完全说不通。
+        /// </summary>
+        private Vector2 KnockbackDir(int sourceUid, int targetUid)
+        {
+            if (sourceUid == 0 || sourceUid == targetUid) return Vector2.zero;
+
+            var from = _screen.FindUnitView(sourceUid);
+            var to = _screen.FindUnitView(targetUid);
+            if (from == null || to == null) return Vector2.zero;
+
+            Vector2 d = _screen.AnchoredPosOf(to) - _screen.AnchoredPosOf(from);
+            if (Mathf.Abs(d.x) < 1f) return Vector2.zero;
+
+            return new Vector2(Mathf.Sign(d.x) * 0.95f, Mathf.Clamp(d.y * 0.002f, -0.3f, 0.3f));
+        }
+
+        /// <summary>
+        /// 飘字配色。★ 这是第 0 层给 <see cref="BattleEvent.Kind"/> 补字段最直接的回报：
+        ///   「被砍了一刀」「中毒掉血」「踩到荆棘」在事件里的 Value 是一样的整数，
+        ///   没有 Kind 就只能一律画成红色，玩家分不出自己到底在被什么打。
+        /// </summary>
+        private static Color DamageColor(DamageKind kind, bool lethal)
+        {
+            if (lethal) return new Color(1f, 0.95f, 0.72f);
+
+            switch (kind)
+            {
+                case DamageKind.Status: return new Color(0.62f, 1f, 0.48f);   // 中毒 / 灼烧
+                case DamageKind.Thorns: return new Color(1f, 0.76f, 0.34f);   // 荆棘反弹
+                case DamageKind.Loss: return new Color(0.86f, 0.62f, 0.96f);  // 直接流失
+                default: return new Color(1f, 0.45f, 0.4f);                   // 普通攻击
+            }
+        }
+
+        private static int DamageFontSize(float severity, bool lethal)
+        {
+            if (lethal) return 68;
+            if (severity >= HugeDamageRatio) return 52;
+            if (severity >= BigDamageRatio) return 42;
+            return 34;
         }
 
         private string NameOf(int uid)

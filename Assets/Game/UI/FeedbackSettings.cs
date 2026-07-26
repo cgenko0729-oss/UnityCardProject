@@ -21,6 +21,7 @@ namespace Game.UI
         private const string KeyFlash = "feedback.flash";
         private const string KeySlowMo = "feedback.slowmo";
         private const string KeySpeed = "feedback.speed";
+        private const string KeyHitMotion = "feedback.hitmotion";
 
         /// <summary>播放倍速的合法档位。界面按这个顺序轮换。</summary>
         public static readonly float[] SpeedSteps = { 1f, 2f, 4f };
@@ -31,12 +32,24 @@ namespace Game.UI
         private static bool _flashEnabled = true;
         private static bool _slowMoEnabled = true;
         private static float _speedMultiplier = 1f;
+        private static float _hitMotionScale = 1f;
 
         /// <summary>震屏强度倍率，0 = 完全关闭，1 = 设计值。</summary>
         public static float ShakeScale
         {
             get { EnsureLoaded(); return _shakeScale; }
             set { EnsureLoaded(); _shakeScale = Mathf.Clamp01(value); Save(); }
+        }
+
+        /// <summary>
+        /// 受击时单位面板的击退与挤压幅度，0 = 只闪不动。
+        /// ★ 与 <see cref="ShakeScale"/> 分开：震屏是**整个画面**在动（晕动症的主要来源），
+        ///   击退只是一块面板在原地弹一下，两者该能分别关。
+        /// </summary>
+        public static float HitMotionScale
+        {
+            get { EnsureLoaded(); return _hitMotionScale; }
+            set { EnsureLoaded(); _hitMotionScale = Mathf.Clamp01(value); Save(); }
         }
 
         /// <summary>受击闪白 / 全屏闪光。关掉之后受击仍有位移与飘字，只是不闪。</summary>
@@ -75,13 +88,15 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 一次性关掉所有"会动"的东西。无障碍设置里的「减少动态效果」按这个来。
+        /// 一次性关掉所有「会动」的东西。无障碍设置里的「减少动态效果」按这个来。
         /// ★ 不关飘字与血条——那是信息，不是特效。
+        /// ★ 每加一个新的动效开关都要记得加进来，否则这个方法就名不副实了。
         /// </summary>
         public static void ReduceMotion()
         {
             EnsureLoaded();
             _shakeScale = 0f;
+            _hitMotionScale = 0f;
             _flashEnabled = false;
             _slowMoEnabled = false;
             Save();
@@ -93,6 +108,7 @@ namespace Game.UI
             _loaded = true;
 
             _shakeScale = Mathf.Clamp01(PlayerPrefs.GetFloat(KeyShake, 1f));
+            _hitMotionScale = Mathf.Clamp01(PlayerPrefs.GetFloat(KeyHitMotion, 1f));
             _flashEnabled = PlayerPrefs.GetInt(KeyFlash, 1) != 0;
             _slowMoEnabled = PlayerPrefs.GetInt(KeySlowMo, 1) != 0;
             _speedMultiplier = Mathf.Clamp(PlayerPrefs.GetFloat(KeySpeed, 1f), 1f, 8f);
@@ -101,6 +117,7 @@ namespace Game.UI
         private static void Save()
         {
             PlayerPrefs.SetFloat(KeyShake, _shakeScale);
+            PlayerPrefs.SetFloat(KeyHitMotion, _hitMotionScale);
             PlayerPrefs.SetInt(KeyFlash, _flashEnabled ? 1 : 0);
             PlayerPrefs.SetInt(KeySlowMo, _slowMoEnabled ? 1 : 0);
             PlayerPrefs.SetFloat(KeySpeed, _speedMultiplier);
