@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Game.Localization;
 using Game.Map;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +20,7 @@ namespace Game.UI
         private readonly List<MapNodeView> _views = new List<MapNodeView>();
         private readonly List<int> _available = new List<int>(8);
 
-        private Text _hintText;
+        private TMP_Text _hintText;
         private ScrollRect _scroll;
 
         protected override void Build()
@@ -26,7 +28,7 @@ namespace Game.UI
             var map = Run?.Map;
             if (map == null)
             {
-                UIFactory.CreateText(Root, "NoMap", "没有地图数据。", 28);
+                UIFactory.CreateText(Root, "NoMap", Loc.T("ui.map.no_data", "没有地图数据。"), 28);
                 return;
             }
 
@@ -133,7 +135,7 @@ namespace Game.UI
 
             if (!Run.Map.IsAvailable(Run.CurrentNodeId, view.Node.Id))
             {
-                ShowHint("这个节点现在走不到。");
+                ShowHint(Loc.T("ui.map.unreachable", "这个节点现在走不到。"));
                 return;
             }
 
@@ -153,11 +155,11 @@ namespace Game.UI
                 if (enc != null) extra = $"：{enc.DisplayName}";
             }
 
-            ShowHint(available ? $"{name}{extra}　—　点击进入" : $"{name}{extra}　—　无法到达");
+            ShowHint(available ? Loc.T("ui.map.node_enter", "{0}{1}　—　点击进入", name, extra) : Loc.T("ui.map.node_blocked", "{0}{1}　—　无法到达", name, extra));
         }
 
         private string DefaultHint()
-            => Run.CurrentNodeId < 0 ? "选择一个起点。" : "选择下一个要前往的节点。";
+            => Run.CurrentNodeId < 0 ? Loc.T("ui.map.pick_start", "选择一个起点。") : Loc.T("ui.map.pick_next", "选择下一个要前往的节点。");
 
         private void ShowHint(string text)
         {

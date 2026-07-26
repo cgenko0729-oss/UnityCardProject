@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Effects;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.Cards
@@ -46,6 +47,19 @@ namespace Game.Cards
         public CardDefinition UpgradedVersion;
 
         public bool HasKeyword(CardKeyword k) => (Keywords & k) != 0;
+
+        // ================================================================= 本地化
+        //
+        // ★ 刻意只加访问器、不动 DisplayName / DescriptionTemplate 这两个字段：
+        //   字段继续存简中原文，同时充当 fallback。于是 57 张卡的 .asset 一个字节没变、
+        //   SampleContentGenerator 一行没改、ContentValidator 既有检查全部继续有效，
+        //   而 166 个 EditMode 用例读到的仍然是中文（Loc 没加载表时恒返回 fallback）。
+        //
+        // key 直接用 Id 派生。Id 本来就唯一且被校验器盯着，不必再发明一套编号。
+
+        public string LocalizedName => Loc.T($"card.{Id}.name", DisplayName);
+
+        public string LocalizedDescriptionTemplate => Loc.T($"card.{Id}.desc", DescriptionTemplate);
 
 #if UNITY_EDITOR
         private void OnValidate()

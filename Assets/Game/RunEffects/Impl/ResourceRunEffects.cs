@@ -1,5 +1,6 @@
 using System;
 using Game.Core;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.RunEffects.Impl
@@ -18,11 +19,15 @@ namespace Game.RunEffects.Impl
         {
             ctx.Run.Gold += Amount;
             if (ctx.Run.Gold < 0) ctx.Run.Gold = 0;
-            ctx.AddLog(Amount >= 0 ? $"获得 {Amount} 金币" : $"失去 {-Amount} 金币");
+            ctx.AddLog(Amount >= 0
+                ? Loc.T("run.gold.gain", "获得 {0} 金币", Amount)
+                : Loc.T("run.gold.lose", "失去 {0} 金币", -Amount));
         }
 
         public override string Describe(RunEffectContext ctx)
-            => Amount >= 0 ? $"获得 {Amount} 金币" : $"支付 {-Amount} 金币";
+            => Amount >= 0
+                ? Loc.T("run.gold.gain", "获得 {0} 金币", Amount)
+                : Loc.T("run.gold.pay", "支付 {0} 金币", -Amount);
     }
 
     /// <summary>
@@ -51,7 +56,9 @@ namespace Game.RunEffects.Impl
             int actual = ctx.Run.ModifyHp(delta);
             if (actual == 0) return;
 
-            ctx.AddLog(actual > 0 ? $"回复 {actual} 点生命" : $"失去 {-actual} 点生命");
+            ctx.AddLog(actual > 0
+                ? Loc.T("run.hp.heal", "回复 {0} 点生命", actual)
+                : Loc.T("run.hp.lose", "失去 {0} 点生命", -actual));
         }
 
         private int Resolve(RunEffectContext ctx)
@@ -67,11 +74,14 @@ namespace Game.RunEffects.Impl
         {
             if (ctx?.Run == null)
                 return PercentOfMax
-                    ? (Amount >= 0 ? $"回复 {Amount}% 生命" : $"失去 {-Amount}% 生命")
-                    : (Amount >= 0 ? $"回复 {Amount} 点生命" : $"失去 {-Amount} 点生命");
+                    ? (Amount >= 0 ? Loc.T("run.hp.heal_percent", "回复 {0}% 生命", Amount)
+                                   : Loc.T("run.hp.lose_percent", "失去 {0}% 生命", -Amount))
+                    : (Amount >= 0 ? Loc.T("run.hp.heal", "回复 {0} 点生命", Amount)
+                                   : Loc.T("run.hp.lose", "失去 {0} 点生命", -Amount));
 
             int d = Resolve(ctx);
-            return d >= 0 ? $"回复 {d} 点生命" : $"失去 {-d} 点生命";
+            return d >= 0 ? Loc.T("run.hp.heal", "回复 {0} 点生命", d)
+                          : Loc.T("run.hp.lose", "失去 {0} 点生命", -d);
         }
     }
 
@@ -87,11 +97,15 @@ namespace Game.RunEffects.Impl
         public override void Apply(RunEffectContext ctx)
         {
             ctx.Run.ModifyMaxHp(Amount, AlsoHeal);
-            ctx.AddLog(Amount >= 0 ? $"最大生命 +{Amount}" : $"最大生命 {Amount}");
+            ctx.AddLog(DescribeMaxHp());
         }
 
-        public override string Describe(RunEffectContext ctx)
-            => Amount >= 0 ? $"最大生命 +{Amount}" : $"最大生命 {Amount}";
+        public override string Describe(RunEffectContext ctx) => DescribeMaxHp();
+
+        private string DescribeMaxHp()
+            => Amount >= 0
+                ? Loc.T("run.maxhp.gain", "最大生命 +{0}", Amount)
+                : Loc.T("run.maxhp.lose", "最大生命 -{0}", -Amount);
     }
 
     /// <summary>按缺失生命的比例回血。休息点的「休整」用它。</summary>
@@ -105,13 +119,13 @@ namespace Game.RunEffects.Impl
         {
             int amount = Mathf.Max(1, ctx.Run.MaxHp * PercentOfMax / 100);
             int actual = ctx.Run.ModifyHp(amount);
-            ctx.AddLog($"回复 {actual} 点生命");
+            ctx.AddLog(Loc.T("run.hp.heal", "回复 {0} 点生命", actual));
         }
 
         public override string Describe(RunEffectContext ctx)
         {
-            if (ctx?.Run == null) return $"回复 {PercentOfMax}% 最大生命";
-            return $"回复 {Mathf.Max(1, ctx.Run.MaxHp * PercentOfMax / 100)} 点生命";
+            if (ctx?.Run == null) return Loc.T("run.hp.heal_percent_max", "回复 {0}% 最大生命", PercentOfMax);
+            return Loc.T("run.hp.heal", "回复 {0} 点生命", Mathf.Max(1, ctx.Run.MaxHp * PercentOfMax / 100));
         }
     }
 }

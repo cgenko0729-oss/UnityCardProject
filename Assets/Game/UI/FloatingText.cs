@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,7 +7,7 @@ namespace Game.UI
     /// <summary>飘字。纯表现，自己管理生命周期。</summary>
     public class FloatingText : MonoBehaviour
     {
-        private Text _text;
+        private TMP_Text _text;
         private RectTransform _rt;
         private float _life;
         private float _maxLife;
@@ -16,7 +17,7 @@ namespace Game.UI
         {
             var t = UIFactory.CreateText(parent, "Float", content, size);
             t.color = color;
-            t.fontStyle = FontStyle.Bold;
+            t.fontStyle = FontStyles.Bold;
             t.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             t.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             t.rectTransform.sizeDelta = new Vector2(260, 60);

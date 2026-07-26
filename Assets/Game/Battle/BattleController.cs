@@ -77,7 +77,7 @@ namespace Game.Battle
                 if (def == null) continue;
 
                 int hp = Ctx.Rng.Range(RngStream.Encounter, def.MinHp, def.MaxHp + 1);
-                var unit = new BattleUnit(Ctx.NextUnitUid(), def.DisplayName, hp, false) { EnemyDef = def };
+                var unit = new BattleUnit(Ctx.NextUnitUid(), def.LocalizedName, hp, false) { EnemyDef = def };
                 unit.Brain = CreateBrain(def);
                 unit.Brain.Init(unit, def);
                 Ctx.AllUnits.Add(unit);

@@ -61,10 +61,11 @@
 | 阶段 3 状态与敌人 AI | ✅ 完成并通过测试 | 8 个 Hook 接口、6 个状态、权重/条件/连续限制/多阶段 AI、意图预览 |
 | 阶段 4 地图与奖励 | ✅ 完成并通过测试 | 12 个 Hook、地图、RunManager、RunEffect、遗物、奖励/商店/事件/休息、8 个界面 |
 | 阶段 5 存档与内容 | ⬜ 未开始 | SaveSystem / MetaSave / 内容量产 / 自动对战模拟器 |
-| 阶段 6 动画音效打磨 | ⬜ 未开始 | DOTween / 音效 / 本地化 |
+| 阶段 6 动画音效打磨 | 🔶 部分完成 | ✅ 本地化 / ✅ TextMeshPro；⬜ DOTween / 音效 |
 
-**当前代码规模**：`Assets/Game/` 下 100 个 .cs 文件；测试 12 个文件 166 个用例。
+**当前代码规模**：`Assets/Game/` 下 105 个 .cs 文件；测试 12 个文件 166 个用例。
 **内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水、5 个关键字。
+**本地化规模**：495 条文案，简体中文（源语言）+ 英文。
 
 > ⚠️ **新会话第一件事**：如果 `Assets/GameData/Potions/` 或 `Assets/GameData/Keywords/` 不存在、
 > 或卡池不足 57 张，说明内容资产还没生成，先跑菜单 `Tools/卡牌游戏/1. 生成示例内容`。
@@ -182,8 +183,8 @@ Assets/
 | # | 问题 | 位置 | 说明 |
 |---|---|---|---|
 | ~~1~~ | ~~**手牌 UI 全量重建**~~ | `BattleScreen.RefreshHandViews` | ✅ 第五次会话已修：按 Uid 增量复用 + `CardView` 自己插值。 |
-| 2 | **每帧描述重算的 GC** | `CardInstance.GetDescription` | 每帧每张手牌 new 一个 `EffectContext` + 若干字符串。需要按「依赖指纹」缓存。 |
-| 3 | 文案硬编码 | UI 各处 | 本地化仍未引入，越晚做迁移成本越高。 |
+| 2 | **每帧描述重算的 GC** | `CardInstance.GetDescription` | 每帧每张手牌 new 一个 `EffectContext` + 若干字符串。**本地化后又多了一次查表 + `string.Format` 分配**，更该按「依赖指纹」缓存了。 |
+| ~~3~~ | ~~文案硬编码~~ | ~~UI 各处~~ | ✅ 第七次会话已修：全部走 `Loc.T`。 |
 | 4 | 无召唤机制 | `BattleController.EnemyTurn` | 索引遍历 `AllUnits`，战斗中加入新单位会出问题；`BattleScreen` 也只在 Bind 时建 UnitView。 |
 
 ---
@@ -265,6 +266,47 @@ Assets/
 33. **两个列表「按下标一一对应」的前提是构建时没有 `continue`。**
     `UnitView` 的状态小牌子会跳过 `Def == null` 的状态，一跳过下标就整体错位，
     「易伤 2」会被写到「虚弱」的牌子上。一律另存一份 Id 列表按 Id 反查。
+
+---
+
+## 六之六、2026-07-26 第七次会话新增的铁律（本地化）
+
+34. **凡是玩家看得见的文案，一律走 `Loc.T(key, 中文原文)`，中文原文留在代码 / SO 里当 fallback。**
+    **不要给简体中文也建一张表。** 中文是唯一每天都在看的语言——一旦它也变成查表结果，
+    key 写错时中文会显示成 key 本身或空串，而这类错误在别的语言里根本没人会发现。
+    让源语言走一条**不可能坏**的路径，比形式上的对称值钱得多。
+    附带好处：`Loc` 没加载表时恒等于「返回 fallback」，
+    所以 166 个 EditMode 用例、自动模拟器完全不需要知道它存在。
+
+35. **各语言的占位符集合必须与原文完全一致**，由 `ContentValidator.CheckLocalization` 报**错误**（不是警告）。
+    译者把 `{0}` 翻没了、写成全角 `｛0｝`、或改成 `{2}`，`string.Format` 会在那个语言下抛
+    `FormatException`——而中文下一切正常，不靠校验器就只能等玩家来报。
+
+36. **Definition 只加 `Localized*` 访问器，绝不改既有字段。**
+    字段继续存简中原文并充当 fallback，于是 `.asset` 一个字节没变、
+    `SampleContentGenerator` 一行没改、`ContentValidator` 既有检查全部继续有效。
+    key 由已有的 `Id` 派生，不必再发明一套编号。
+
+37. **动词 / 名词必须当参数传进 `Loc.T`，不能在外面用字符串拼。**
+    中文「选择 N 张牌 + 弃掉」，英文「Choose N card(s) to + discard」——
+    成分在句子里的位置不一样，拼接表达不了这件事。
+    同理，**分隔符与标点也是文案**（中文全角「，」/ 英文「, 」），
+    这类「看起来是标点」的最容易漏。
+
+38. **切语言 = 重建整棵界面**，不要让每个 `TMP_Text` 自己订阅 `Loc.LanguageChanged`。
+    一个界面上百个文字节点，逐个订阅意味着每个都要记住自己的 key 和参数、
+    还要在销毁时退订——忘一个就是一条指向已销毁对象的悬空委托。
+    因此语言选择**只放主菜单**：在战斗里重建还要处理拖拽状态、挂起中的选牌面板、
+    正在播的表现事件，不值那个复杂度。
+
+39. **`BattleUnit.DisplayName` 现查 `EnemyDef.LocalizedName`，不用构造时存下的 `Name`。**
+    凡是「构造时抄一份文案存起来」的地方，切语言后那一份都是旧的，而且没有任何东西会去更新它。
+
+40. **`Loc.T` 的 key 与源文必须是字面量。**
+    待翻译清单由 `LocalizationKeys` **扫源码**得到（不维护「UI key 注册表」——
+    注册表漏一条不会报错，表现只是某个语言下突然冒出一句中文）。
+    源文写成变量拼接的话，那条就永远进不了清单。
+    扫描前会先剥注释，否则文档注释里的示例会被当成真调用收进去。
 
 ---
 
@@ -653,3 +695,73 @@ Assets/
 - ⚠️ **尚未在 Play 模式下点过**。首次试玩重点看四处：
   手牌悬停 0.25 秒后是否弹、单位面板的状态小牌子排版是否溢出得难看、
   敌人意图能否悬停（`raycastTarget` 那条）、遗物提示是否还在
+
+### 2026-07-26 — 第七次会话：本地化（zh-Hans + en）与 TextMeshPro 迁移
+
+对应「阶段 4 已知遗留 #3」与阶段 6 的本地化项。
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 方案选型 | **自建轻量 `Loc` 层**（否决了 `com.unity.localization`） |
+| 本次落地语言 | **zh-Hans（源语言）+ en**；架构 / 工具 / 校验按多语言做好，繁中 / 日文以后只是多一个资产 |
+| 字体 | 按语言切系统字体候选链 |
+| 文字渲染 | 顺便迁到 **TextMeshPro** |
+| 英文译文 | 由 AI 直接写 |
+
+**为什么否决官方的 `com.unity.localization`**
+
+1. 它**强制拉入 Addressables**。本工程零 Addressables、零 prefab，所有资产挂在
+   `GameDatabase` 一个 SO 根上；引入后打包管线要整个重验，收益是零。
+2. 它的核心价值是 `LocalizeStringEvent` 组件——在 Inspector 里把 Text 连到表条目上。
+   本工程 UI **全是运行时代码搭的**，落到实处只剩一次字典查询。
+3. 表加载是 `AsyncOperationHandle`，与「逻辑同步执行」冲突。
+4. 官方做法要把 `public string DisplayName` 换成 `LocalizedString`，
+   会同时打穿 57 张卡的 `.asset`、生成器的 290 处赋值、校验器的全部文案检查——**且不可逆**。
+5. `Game.Tests.EditMode` 只依赖 `Game.Runtime`；Runtime 一旦引用 `LocalizationSettings`，
+   166 个已经绿的用例就要为本地化冒风险。
+
+**做了什么（三笔提交，分支 `feature/localization-tmp`）**
+
+1. **`refactor(ui)` TMP 迁移**：`UIFactory.FontAsset` 按语言取系统字体，
+   用 `TMP_FontAsset.CreateFontAsset(familyName, styleName)` 建——它走
+   `AtlasPopulationMode.DynamicOS`，字形在用到那一刻才从字体文件光栅化。
+   中文两万多个常用字，预烘静态图集要么巨大要么缺字。
+   `CreateText` 的参数仍收 `TextAnchor` 并在内部映射，几十个调用点一行未动。
+2. **`feat(loc)` 核心 + Runtime**：`Loc` / `LocaleTable` / `GameDatabase.Locales`；
+   各 Definition 加 `Localized*` 访问器；`RunEffect` / `CardSelection` 的句子全部走 `Loc.T`。
+3. **`feat(loc)` UI + 工具链**：24 个界面文件的硬编码全换；主菜单加语言切换；
+   `LocalizationKeys`（扫 SO + 扫源码）、`LocalizationTool`（菜单 5/6 导出导入 CSV）、
+   `ContentValidator.CheckLocalization`。
+
+**实施中发现并修正的 4 个真实问题**
+
+| # | 问题 | 修正 |
+|---|---|---|
+| 1 | `RewardScreen.SetRow` 的 `disabledSuffix` 默认值原本是中文字面量，改成 `Loc.T(...)` 后编译不过——可选参数默认值必须是编译期常量 | 默认值改 `null`，方法内再取译文；`null` = 用默认后缀，空串 = 不要后缀 |
+| 2 | `LocalizationKeys` 扫源码时把**文档注释里的示例** `Loc.T("key", "原文")` 当成真调用，凭空多出一条谁也不知道是什么的待翻译条目，并让「还有几条没翻」永远差一 | 扫描前先剥注释 |
+| 3 | 卡面角标的关键字名原本是另一份硬编码，与 `KeywordDefinition` 是两份文案，改一处不会同步另一处 | 卡面与 `CardPicker` 都改用 `keyword.<位>.name`，与 tooltip 共用同一份译文 |
+| 4 | 生成译文资产时，脚本按 key 与源文交叉核对，查出 17 条 `enemy.*.name` / `encounter.*.name` 根本没被收进清单 | 抽取脚本的单元素数组被 PowerShell 展平了。**这条值得记：如果只核对「译文有没有缺」而不核对「源文有没有漏收」，这 17 条会安静地永远不被翻译** |
+
+**验证**
+
+- 四个程序集 **0 error 0 warning**（Unity 编辑器占锁，用 VS2022 的 MSBuild 编译 Unity 生成的 csproj）
+- `Assets/Tests/` 一行未改；Definition 层只加访问器不动字段，
+  `Assets/GameData/` 下既有资产**一个字节没变**（只新增 `Locales/Locale_en.asset`）
+  → 166 个 EditMode 用例的断言对象一个未动
+- 译文 **495 条，与源文一一对应，占位符零差异**（脚本交叉核对）
+
+**已知限制 / 尚未验证**
+
+- ⚠️ **尚未在 Play 模式下点过。** 首次试玩重点看三处：
+  ① 主菜单是否出现「简体中文 / English」两颗按钮，点 English 后整个界面是否换语言且**字体正常**；
+  ② 英文下**排版是否溢出**——中文换英文文本平均膨胀 1.6–2 倍，而卡面 / 按钮尺寸是程序化写死的。
+  `UIFactory.EnableAutoSize` 已经写好但**还没有接到任何调用点**，
+  哪里溢出就在哪里调它（这是本次唯一确定还有活要干的地方）；
+  ③ 切语言后顶栏 / 弹窗的**遮挡顺序**是否还对（`GameApp.OnLanguageChanged` 里重排了 `OverlayLayer`）。
+- `Locale_en.asset` 是**脚本直接生成的 YAML**，没经过 Unity 的序列化器。
+  Unity 首次导入若报错，跑一次菜单 `Tools/卡牌游戏/6. 导入本地化 CSV` 重建即可。
+- 语言选择目前存 `PlayerPrefs`（key = `game.language`），阶段 5 做 `MetaSave` 时要迁进去。
+- 繁体中文 / 日文：`UIFactory` 的字体候选链、`LocalizationTool` 的导出列都已经准备好，
+  补一个 `LocaleTable` 资产即可，**零代码改动**。

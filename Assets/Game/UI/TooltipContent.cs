@@ -4,6 +4,7 @@ using Game.Cards;
 using Game.Core;
 using Game.Effects;
 using Game.Enemies;
+using Game.Localization;
 using Game.Potions;
 using Game.Statuses;
 using Game.Units;
@@ -44,11 +45,11 @@ namespace Game.UI
 
         /// <summary>带真实层数的状态词条。用于单位面板上挂着的状态。</summary>
         public static TooltipEntry ForStatus(StatusDefinition def, int stacks)
-            => new TooltipEntry($"{def.DisplayName} {stacks}", def.Describe(stacks), AccentOf(def.Polarity));
+            => new TooltipEntry(Loc.T("tooltip.status_with_stacks", "{0} {1}", def.LocalizedName, stacks), def.Describe(stacks), AccentOf(def.Polarity));
 
         /// <summary>不带层数的状态词条（<c>{stacks}</c> 渲染成 X）。用于卡牌 / 药水 / 意图。</summary>
         public static TooltipEntry ForStatusGeneric(StatusDefinition def)
-            => new TooltipEntry(def.DisplayName, def.DescribeGeneric(), AccentOf(def.Polarity));
+            => new TooltipEntry(def.LocalizedName, def.DescribeGeneric(), AccentOf(def.Polarity));
 
         // ============================================================ 组装
 
@@ -77,7 +78,7 @@ namespace Game.UI
         {
             if (def == null) return false;
 
-            buffer.Add(new TooltipEntry(def.DisplayName, def.GetDescription(ctx), NeutralAccent));
+            buffer.Add(new TooltipEntry(def.LocalizedName, def.GetDescription(ctx), NeutralAccent));
 
             var statuses = new List<StatusDefinition>(4);
             EffectTree.CollectStatuses(def.Effects, statuses);
@@ -126,7 +127,7 @@ namespace Game.UI
                 // 缺资产由 ContentValidator 报出来，这里保持安静。
                 if (def == null) continue;
 
-                buffer.Add(new TooltipEntry(def.DisplayName, def.Description, KeywordAccent));
+                buffer.Add(new TooltipEntry(def.LocalizedName, def.LocalizedDescription, KeywordAccent));
             }
         }
 
@@ -146,15 +147,15 @@ namespace Game.UI
 
         private static string IntentTitle(Intent intent) => intent.Kind switch
         {
-            IntentKind.Attack => "攻击",
-            IntentKind.AttackDefend => "攻击 + 防御",
-            IntentKind.AttackDebuff => "攻击 + 减益",
-            IntentKind.Defend => "防御",
-            IntentKind.Buff => "强化自身",
-            IntentKind.Debuff => "施加减益",
-            IntentKind.Sleep => "休眠",
-            IntentKind.Special => "特殊行动",
-            _ => "意图"
+            IntentKind.Attack => Loc.T("intent.title.attack", "攻击"),
+            IntentKind.AttackDefend => Loc.T("intent.title.attack_defend", "攻击 + 防御"),
+            IntentKind.AttackDebuff => Loc.T("intent.title.attack_debuff", "攻击 + 减益"),
+            IntentKind.Defend => Loc.T("intent.title.defend", "防御"),
+            IntentKind.Buff => Loc.T("intent.title.buff", "强化自身"),
+            IntentKind.Debuff => Loc.T("intent.title.debuff", "施加减益"),
+            IntentKind.Sleep => Loc.T("intent.title.sleep", "休眠"),
+            IntentKind.Special => Loc.T("intent.title.special", "特殊行动"),
+            _ => Loc.T("intent.title.unknown", "意图")
         };
 
         private static string IntentBody(Intent intent)
@@ -165,22 +166,22 @@ namespace Game.UI
                 case IntentKind.AttackDefend:
                 case IntentKind.AttackDebuff:
                     string hit = intent.Times > 1
-                        ? $"下回合造成 {intent.Value} 点伤害，共 {intent.Times} 次（合计 {intent.Value * intent.Times}）。"
-                        : $"下回合造成 {intent.Value} 点伤害。";
-                    if (intent.Kind == IntentKind.AttackDefend) hit += "\n同时给自己加护甲。";
-                    if (intent.Kind == IntentKind.AttackDebuff) hit += "\n同时对你施加减益。";
-                    return hit + "\n\n※ 数值已计入当前的力量 / 虚弱 / 易伤。";
+                        ? Loc.T("intent.body.attack_multi", "下回合造成 {0} 点伤害，共 {1} 次（合计 {2}）。", intent.Value, intent.Times, intent.Value * intent.Times)
+                        : Loc.T("intent.body.attack", "下回合造成 {0} 点伤害。", intent.Value);
+                    if (intent.Kind == IntentKind.AttackDefend) hit += "\n" + Loc.T("intent.body.also_block", "同时给自己加护甲。");
+                    if (intent.Kind == IntentKind.AttackDebuff) hit += "\n" + Loc.T("intent.body.also_debuff", "同时对你施加减益。");
+                    return hit + "\n\n" + Loc.T("intent.body.note", "※ 数值已计入当前的力量 / 虚弱 / 易伤。");
 
                 case IntentKind.Defend:
-                    return $"下回合给自己获得 {intent.Value} 点护甲。";
+                    return Loc.T("intent.body.defend", "下回合给自己获得 {0} 点护甲。", intent.Value);
                 case IntentKind.Buff:
-                    return "下回合强化自己。";
+                    return Loc.T("intent.body.buff", "下回合强化自己。");
                 case IntentKind.Debuff:
-                    return "下回合对你施加减益。";
+                    return Loc.T("intent.body.debuff", "下回合对你施加减益。");
                 case IntentKind.Sleep:
-                    return "这回合不行动。";
+                    return Loc.T("intent.body.sleep", "这回合不行动。");
                 default:
-                    return "意图不明。";
+                    return Loc.T("intent.body.unknown", "意图不明。");
             }
         }
     }

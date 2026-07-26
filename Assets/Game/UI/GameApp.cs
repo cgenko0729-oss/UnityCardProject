@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Core;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.UI
@@ -65,6 +66,11 @@ namespace Game.UI
             }
             Database.Invalidate();
 
+            // ★ 必须在建任何 UI 之前应用语言：字体资产是按语言建的，
+            //   先建界面再切语言等于把所有文字节点重做一遍。
+            ApplySavedLanguage();
+            Loc.LanguageChanged += OnLanguageChanged;
+
             var canvas = UIFactory.CreateCanvas("GameCanvas");
             canvas.transform.SetParent(transform, false);
             canvas.sortingOrder = 0;
@@ -94,7 +100,55 @@ namespace Game.UI
         private void OnDestroy()
         {
             if (Manager != null) Manager.PhaseChanged -= OnPhaseChanged;
+            Loc.LanguageChanged -= OnLanguageChanged;
             if (Instance == this) Instance = null;
+        }
+
+        // ================================================================= 语言
+
+        /// <summary>玩家选的语言存这里。阶段 5 做 MetaSave 时把它一并迁进去。</summary>
+        public const string LanguagePrefKey = "game.language";
+
+        private void ApplySavedLanguage()
+        {
+            string code = PlayerPrefs.GetString(LanguagePrefKey, Loc.SourceLanguage);
+            Loc.Use(Database.GetLocale(code));
+            UIFactory.CurrentFontLanguage = Loc.Current;
+        }
+
+        /// <summary>切语言。会重建当前界面——程序化 UI 没有别的办法刷新已经写进去的文字。</summary>
+        public void SetLanguage(string code)
+        {
+            PlayerPrefs.SetString(LanguagePrefKey, code ?? Loc.SourceLanguage);
+            PlayerPrefs.Save();
+            Loc.Use(Database.GetLocale(code));
+        }
+
+        /// <summary>
+        /// 语言变了：换字体、把整棵界面重建一遍。
+        ///
+        /// ★ 为什么是「重建」而不是「让每个 Text 自己订阅 LanguageChanged」：
+        ///   本工程的 UI 全是运行时代码搭的，一个界面里有上百个文字节点，
+        ///   逐个订阅意味着每个都要记住自己的 key 和参数，还要在销毁时退订
+        ///   （忘一个就是一条指向已销毁对象的悬空委托）。
+        ///   直接重建只有一处代码，且天然正确。
+        /// </summary>
+        private void OnLanguageChanged()
+        {
+            UIFactory.CurrentFontLanguage = Loc.Current;
+            UIFactory.InvalidateFont();
+
+            if (_topBar != null)
+            {
+                Destroy(_topBar.gameObject);
+                _topBar = TopBarView.Create(_uiRoot, this);
+                // ★ 顶栏是在 ScreenLayer 之后建的（遮挡顺序 = 兄弟顺序），
+                //   重建会把它排到最后，正好保持原来的层级关系。
+                //   OverlayLayer 必须再排到它之后，否则弹窗会被顶栏盖住。
+                if (OverlayLayer != null) OverlayLayer.SetAsLastSibling();
+            }
+
+            OnPhaseChanged(Manager != null ? Manager.Phase : RunPhase.MainMenu);
         }
 
         private void LateUpdate()

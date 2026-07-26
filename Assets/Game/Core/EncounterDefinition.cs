@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Enemies;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.Core
@@ -13,5 +14,7 @@ namespace Game.Core
         public List<EnemyDefinition> Enemies = new List<EnemyDefinition>();
         public bool IsElite;
         public bool IsBoss;
+
+        public string LocalizedName => Loc.T($"encounter.{Id}.name", DisplayName);
     }
 }

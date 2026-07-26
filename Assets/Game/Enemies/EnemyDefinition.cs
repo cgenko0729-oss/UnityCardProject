@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.Localization;
 using Game.Statuses;
 using UnityEngine;
 
@@ -46,6 +47,21 @@ namespace Game.Enemies
         [Tooltip("继承 EnemyBrain 的类的完整类名（含程序集），留空用默认 EnemyBrain。" +
                  "例：Game.Enemies.Impl.GuardianBrain, Game.Runtime")]
         public string CustomBrainType;
+
+        public string LocalizedName => Loc.T($"enemy.{Id}.name", DisplayName);
+
+        /// <summary>
+        /// 行动名。
+        /// ★ <see cref="EnemyAction"/> 没有自己的 Id（它是 <see cref="Actions"/> 里的一项），
+        ///   所以 key 由「敌人 Id + 下标」拼出来，取 key 的入口只能放在这里。
+        ///   代价是**往 Actions 中间插一项会让后面所有行动的译文错位**——
+        ///   ContentValidator 的孤儿 key 检查会把这种情况报成警告。
+        /// </summary>
+        public string LocalizedActionName(int index)
+        {
+            if (Actions == null || index < 0 || index >= Actions.Count) return string.Empty;
+            return Loc.T($"enemy.{Id}.action.{index}.name", Actions[index].Name);
+        }
 
 #if UNITY_EDITOR
         private void OnValidate()

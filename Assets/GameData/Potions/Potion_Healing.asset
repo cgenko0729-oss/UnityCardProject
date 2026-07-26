@@ -19,12 +19,12 @@ MonoBehaviour:
   DescriptionTemplate: "\u56DE\u590D {0} \u70B9\u751F\u547D\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962815
+  - rid: 1041046769074962982
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962815
+    - rid: 1041046769074962982
       type: {class: HealEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

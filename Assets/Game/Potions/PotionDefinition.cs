@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Battle;
 using Game.Cards;
 using Game.Effects;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.Potions
@@ -44,6 +45,9 @@ namespace Game.Potions
 
         public bool NeedsTarget => TargetKind == CardTargetKind.SingleEnemy;
 
+        public string LocalizedName => Loc.T($"potion.{Id}.name", DisplayName);
+        public string LocalizedDescriptionTemplate => Loc.T($"potion.{Id}.desc", DescriptionTemplate);
+
         /// <summary>动态描述。ctx 可为 null（战斗外的商店 / 奖励界面），此时用静态数值。</summary>
         public string GetDescription(BattleContext ctx)
         {
@@ -53,7 +57,7 @@ namespace Game.Potions
                 Source = ctx?.Player,
                 PreviewMode = true,   // 描述每帧都会算，绝不能消耗随机流
             };
-            return EffectDescription.Format(DescriptionTemplate, Effects, effCtx);
+            return EffectDescription.Format(LocalizedDescriptionTemplate, Effects, effCtx);
         }
 
 #if UNITY_EDITOR
@@ -84,7 +88,7 @@ namespace Game.Potions
         }
 
         public string Id => Def != null ? Def.Id : null;
-        public string DisplayName => Def != null ? Def.DisplayName : "<null>";
+        public string DisplayName => Def != null ? Def.LocalizedName : "<null>";
 
         public override string ToString() => $"{DisplayName}#{Uid}";
     }

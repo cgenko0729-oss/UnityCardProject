@@ -25,12 +25,12 @@ MonoBehaviour:
     2 \u70B9\u4F24\u5BB3\u3002"
   Effects: []
   InHandEndOfTurnEffects:
-  - rid: 1041046769074962704
+  - rid: 1041046769074962871
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962704
+    - rid: 1041046769074962871
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

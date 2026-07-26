@@ -37,7 +37,7 @@ namespace Game.Cards
         }
 
         public string Id => Def != null ? Def.Id : null;
-        public string DisplayName => Def != null ? Def.DisplayName : "<null>";
+        public string DisplayName => Def != null ? Def.LocalizedName : "<null>";
         public CardType Type => Def != null ? Def.Type : CardType.Skill;
 
         public bool HasKeyword(CardKeyword k)
@@ -99,7 +99,7 @@ namespace Game.Cards
         public string GetDescription(BattleContext ctx, Units.BattleUnit source = null, Units.BattleUnit target = null)
         {
             if (Def == null) return string.Empty;
-            string template = Def.DescriptionTemplate;
+            string template = Def.LocalizedDescriptionTemplate;
             if (string.IsNullOrEmpty(template)) return string.Empty;
             if (Def.Effects == null || Def.Effects.Count == 0) return template;
 

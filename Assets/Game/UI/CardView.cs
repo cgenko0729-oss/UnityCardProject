@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Game.Battle;
 using Game.Cards;
+using Game.Localization;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -24,10 +26,10 @@ namespace Game.UI
 
         private BattleScreen _screen;
         private Image _bg;
-        private Text _costText;
-        private Text _nameText;
-        private Text _descText;
-        private Text _typeText;
+        private TMP_Text _costText;
+        private TMP_Text _nameText;
+        private TMP_Text _descText;
+        private TMP_Text _typeText;
         private RectTransform _rt;
 
         private static readonly Color ColAttack = new Color(0.55f, 0.20f, 0.20f);
@@ -110,11 +112,13 @@ namespace Game.UI
             _nameText.text = Card.DisplayName + (Card.UpgradeLevel > 0 ? "+" : "");
             _descText.text = Card.GetDescription(ctx, ctx?.Player, null);
 
+            // ★ key 与 KeywordDefinition 用的是同一套（keyword.<位>.name），
+            //   所以卡面角标和 tooltip 里的词条名永远是同一份译文，不会一个改了另一个没改。
             string kw = "";
-            if (Card.HasKeyword(CardKeyword.Exhaust)) kw += " 消耗";
-            if (Card.HasKeyword(CardKeyword.Retain)) kw += " 保留";
-            if (Card.HasKeyword(CardKeyword.Innate)) kw += " 固有";
-            if (Card.HasKeyword(CardKeyword.Ethereal)) kw += " 虚无";
+            if (Card.HasKeyword(CardKeyword.Exhaust)) kw += " " + Loc.T("keyword.exhaust.name", "消耗");
+            if (Card.HasKeyword(CardKeyword.Retain)) kw += " " + Loc.T("keyword.retain.name", "保留");
+            if (Card.HasKeyword(CardKeyword.Innate)) kw += " " + Loc.T("keyword.innate.name", "固有");
+            if (Card.HasKeyword(CardKeyword.Ethereal)) kw += " " + Loc.T("keyword.ethereal.name", "虚无");
             _typeText.text = TypeLabel(Card.Type) + kw;
 
             Color baseColor = playable ? TypeColor(Card.Type) : ColDisabled;
@@ -198,11 +202,11 @@ namespace Game.UI
 
         private static string TypeLabel(CardType t) => t switch
         {
-            CardType.Attack => "攻击",
-            CardType.Skill => "技能",
-            CardType.Power => "能力",
-            CardType.Status => "状态",
-            CardType.Curse => "诅咒",
+            CardType.Attack => Loc.T("cardtype.attack", "攻击"),
+            CardType.Skill => Loc.T("cardtype.skill", "技能"),
+            CardType.Power => Loc.T("cardtype.power", "能力"),
+            CardType.Status => Loc.T("cardtype.status", "状态"),
+            CardType.Curse => Loc.T("cardtype.curse", "诅咒"),
             _ => ""
         };
 

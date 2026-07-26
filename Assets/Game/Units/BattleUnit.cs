@@ -35,6 +35,14 @@ namespace Game.Units
 
         public bool IsAlive => Hp > 0;
 
+        /// <summary>
+        /// 显示用的名字。
+        /// ★ 敌人一律现查 <see cref="EnemyDefinition.LocalizedName"/> 而不是用构造时存下的
+        ///   <see cref="Name"/>：战斗中途切语言时，构造时那一份是旧语言的，
+        ///   而且没有任何东西会去更新它。玩家没有 EnemyDef，退回 Name。
+        /// </summary>
+        public string DisplayName => EnemyDef != null ? EnemyDef.LocalizedName : Name;
+
         public BattleUnit(int uid, string name, int maxHp, bool isPlayer)
         {
             Uid = uid;

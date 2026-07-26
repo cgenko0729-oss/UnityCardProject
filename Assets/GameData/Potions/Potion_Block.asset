@@ -19,12 +19,12 @@ MonoBehaviour:
   DescriptionTemplate: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962787
+  - rid: 1041046769074962954
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962787
+    - rid: 1041046769074962954
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

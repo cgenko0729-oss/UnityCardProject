@@ -19,12 +19,12 @@ MonoBehaviour:
   DescriptionTemplate: "\u62BD {0} \u5F20\u724C\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962698
+  - rid: 1041046769074962865
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962698
+    - rid: 1041046769074962865
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

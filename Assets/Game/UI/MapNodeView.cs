@@ -1,4 +1,6 @@
+using Game.Localization;
 using Game.Map;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -12,8 +14,8 @@ namespace Game.UI
 
         private MapScreen _screen;
         private Image _bg;
-        private Text _icon;
-        private Text _label;
+        private TMP_Text _icon;
+        private TMP_Text _label;
 
         private bool _available;
         private bool _visited;
@@ -90,21 +92,24 @@ namespace Game.UI
             MapNodeType.Elite => "☠",
             MapNodeType.Rest => "♨",
             MapNodeType.Shop => "◆",
-            MapNodeType.Event => "？",
+            // ★ 这一列是图标不是文案，多数是符号、不需要翻译。
+            //   但「？」是全角问号、「王」是汉字——换到英文界面里这两个会显得很突兀，
+            //   所以只有这两条留了 key。
+            MapNodeType.Event => Loc.T("map.icon.event", "？"),
             MapNodeType.Treasure => "▣",
-            MapNodeType.Boss => "王",
+            MapNodeType.Boss => Loc.T("map.icon.boss", "王"),
             _ => "?"
         };
 
         public static string LabelOf(MapNodeType t) => t switch
         {
-            MapNodeType.Battle => "战斗",
-            MapNodeType.Elite => "精英",
-            MapNodeType.Rest => "休息",
-            MapNodeType.Shop => "商店",
-            MapNodeType.Event => "事件",
-            MapNodeType.Treasure => "宝箱",
-            MapNodeType.Boss => "首领",
+            MapNodeType.Battle => Loc.T("map.node.battle", "战斗"),
+            MapNodeType.Elite => Loc.T("map.node.elite", "精英"),
+            MapNodeType.Rest => Loc.T("map.node.rest", "休息"),
+            MapNodeType.Shop => Loc.T("map.node.shop", "商店"),
+            MapNodeType.Event => Loc.T("map.node.event", "事件"),
+            MapNodeType.Treasure => Loc.T("map.node.treasure", "宝箱"),
+            MapNodeType.Boss => Loc.T("map.node.boss", "首领"),
             _ => ""
         };
     }

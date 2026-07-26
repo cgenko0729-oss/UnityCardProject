@@ -1,5 +1,6 @@
 using System.Text;
 using Game.Core;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.UI
@@ -14,7 +15,7 @@ namespace Game.UI
             bool victory = Run != null && Run.Phase == RunPhase.Victory;
 
             var title = UIFactory.CreateText(Root, "Title",
-                victory ? "通　关" : "征程结束", 72, TextAnchor.MiddleCenter,
+                victory ? Loc.T("ui.gameover.victory", "通　关") : Loc.T("ui.gameover.defeat", "征程结束"), 72, TextAnchor.MiddleCenter,
                 victory ? new Color(1f, 0.9f, 0.45f) : new Color(0.9f, 0.42f, 0.42f));
             UIFactory.SetAnchored(title.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(0, -300), new Vector2(0, -160));
@@ -24,11 +25,11 @@ namespace Game.UI
             UIFactory.SetAnchored(summary.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(-420, -120), new Vector2(420, 160));
 
-            var again = UIFactory.CreateTextButton(Root, "Again", "再来一局", 30,
+            var again = UIFactory.CreateTextButton(Root, "Again", Loc.T("ui.gameover.again", "再来一局"), 30,
                 new Color(0.30f, 0.44f, 0.32f), () => App.StartNewRun());
             Place((RectTransform)again.transform, -230);
 
-            var menu = UIFactory.CreateTextButton(Root, "Menu", "回到主菜单", 26,
+            var menu = UIFactory.CreateTextButton(Root, "Menu", Loc.T("ui.gameover.menu", "回到主菜单"), 26,
                 new Color(0.30f, 0.34f, 0.40f), () => Manager.GoToMainMenu());
             Place((RectTransform)menu.transform, -330);
         }
@@ -47,17 +48,17 @@ namespace Game.UI
             if (Run == null) return "";
 
             var sb = new StringBuilder(256);
-            sb.AppendLine(victory ? "你击败了最深处的首领。" : "你倒在了半路上。").AppendLine();
+            sb.AppendLine(victory ? Loc.T("ui.gameover.victory_body", "你击败了最深处的首领。") : Loc.T("ui.gameover.defeat_body", "你倒在了半路上。")).AppendLine();
 
             int floor = Run.Map != null && Run.CurrentNodeId >= 0
                 ? Run.Map.GetNode(Run.CurrentNodeId).Row + 1 : 0;
-            sb.AppendLine($"抵达层数：{floor} / {(Run.Map != null ? Run.Map.RowCount : 0)}");
-            sb.AppendLine($"击败战斗：{Run.BattlesWon} 场");
-            sb.AppendLine($"最终生命：{Run.Hp} / {Run.MaxHp}");
-            sb.AppendLine($"剩余金币：{Run.Gold}");
-            sb.AppendLine($"牌库张数：{Run.Deck.Count}");
-            sb.AppendLine($"持有遗物：{Run.Relics.Count} 个");
-            sb.AppendLine().Append($"种子：{Run.Seed}");
+            sb.AppendLine(Loc.T("ui.gameover.stat_floor", "抵达层数：{0} / {1}", floor, Run.Map != null ? Run.Map.RowCount : 0));
+            sb.AppendLine(Loc.T("ui.gameover.stat_battles", "击败战斗：{0} 场", Run.BattlesWon));
+            sb.AppendLine(Loc.T("ui.gameover.stat_hp", "最终生命：{0} / {1}", Run.Hp, Run.MaxHp));
+            sb.AppendLine(Loc.T("ui.gameover.stat_gold", "剩余金币：{0}", Run.Gold));
+            sb.AppendLine(Loc.T("ui.gameover.stat_deck", "牌库张数：{0}", Run.Deck.Count));
+            sb.AppendLine(Loc.T("ui.gameover.stat_relics", "持有遗物：{0} 个", Run.Relics.Count));
+            sb.AppendLine().Append(Loc.T("ui.gameover.stat_seed", "种子：{0}", Run.Seed));
 
             return sb.ToString();
         }

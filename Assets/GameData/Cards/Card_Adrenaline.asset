@@ -23,14 +23,14 @@ MonoBehaviour:
   Keywords: 1
   DescriptionTemplate: "\u83B7\u5F97 {1} \u70B9\u80FD\u91CF\uFF0C\u62BD {0} \u5F20\u724C\u3002\u6D88\u8017\u3002"
   Effects:
-  - rid: 1041046769074962728
-  - rid: 1041046769074962729
+  - rid: 1041046769074962895
+  - rid: 1041046769074962896
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962728
+    - rid: 1041046769074962895
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -46,7 +46,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962729
+    - rid: 1041046769074962896
       type: {class: EnergyEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

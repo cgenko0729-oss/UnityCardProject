@@ -21,7 +21,7 @@ namespace Game.Relics
         }
 
         public string Id => Def != null ? Def.Id : null;
-        public string DisplayName => Def != null ? Def.DisplayName : "<null>";
+        public string DisplayName => Def != null ? Def.LocalizedName : "<null>";
 
         public override string ToString() => Id;
     }

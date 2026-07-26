@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Cards;
 using Game.Enemies;
 using Game.Events;
+using Game.Localization;
 using Game.Potions;
 using Game.Relics;
 using Game.Statuses;
@@ -21,6 +22,12 @@ namespace Game.Core
         public List<EventDefinition> Events = new List<EventDefinition>();
         public List<PotionDefinition> Potions = new List<PotionDefinition>();
         public List<KeywordDefinition> Keywords = new List<KeywordDefinition>();
+
+        /// <summary>
+        /// 翻译表，一种语言一张。
+        /// ★ 简体中文<b>不在</b>这里——它是源语言，文案就写在代码与各 Definition 里。
+        /// </summary>
+        public List<LocaleTable> Locales = new List<LocaleTable>();
 
         private Dictionary<string, CardDefinition> _cards;
         private Dictionary<string, EnemyDefinition> _enemies;
@@ -82,6 +89,21 @@ namespace Game.Core
         public RelicDefinition GetRelic(string id) { EnsureIndex(); return Get(_relics, id); }
         public EventDefinition GetEvent(string id) { EnsureIndex(); return Get(_events, id); }
         public PotionDefinition GetPotion(string id) { EnsureIndex(); return Get(_potions, id); }
+
+        /// <summary>
+        /// 按语言标签取翻译表。传源语言（zh-Hans）或未知标签一律返回 null，
+        /// 而 <c>Loc.Use(null)</c> 就是「切回源语言」，因此调用点不需要特判。
+        /// </summary>
+        public LocaleTable GetLocale(string languageCode)
+        {
+            if (string.IsNullOrEmpty(languageCode) || languageCode == Loc.SourceLanguage) return null;
+            for (int i = 0; i < Locales.Count; i++)
+            {
+                var t = Locales[i];
+                if (t != null && t.LanguageCode == languageCode) return t;
+            }
+            return null;
+        }
 
         /// <summary>按单个关键字位取定义。传组合值恒返回 null。</summary>
         public KeywordDefinition GetKeyword(CardKeyword keyword)

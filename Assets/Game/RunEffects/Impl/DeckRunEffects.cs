@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Cards;
 using Game.Core;
+using Game.Localization;
 using Game.Relics;
 using UnityEngine;
 
@@ -35,7 +36,7 @@ namespace Game.RunEffects.Impl
             if (Card != null && !PlayerChooses)
             {
                 for (int i = 0; i < Count; i++) AddOne(ctx, Card);
-                ctx.AddLog(Count > 1 ? $"获得 {Count} 张「{Card.DisplayName}」" : $"获得「{Card.DisplayName}」");
+                ctx.AddLog(DescribeGainCard(Card, Count));
                 return;
             }
 
@@ -53,7 +54,7 @@ namespace Game.RunEffects.Impl
                     Kind = RunChoiceKind.AddOneOfCards,
                     Count = 1,
                     Options = picks,
-                    Title = "选择一张卡加入牌库",
+                    Title = Loc.T("run.addcard.choose", "选择一张卡加入牌库"),
                 });
                 return;
             }
@@ -61,9 +62,14 @@ namespace Game.RunEffects.Impl
             for (int i = 0; i < picks.Count; i++)
             {
                 AddOne(ctx, picks[i]);
-                ctx.AddLog($"获得「{picks[i].DisplayName}」");
+                ctx.AddLog(DescribeGainCard(picks[i], 1));
             }
         }
+
+        private static string DescribeGainCard(CardDefinition def, int count)
+            => count > 1
+                ? Loc.T("run.addcard.many", "获得 {0} 张「{1}」", count, def.LocalizedName)
+                : Loc.T("run.addcard.one", "获得「{0}」", def.LocalizedName);
 
         private void AddOne(RunEffectContext ctx, CardDefinition def)
         {
@@ -73,9 +79,11 @@ namespace Game.RunEffects.Impl
 
         public override string Describe(RunEffectContext ctx)
         {
-            if (PlayerChooses) return "选择一张卡加入牌库";
-            if (Card != null) return Count > 1 ? $"获得 {Count} 张「{Card.DisplayName}」" : $"获得「{Card.DisplayName}」";
-            return Count > 1 ? $"随机获得 {Count} 张卡" : "随机获得一张卡";
+            if (PlayerChooses) return Loc.T("run.addcard.choose", "选择一张卡加入牌库");
+            if (Card != null) return DescribeGainCard(Card, Count);
+            return Count > 1
+                ? Loc.T("run.addcard.random_many", "随机获得 {0} 张卡", Count)
+                : Loc.T("run.addcard.random_one", "随机获得一张卡");
         }
     }
 
@@ -101,7 +109,7 @@ namespace Game.RunEffects.Impl
                 {
                     Kind = RunChoiceKind.RemoveCard,
                     Count = Count,
-                    Title = Count > 1 ? $"移除 {Count} 张卡" : "移除一张卡",
+                    Title = DescribeRemove(Count),
                 });
                 return;
             }
@@ -111,12 +119,16 @@ namespace Game.RunEffects.Impl
             for (int i = 0; i < picks.Count; i++)
             {
                 ctx.Run.RemoveCard(picks[i]);
-                ctx.AddLog($"移除了「{picks[i].DisplayName}」");
+                ctx.AddLog(Loc.T("run.removecard.done", "移除了「{0}」", picks[i].DisplayName));
             }
         }
 
-        public override string Describe(RunEffectContext ctx)
-            => Count > 1 ? $"移除 {Count} 张卡" : "移除一张卡";
+        public override string Describe(RunEffectContext ctx) => DescribeRemove(Count);
+
+        private static string DescribeRemove(int count)
+            => count > 1
+                ? Loc.T("run.removecard.many", "移除 {0} 张卡", count)
+                : Loc.T("run.removecard.one", "移除一张卡");
     }
 
     /// <summary>升级牌库里的卡牌。</summary>
@@ -146,7 +158,7 @@ namespace Game.RunEffects.Impl
                 int n = 0;
                 for (int i = 0; i < ctx.Run.Deck.Count; i++)
                     if (ctx.Run.Deck[i].CanUpgrade) { ctx.Run.Deck[i].Upgrade(); n++; }
-                ctx.AddLog($"升级了 {n} 张卡");
+                ctx.AddLog(Loc.T("run.upgradecard.done_many", "升级了 {0} 张卡", n));
                 return;
             }
 
@@ -158,7 +170,7 @@ namespace Game.RunEffects.Impl
                 {
                     Kind = RunChoiceKind.UpgradeCard,
                     Count = Count,
-                    Title = Count > 1 ? $"升级 {Count} 张卡" : "升级一张卡",
+                    Title = DescribeUpgrade(Count),
                 });
                 return;
             }
@@ -168,15 +180,20 @@ namespace Game.RunEffects.Impl
             for (int i = 0; i < picks.Count; i++)
             {
                 picks[i].Upgrade();
-                ctx.AddLog($"升级了「{picks[i].DisplayName}」");
+                ctx.AddLog(Loc.T("run.upgradecard.done", "升级了「{0}」", picks[i].DisplayName));
             }
         }
 
         public override string Describe(RunEffectContext ctx)
         {
-            if (All) return "升级牌库里所有的卡";
-            return Count > 1 ? $"升级 {Count} 张卡" : "升级一张卡";
+            if (All) return Loc.T("run.upgradecard.all", "升级牌库里所有的卡");
+            return DescribeUpgrade(Count);
         }
+
+        private static string DescribeUpgrade(int count)
+            => count > 1
+                ? Loc.T("run.upgradecard.many", "升级 {0} 张卡", count)
+                : Loc.T("run.upgradecard.one", "升级一张卡");
     }
 
     /// <summary>获得遗物。可以指定具体遗物，也可以按稀有度随机。</summary>
@@ -205,14 +222,17 @@ namespace Game.RunEffects.Impl
             {
                 // 遗物全都拿过了。给点金币兜底，总比什么都不给强。
                 ctx.Run.Gold += 25;
-                ctx.AddLog("没有可获得的遗物了，改为获得 25 金币");
+                ctx.AddLog(Loc.T("run.gainrelic.exhausted", "没有可获得的遗物了，改为获得 {0} 金币", 25));
                 return;
             }
 
-            if (ctx.Run.AddRelic(def)) ctx.AddLog($"获得遗物「{def.DisplayName}」");
+            if (ctx.Run.AddRelic(def))
+                ctx.AddLog(Loc.T("run.gainrelic.done", "获得遗物「{0}」", def.LocalizedName));
         }
 
         public override string Describe(RunEffectContext ctx)
-            => Relic != null ? $"获得遗物「{Relic.DisplayName}」" : "获得一个随机遗物";
+            => Relic != null
+                ? Loc.T("run.gainrelic.done", "获得遗物「{0}」", Relic.LocalizedName)
+                : Loc.T("run.gainrelic.random", "获得一个随机遗物");
     }
 }

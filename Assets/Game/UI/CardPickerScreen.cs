@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Game.Cards;
+using Game.Localization;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -27,7 +29,7 @@ namespace Game.UI
         private readonly List<CardMiniView> _views = new List<CardMiniView>();
 
         private Button _confirmButton;
-        private Text _counterText;
+        private TMP_Text _counterText;
 
         /// <summary>★ 组件挂在遮罩根自己身上，<see cref="Close"/> 一个 Destroy 就能收干净。</summary>
         public void Open(GameApp app, string title,
@@ -106,13 +108,13 @@ namespace Game.UI
 
         private void BuildButtons()
         {
-            _confirmButton = UIFactory.CreateTextButton(_root, "Confirm", "确定", 28,
+            _confirmButton = UIFactory.CreateTextButton(_root, "Confirm", Loc.T("ui.picker.confirm", "确定"), 28,
                 new Color(0.30f, 0.44f, 0.32f), Confirm);
             Place((RectTransform)_confirmButton.transform, _cancellable ? -180 : 0);
 
             if (_cancellable)
             {
-                var skip = UIFactory.CreateTextButton(_root, "Skip", "跳过", 28,
+                var skip = UIFactory.CreateTextButton(_root, "Skip", Loc.T("ui.picker.skip", "跳过"), 28,
                     new Color(0.34f, 0.26f, 0.26f), Cancel);
                 Place((RectTransform)skip.transform, 180);
             }
@@ -148,7 +150,7 @@ namespace Game.UI
                 _views[i].SetSelected(_selected.Contains(i));
 
             _counterText.text = _pickCount > 1
-                ? $"已选 {_selected.Count} / {_pickCount}"
+                ? Loc.T("ui.picker.counter", "已选 {0} / {1}", _selected.Count, _pickCount)
                 : "";
 
             UIFactory.SetInteractable(_confirmButton, _selected.Count == _pickCount,
@@ -208,7 +210,7 @@ namespace Game.UI
             UIFactory.Stretch(costText.rectTransform);
 
             var name = UIFactory.CreateText(rt, "Name",
-                (def != null ? def.DisplayName : "?") + (upgraded ? "+" : ""), 20, TextAnchor.UpperCenter);
+                (def != null ? def.LocalizedName : "?") + (upgraded ? "+" : ""), 20, TextAnchor.UpperCenter);
             UIFactory.SetAnchored(name.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(50, -44), new Vector2(-6, -8));
 
@@ -240,7 +242,7 @@ namespace Game.UI
         private static string DescriptionOf(CardDefinition def)
         {
             if (def == null) return "";
-            if (def.Effects == null || def.Effects.Count == 0) return def.DescriptionTemplate ?? "";
+            if (def.Effects == null || def.Effects.Count == 0) return def.LocalizedDescriptionTemplate ?? "";
 
             var probe = new Game.Cards.CardInstance(0, def);
             return probe.GetDescription(null);
@@ -261,30 +263,30 @@ namespace Game.UI
         {
             if (def == null) return "";
             string s = TypeLabel(def.Type) + " · " + RarityLabel(def.Rarity);
-            if (def.HasKeyword(CardKeyword.Exhaust)) s += " · 消耗";
-            if (def.HasKeyword(CardKeyword.Retain)) s += " · 保留";
-            if (def.HasKeyword(CardKeyword.Innate)) s += " · 固有";
-            if (def.HasKeyword(CardKeyword.Ethereal)) s += " · 虚无";
+            if (def.HasKeyword(CardKeyword.Exhaust)) s += " · " + Loc.T("keyword.exhaust.name", "消耗");
+            if (def.HasKeyword(CardKeyword.Retain)) s += " · " + Loc.T("keyword.retain.name", "保留");
+            if (def.HasKeyword(CardKeyword.Innate)) s += " · " + Loc.T("keyword.innate.name", "固有");
+            if (def.HasKeyword(CardKeyword.Ethereal)) s += " · " + Loc.T("keyword.ethereal.name", "虚无");
             return s;
         }
 
         private static string TypeLabel(CardType t) => t switch
         {
-            CardType.Attack => "攻击",
-            CardType.Skill => "技能",
-            CardType.Power => "能力",
-            CardType.Status => "状态",
-            CardType.Curse => "诅咒",
+            CardType.Attack => Loc.T("cardtype.attack", "攻击"),
+            CardType.Skill => Loc.T("cardtype.skill", "技能"),
+            CardType.Power => Loc.T("cardtype.power", "能力"),
+            CardType.Status => Loc.T("cardtype.status", "状态"),
+            CardType.Curse => Loc.T("cardtype.curse", "诅咒"),
             _ => ""
         };
 
         private static string RarityLabel(CardRarity r) => r switch
         {
-            CardRarity.Basic => "基础",
-            CardRarity.Common => "普通",
-            CardRarity.Uncommon => "罕见",
-            CardRarity.Rare => "稀有",
-            _ => "特殊"
+            CardRarity.Basic => Loc.T("rarity.basic", "基础"),
+            CardRarity.Common => Loc.T("rarity.common", "普通"),
+            CardRarity.Uncommon => Loc.T("rarity.uncommon", "罕见"),
+            CardRarity.Rare => Loc.T("rarity.rare", "稀有"),
+            _ => Loc.T("rarity.special", "特殊")
         };
 
         private static Color ColorOf(CardType t) => t switch

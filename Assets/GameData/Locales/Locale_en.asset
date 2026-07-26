@@ -1,0 +1,1506 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c228982fe2a84b95a666df966e0076c6, type: 3}
+  m_Name: Locale_en
+  m_EditorClassIdentifier: 
+  LanguageCode: en
+  DisplayName: English
+  FontFamilies: []
+  Entries:
+  - Key: cardtype.attack
+    Value: "Attack"
+    SourceSnapshot: "\u653B\u51FB"
+  - Key: cardtype.curse
+    Value: "Curse"
+    SourceSnapshot: "\u8BC5\u5492"
+  - Key: cardtype.power
+    Value: "Power"
+    SourceSnapshot: "\u80FD\u529B"
+  - Key: cardtype.skill
+    Value: "Skill"
+    SourceSnapshot: "\u6280\u80FD"
+  - Key: cardtype.status
+    Value: "Status"
+    SourceSnapshot: "\u72B6\u6001"
+  - Key: fail.battle_ended
+    Value: "The battle is over"
+    SourceSnapshot: "\u6218\u6597\u5DF2\u7ED3\u675F"
+  - Key: fail.cannot_apply
+    Value: "Cannot take effect right now"
+    SourceSnapshot: "\u5F53\u524D\u65E0\u6CD5\u751F\u6548"
+  - Key: fail.invalid_target
+    Value: "Invalid target"
+    SourceSnapshot: "\u76EE\u6807\u65E0\u6548"
+  - Key: fail.need_target
+    Value: "Choose a target"
+    SourceSnapshot: "\u9700\u8981\u9009\u62E9\u76EE\u6807"
+  - Key: fail.not_enough_energy
+    Value: "Not enough Energy"
+    SourceSnapshot: "\u80FD\u91CF\u4E0D\u8DB3"
+  - Key: fail.not_your_turn
+    Value: "It is not your turn"
+    SourceSnapshot: "\u73B0\u5728\u4E0D\u662F\u4F60\u7684\u56DE\u5408"
+  - Key: fail.unplayable
+    Value: "This card cannot be played"
+    SourceSnapshot: "\u8FD9\u5F20\u724C\u65E0\u6CD5\u6253\u51FA"
+  - Key: fail.waiting_selection
+    Value: "Finish choosing cards first"
+    SourceSnapshot: "\u8BF7\u5148\u5B8C\u6210\u9009\u724C"
+  - Key: float.block_gain
+    Value: "+{0} Block"
+    SourceSnapshot: "+{0} \u62A4\u7532"
+  - Key: float.blocked
+    Value: "Blocked {0}"
+    SourceSnapshot: "\u6321\u4E0B {0}"
+  - Key: intent.attack_debuff
+    Value: "\u2694 {0} + Debuff"
+    SourceSnapshot: "\u2694 {0} + \u51CF\u76CA"
+  - Key: intent.attack_defend
+    Value: "\u2694 {0} + Block"
+    SourceSnapshot: "\u2694 {0} + \u9632\u5FA1"
+  - Key: intent.body.also_block
+    Value: "It will also gain Block."
+    SourceSnapshot: "\u540C\u65F6\u7ED9\u81EA\u5DF1\u52A0\u62A4\u7532\u3002"
+  - Key: intent.body.also_debuff
+    Value: "It will also apply a debuff to you."
+    SourceSnapshot: "\u540C\u65F6\u5BF9\u4F60\u65BD\u52A0\u51CF\u76CA\u3002"
+  - Key: intent.body.attack
+    Value: "Deals {0} damage next turn."
+    SourceSnapshot: "\u4E0B\u56DE\u5408\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: intent.body.attack_multi
+    Value: "Deals {0} damage {1} times next turn ({2} total)."
+    SourceSnapshot: "\u4E0B\u56DE\u5408\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0C\u5171 {1} \u6B21\uFF08\u5408\u8BA1 {2}\uFF09\u3002"
+  - Key: intent.body.buff
+    Value: "It will strengthen itself next turn."
+    SourceSnapshot: "\u4E0B\u56DE\u5408\u5F3A\u5316\u81EA\u5DF1\u3002"
+  - Key: intent.body.debuff
+    Value: "It will apply a debuff to you next turn."
+    SourceSnapshot: "\u4E0B\u56DE\u5408\u5BF9\u4F60\u65BD\u52A0\u51CF\u76CA\u3002"
+  - Key: intent.body.defend
+    Value: "Gains {0} Block next turn."
+    SourceSnapshot: "\u4E0B\u56DE\u5408\u7ED9\u81EA\u5DF1\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
+  - Key: intent.body.note
+    Value: "\u203B Values already account for current Strength / Weak / Vulnerable."
+    SourceSnapshot: "\u203B \u6570\u503C\u5DF2\u8BA1\u5165\u5F53\u524D\u7684\u529B\u91CF / \u865A\u5F31 / \u6613\u4F24\u3002"
+  - Key: intent.body.sleep
+    Value: "It will not act this turn."
+    SourceSnapshot: "\u8FD9\u56DE\u5408\u4E0D\u884C\u52A8\u3002"
+  - Key: intent.body.unknown
+    Value: "Intent unknown."
+    SourceSnapshot: "\u610F\u56FE\u4E0D\u660E\u3002"
+  - Key: intent.buff
+    Value: "\u25B2 Buff"
+    SourceSnapshot: "\u25B2 \u5F3A\u5316"
+  - Key: intent.debuff
+    Value: "\u25BC Debuff"
+    SourceSnapshot: "\u25BC \u51CF\u76CA"
+  - Key: intent.title.attack
+    Value: "Attack"
+    SourceSnapshot: "\u653B\u51FB"
+  - Key: intent.title.attack_debuff
+    Value: "Attack + Debuff"
+    SourceSnapshot: "\u653B\u51FB + \u51CF\u76CA"
+  - Key: intent.title.attack_defend
+    Value: "Attack + Block"
+    SourceSnapshot: "\u653B\u51FB + \u9632\u5FA1"
+  - Key: intent.title.buff
+    Value: "Buff Self"
+    SourceSnapshot: "\u5F3A\u5316\u81EA\u8EAB"
+  - Key: intent.title.debuff
+    Value: "Apply Debuff"
+    SourceSnapshot: "\u65BD\u52A0\u51CF\u76CA"
+  - Key: intent.title.defend
+    Value: "Defend"
+    SourceSnapshot: "\u9632\u5FA1"
+  - Key: intent.title.sleep
+    Value: "Asleep"
+    SourceSnapshot: "\u4F11\u7720"
+  - Key: intent.title.special
+    Value: "Special Action"
+    SourceSnapshot: "\u7279\u6B8A\u884C\u52A8"
+  - Key: intent.title.unknown
+    Value: "Intent"
+    SourceSnapshot: "\u610F\u56FE"
+  - Key: keyword.ethereal.name
+    Value: "Ethereal"
+    SourceSnapshot: "\u865A\u65E0"
+  - Key: keyword.exhaust.name
+    Value: "Exhaust"
+    SourceSnapshot: "\u6D88\u8017"
+  - Key: keyword.innate.name
+    Value: "Innate"
+    SourceSnapshot: "\u56FA\u6709"
+  - Key: keyword.retain.name
+    Value: "Retain"
+    SourceSnapshot: "\u4FDD\u7559"
+  - Key: keyword.unplayable.name
+    Value: "Unplayable"
+    SourceSnapshot: "\u4E0D\u53EF\u6253\u51FA"
+  - Key: keyword.ethereal.desc
+    Value: "If this card is still in your hand at the end of your turn, it is Exhausted instead of discarded."
+    SourceSnapshot: "\u56DE\u5408\u7ED3\u675F\u65F6\u5982\u679C\u8FD8\u5728\u624B\u4E0A\uFF0C\u76F4\u63A5\u88AB\u6D88\u8017\u6389\uFF0C\u800C\u4E0D\u662F\u5F03\u6389\u3002"
+  - Key: keyword.exhaust.desc
+    Value: "When played, this card goes to the exhaust pile instead of the discard pile. You will not draw it again for the rest of this battle."
+    SourceSnapshot: "\u6253\u51FA\u540E\u4E0D\u8FDB\u5F03\u724C\u5806\uFF0C\u800C\u662F\u8FDB\u5165\u6D88\u8017\u5806\u3002\u672C\u573A\u6218\u6597\u5269\u4E0B\u7684\u65F6\u95F4\u91CC\u90FD\u4E0D\u4F1A\u518D\u62BD\u5230\u5B83\u3002"
+  - Key: keyword.innate.desc
+    Value: "This card is always in your opening hand on the first turn of a battle."
+    SourceSnapshot: "\u6218\u6597\u5F00\u59CB\u7684\u7B2C\u4E00\u56DE\u5408\u5FC5\u5B9A\u5728\u4F60\u7684\u8D77\u59CB\u624B\u724C\u91CC\u3002"
+  - Key: keyword.retain.desc
+    Value: "This card is not discarded at the end of your turn \u2014 it stays in your hand."
+    SourceSnapshot: "\u56DE\u5408\u7ED3\u675F\u65F6\u4E0D\u4F1A\u88AB\u5F03\u6389\uFF0C\u4F1A\u7559\u5728\u624B\u4E0A\u5E26\u8FDB\u4E0B\u4E00\u56DE\u5408\u3002"
+  - Key: keyword.unplayable.desc
+    Value: "Cannot be played. It can only be discarded, exhausted, or transformed by other effects."
+    SourceSnapshot: "\u65E0\u6CD5\u4E3B\u52A8\u6253\u51FA\u3002\u53EA\u80FD\u9760\u5176\u4ED6\u6548\u679C\u628A\u5B83\u5F03\u6389\u3001\u6D88\u8017\u6389\u6216\u8F6C\u5316\u6389\u3002"
+  - Key: log.awaiting_selection
+    Value: "Waiting for you to choose {0} card(s)\u2026"
+    SourceSnapshot: "\u7B49\u5F85\u9009\u62E9 {0} \u5F20\u724C\u2026"
+  - Key: log.block_gain
+    Value: "{0} gains {1} Block"
+    SourceSnapshot: "{0} \u83B7\u5F97 {1} \u70B9\u62A4\u7532"
+  - Key: log.card_discarded
+    Value: "\"{0}\" discarded"
+    SourceSnapshot: "\u300C{0}\u300D\u88AB\u5F03\u6389"
+  - Key: log.card_exhausted
+    Value: "\"{0}\" exhausted"
+    SourceSnapshot: "\u300C{0}\u300D\u88AB\u6D88\u8017"
+  - Key: log.card_played
+    Value: "Played \"{0}\" ({1} Energy)"
+    SourceSnapshot: "\u6253\u51FA\u300C{0}\u300D\uFF08\u6D88\u8017 {1} \u80FD\u91CF\uFF09"
+  - Key: log.card_retained
+    Value: "\"{0}\" will be retained next turn"
+    SourceSnapshot: "\u300C{0}\u300D\u5C06\u4FDD\u7559\u5230\u4E0B\u56DE\u5408"
+  - Key: log.damaged
+    Value: "{0} takes {1} damage"
+    SourceSnapshot: "{0} \u53D7\u5230 {1} \u70B9\u4F24\u5BB3"
+  - Key: log.defeat
+    Value: "\u2620 DEFEAT \u2620"
+    SourceSnapshot: "\u2620 \u6218\u6597\u5931\u8D25 \u2620"
+  - Key: log.died
+    Value: "{0} has fallen"
+    SourceSnapshot: "{0} \u5012\u4E0B\u4E86"
+  - Key: log.enemy_turn
+    Value: "Enemy turn"
+    SourceSnapshot: "\u654C\u4EBA\u884C\u52A8"
+  - Key: log.healed
+    Value: "{0} heals {1} HP"
+    SourceSnapshot: "{0} \u56DE\u590D {1} \u70B9\u751F\u547D"
+  - Key: log.potion_discarded
+    Value: "Discarded the \"{0}\" potion"
+    SourceSnapshot: "\u5012\u6389\u4E86\u836F\u6C34\u300C{0}\u300D"
+  - Key: log.potion_used
+    Value: "Drank the \"{0}\" potion"
+    SourceSnapshot: "\u559D\u4E0B\u836F\u6C34\u300C{0}\u300D"
+  - Key: log.shuffle
+    Value: "Shuffled"
+    SourceSnapshot: "\u6D17\u724C"
+  - Key: log.status_applied
+    Value: "{0} gains [{1}] x{2}"
+    SourceSnapshot: "{0} \u83B7\u5F97 [{1}] x{2}"
+  - Key: log.status_triggered
+    Value: "{0}'s [{1}] triggers ({2})"
+    SourceSnapshot: "{0} \u7684 [{1}] \u89E6\u53D1\uFF08{2}\uFF09"
+  - Key: log.turn_start
+    Value: "\u2014\u2014 Turn {0} \u2014\u2014"
+    SourceSnapshot: "\u2014\u2014 \u7B2C {0} \u56DE\u5408 \u2014\u2014"
+  - Key: log.victory
+    Value: "\u2605 VICTORY \u2605"
+    SourceSnapshot: "\u2605 \u6218\u6597\u80DC\u5229 \u2605"
+  - Key: map.icon.boss
+    Value: "B"
+    SourceSnapshot: "\u738B"
+  - Key: map.icon.event
+    Value: "?"
+    SourceSnapshot: "\uFF1F"
+  - Key: map.node.battle
+    Value: "Battle"
+    SourceSnapshot: "\u6218\u6597"
+  - Key: map.node.boss
+    Value: "Boss"
+    SourceSnapshot: "\u9996\u9886"
+  - Key: map.node.elite
+    Value: "Elite"
+    SourceSnapshot: "\u7CBE\u82F1"
+  - Key: map.node.event
+    Value: "Event"
+    SourceSnapshot: "\u4E8B\u4EF6"
+  - Key: map.node.rest
+    Value: "Rest"
+    SourceSnapshot: "\u4F11\u606F"
+  - Key: map.node.shop
+    Value: "Shop"
+    SourceSnapshot: "\u5546\u5E97"
+  - Key: map.node.treasure
+    Value: "Treasure"
+    SourceSnapshot: "\u5B9D\u7BB1"
+  - Key: phase.defeat
+    Value: "Defeat"
+    SourceSnapshot: "\u5931\u8D25"
+  - Key: phase.enemy_turn
+    Value: "Enemy Turn"
+    SourceSnapshot: "\u654C\u4EBA\u56DE\u5408"
+  - Key: phase.player_turn
+    Value: "Your Turn"
+    SourceSnapshot: "\u4F60\u7684\u56DE\u5408"
+  - Key: phase.turn_end
+    Value: "Turn End"
+    SourceSnapshot: "\u56DE\u5408\u7ED3\u675F"
+  - Key: phase.turn_start
+    Value: "Turn Start"
+    SourceSnapshot: "\u56DE\u5408\u5F00\u59CB"
+  - Key: phase.victory
+    Value: "Victory"
+    SourceSnapshot: "\u80DC\u5229"
+  - Key: punct.list_separator
+    Value: ", "
+    SourceSnapshot: "\uFF0C"
+  - Key: rarity.basic
+    Value: "Basic"
+    SourceSnapshot: "\u57FA\u7840"
+  - Key: rarity.common
+    Value: "Common"
+    SourceSnapshot: "\u666E\u901A"
+  - Key: rarity.rare
+    Value: "Rare"
+    SourceSnapshot: "\u7A00\u6709"
+  - Key: rarity.special
+    Value: "Special"
+    SourceSnapshot: "\u7279\u6B8A"
+  - Key: rarity.uncommon
+    Value: "Uncommon"
+    SourceSnapshot: "\u7F55\u89C1"
+  - Key: run.addcard.choose
+    Value: "Choose a card to add to your deck"
+    SourceSnapshot: "\u9009\u62E9\u4E00\u5F20\u5361\u52A0\u5165\u724C\u5E93"
+  - Key: run.addcard.many
+    Value: "Gained {0}x \"{1}\""
+    SourceSnapshot: "\u83B7\u5F97 {0} \u5F20\u300C{1}\u300D"
+  - Key: run.addcard.one
+    Value: "Gained \"{0}\""
+    SourceSnapshot: "\u83B7\u5F97\u300C{0}\u300D"
+  - Key: run.addcard.random_many
+    Value: "Gained {0} random cards"
+    SourceSnapshot: "\u968F\u673A\u83B7\u5F97 {0} \u5F20\u5361"
+  - Key: run.addcard.random_one
+    Value: "Gained a random card"
+    SourceSnapshot: "\u968F\u673A\u83B7\u5F97\u4E00\u5F20\u5361"
+  - Key: run.gainpotion.done
+    Value: "Gained the \"{0}\" potion"
+    SourceSnapshot: "\u83B7\u5F97\u836F\u6C34\u300C{0}\u300D"
+  - Key: run.gainpotion.full
+    Value: "Your potion slots are full"
+    SourceSnapshot: "\u836F\u6C34\u69FD\u5DF2\u6EE1\uFF0C\u65E0\u6CD5\u643A\u5E26\u66F4\u591A"
+  - Key: run.gainpotion.many
+    Value: "Gained {0}x \"{1}\""
+    SourceSnapshot: "\u83B7\u5F97 {0} \u74F6\u300C{1}\u300D"
+  - Key: run.gainpotion.one
+    Value: "Gained \"{0}\""
+    SourceSnapshot: "\u83B7\u5F97\u300C{0}\u300D"
+  - Key: run.gainpotion.random_many
+    Value: "Gained {0} random potions"
+    SourceSnapshot: "\u83B7\u5F97 {0} \u74F6\u968F\u673A\u836F\u6C34"
+  - Key: run.gainpotion.random_one
+    Value: "Gained a random potion"
+    SourceSnapshot: "\u83B7\u5F97\u4E00\u74F6\u968F\u673A\u836F\u6C34"
+  - Key: run.gainrelic.done
+    Value: "Gained the relic \"{0}\""
+    SourceSnapshot: "\u83B7\u5F97\u9057\u7269\u300C{0}\u300D"
+  - Key: run.gainrelic.exhausted
+    Value: "No relics left to find \u2014 gained {0} Gold instead"
+    SourceSnapshot: "\u6CA1\u6709\u53EF\u83B7\u5F97\u7684\u9057\u7269\u4E86\uFF0C\u6539\u4E3A\u83B7\u5F97 {0} \u91D1\u5E01"
+  - Key: run.gainrelic.random
+    Value: "Gain a random relic"
+    SourceSnapshot: "\u83B7\u5F97\u4E00\u4E2A\u968F\u673A\u9057\u7269"
+  - Key: run.gold.gain
+    Value: "Gain {0} Gold"
+    SourceSnapshot: "\u83B7\u5F97 {0} \u91D1\u5E01"
+  - Key: run.gold.lose
+    Value: "Lose {0} Gold"
+    SourceSnapshot: "\u5931\u53BB {0} \u91D1\u5E01"
+  - Key: run.gold.pay
+    Value: "Pay {0} Gold"
+    SourceSnapshot: "\u652F\u4ED8 {0} \u91D1\u5E01"
+  - Key: run.hp.heal
+    Value: "Heal {0} HP"
+    SourceSnapshot: "\u56DE\u590D {0} \u70B9\u751F\u547D"
+  - Key: run.hp.heal_percent
+    Value: "Heal {0}% HP"
+    SourceSnapshot: "\u56DE\u590D {0}% \u751F\u547D"
+  - Key: run.hp.heal_percent_max
+    Value: "Heal {0}% of max HP"
+    SourceSnapshot: "\u56DE\u590D {0}% \u6700\u5927\u751F\u547D"
+  - Key: run.hp.lose
+    Value: "Lose {0} HP"
+    SourceSnapshot: "\u5931\u53BB {0} \u70B9\u751F\u547D"
+  - Key: run.hp.lose_percent
+    Value: "Lose {0}% HP"
+    SourceSnapshot: "\u5931\u53BB {0}% \u751F\u547D"
+  - Key: run.maxhp.gain
+    Value: "Max HP +{0}"
+    SourceSnapshot: "\u6700\u5927\u751F\u547D +{0}"
+  - Key: run.maxhp.lose
+    Value: "Max HP -{0}"
+    SourceSnapshot: "\u6700\u5927\u751F\u547D -{0}"
+  - Key: run.potionslots.gain
+    Value: "Potion slots +{0}"
+    SourceSnapshot: "\u836F\u6C34\u69FD +{0}"
+  - Key: run.potionslots.lose
+    Value: "Potion slots -{0}"
+    SourceSnapshot: "\u836F\u6C34\u69FD -{0}"
+  - Key: run.random.desc
+    Value: "Random outcome"
+    SourceSnapshot: "\u7ED3\u679C\u968F\u673A"
+  - Key: run.removecard.done
+    Value: "Removed \"{0}\""
+    SourceSnapshot: "\u79FB\u9664\u4E86\u300C{0}\u300D"
+  - Key: run.removecard.many
+    Value: "Remove {0} cards"
+    SourceSnapshot: "\u79FB\u9664 {0} \u5F20\u5361"
+  - Key: run.removecard.one
+    Value: "Remove a card"
+    SourceSnapshot: "\u79FB\u9664\u4E00\u5F20\u5361"
+  - Key: run.startbattle.desc
+    Value: "Enter battle"
+    SourceSnapshot: "\u8FDB\u5165\u6218\u6597"
+  - Key: run.startbattle.log
+    Value: "A battle begins!"
+    SourceSnapshot: "\u6218\u6597\u5F00\u59CB\u4E86\uFF01"
+  - Key: run.upgradecard.all
+    Value: "Upgrade every card in your deck"
+    SourceSnapshot: "\u5347\u7EA7\u724C\u5E93\u91CC\u6240\u6709\u7684\u5361"
+  - Key: run.upgradecard.done
+    Value: "Upgraded \"{0}\""
+    SourceSnapshot: "\u5347\u7EA7\u4E86\u300C{0}\u300D"
+  - Key: run.upgradecard.done_many
+    Value: "Upgraded {0} cards"
+    SourceSnapshot: "\u5347\u7EA7\u4E86 {0} \u5F20\u5361"
+  - Key: run.upgradecard.many
+    Value: "Upgrade {0} cards"
+    SourceSnapshot: "\u5347\u7EA7 {0} \u5F20\u5361"
+  - Key: run.upgradecard.one
+    Value: "Upgrade a card"
+    SourceSnapshot: "\u5347\u7EA7\u4E00\u5F20\u5361"
+  - Key: selection.title
+    Value: "Choose {0} card(s) to {1}"
+    SourceSnapshot: "\u9009\u62E9 {0} \u5F20\u724C{1}"
+  - Key: selection.verb.default
+    Value: "choose"
+    SourceSnapshot: "\u9009\u62E9"
+  - Key: selection.verb.discard
+    Value: "discard"
+    SourceSnapshot: "\u5F03\u6389"
+  - Key: selection.verb.duplicate
+    Value: "duplicate"
+    SourceSnapshot: "\u590D\u5236"
+  - Key: selection.verb.exhaust
+    Value: "exhaust"
+    SourceSnapshot: "\u6D88\u8017"
+  - Key: selection.verb.retain
+    Value: "retain"
+    SourceSnapshot: "\u4FDD\u7559"
+  - Key: selection.verb.to_discard
+    Value: "put into the discard pile"
+    SourceSnapshot: "\u653E\u8FDB\u5F03\u724C\u5806"
+  - Key: selection.verb.to_draw_bottom
+    Value: "put on the bottom of the draw pile"
+    SourceSnapshot: "\u653E\u56DE\u724C\u5806\u5E95"
+  - Key: selection.verb.to_draw_top
+    Value: "put on top of the draw pile"
+    SourceSnapshot: "\u653E\u56DE\u724C\u5806\u9876"
+  - Key: selection.verb.to_hand
+    Value: "return to your hand"
+    SourceSnapshot: "\u62FF\u56DE\u624B\u724C"
+  - Key: shop.item.card_removal
+    Value: "Remove a card"
+    SourceSnapshot: "\u79FB\u9664\u4E00\u5F20\u5361"
+  - Key: tooltip.title_format
+    Value: "{0}"
+    SourceSnapshot: "\u3010{0}\u3011"
+  - Key: tooltip.status_with_stacks
+    Value: "{0} {1}"
+    SourceSnapshot: "{0} {1}"
+  - Key: ui.battle.defeat
+    Value: "D E F E A T"
+    SourceSnapshot: "\u6218 \u6597 \u5931 \u8D25"
+  - Key: ui.battle.drag_aim
+    Value: "Drag the arrow onto a target and release"
+    SourceSnapshot: "\u628A\u7BAD\u5934\u62D6\u5230\u76EE\u6807\u8EAB\u4E0A\uFF0C\u677E\u624B\u51FA\u724C"
+  - Key: ui.battle.drag_free
+    Value: "Drag past the white line and release to play"
+    SourceSnapshot: "\u62D6\u8FC7\u767D\u7EBF\u677E\u624B\u51FA\u724C"
+  - Key: ui.battle.drag_locked
+    Value: "Release to play \"{1}\" on {0}"
+    SourceSnapshot: "\u677E\u624B\uFF0C\u5BF9\u300C{0}\u300D\u6253\u51FA\u300C{1}\u300D"
+  - Key: ui.battle.empty_slot
+    Value: "Empty"
+    SourceSnapshot: "\u7A7A \u69FD"
+  - Key: ui.battle.end_turn
+    Value: "End Turn"
+    SourceSnapshot: "\u7ED3\u675F\u56DE\u5408"
+  - Key: ui.battle.pick_target
+    Value: "Choose a target"
+    SourceSnapshot: "\u9009\u62E9\u4E00\u4E2A\u76EE\u6807"
+  - Key: ui.battle.piles
+    Value: "Draw {0}    Discard {1}    Exhaust {2}"
+    SourceSnapshot: "\u62BD\u724C\u5806 {0}    \u5F03\u724C\u5806 {1}    \u6D88\u8017\u5806 {2}"
+  - Key: ui.battle.play_line
+    Value: "R E L E A S E   T O   P L A Y"
+    SourceSnapshot: "\u677E \u624B \u51FA \u724C"
+  - Key: ui.battle.potion_confirm
+    Value: "\"{0}\" {1} \u2014 click again to use"
+    SourceSnapshot: "\u300C{0}\u300D{1}\u3000\u2014\u3000\u518D\u70B9\u4E00\u6B21\u4F7F\u7528"
+  - Key: ui.battle.potion_discarded
+    Value: "Discarded \"{0}\"."
+    SourceSnapshot: "\u5012\u6389\u4E86\u300C{0}\u300D\u3002"
+  - Key: ui.battle.potion_need_target
+    Value: "\"{0}\" {1} \u2014 click an enemy to use"
+    SourceSnapshot: "\u300C{0}\u300D{1}\u3000\u2014\u3000\u70B9\u51FB\u4E00\u4E2A\u654C\u4EBA\u4F7F\u7528"
+  - Key: ui.battle.potions
+    Value: "Potions"
+    SourceSnapshot: "\u836F\u3000\u6C34"
+  - Key: ui.battle.turn_header
+    Value: "Turn {0}    \u2014    {1}"
+    SourceSnapshot: "\u7B2C {0} \u56DE\u5408    \u2014    {1}"
+  - Key: ui.battle.victory
+    Value: "V I C T O R Y"
+    SourceSnapshot: "\u6218 \u6597 \u80DC \u5229"
+  - Key: ui.battlehost.continue
+    Value: "Continue"
+    SourceSnapshot: "\u7EE7\u3000\u7EED"
+  - Key: ui.battlehost.none
+    Value: "No battle in progress."
+    SourceSnapshot: "\u6CA1\u6709\u8FDB\u884C\u4E2D\u7684\u6218\u6597\u3002"
+  - Key: ui.event.empty
+    Value: "There is nothing here."
+    SourceSnapshot: "\u8FD9\u91CC\u7A7A\u65E0\u4E00\u7269\u3002"
+  - Key: ui.event.leave
+    Value: "Leave"
+    SourceSnapshot: "\u79BB\u3000\u5F00"
+  - Key: ui.event.option_disabled_hint
+    Value: " \u2014 {0}"
+    SourceSnapshot: "\u3000\u2014 {0}"
+  - Key: ui.event.option_with_detail
+    Value: "{0}  ({1})"
+    SourceSnapshot: "{0}\u3000\uFF08{1}\uFF09"
+  - Key: ui.event.pick_card
+    Value: "Choose a card"
+    SourceSnapshot: "\u9009\u62E9\u4E00\u5F20\u5361"
+  - Key: ui.gameover.again
+    Value: "Play Again"
+    SourceSnapshot: "\u518D\u6765\u4E00\u5C40"
+  - Key: ui.gameover.defeat
+    Value: "Journey's End"
+    SourceSnapshot: "\u5F81\u7A0B\u7ED3\u675F"
+  - Key: ui.gameover.defeat_body
+    Value: "You fell along the way."
+    SourceSnapshot: "\u4F60\u5012\u5728\u4E86\u534A\u8DEF\u4E0A\u3002"
+  - Key: ui.gameover.menu
+    Value: "Back to Main Menu"
+    SourceSnapshot: "\u56DE\u5230\u4E3B\u83DC\u5355"
+  - Key: ui.gameover.stat_battles
+    Value: "Battles won: {0}"
+    SourceSnapshot: "\u51FB\u8D25\u6218\u6597\uFF1A{0} \u573A"
+  - Key: ui.gameover.stat_deck
+    Value: "Cards in deck: {0}"
+    SourceSnapshot: "\u724C\u5E93\u5F20\u6570\uFF1A{0}"
+  - Key: ui.gameover.stat_floor
+    Value: "Floor reached: {0} / {1}"
+    SourceSnapshot: "\u62B5\u8FBE\u5C42\u6570\uFF1A{0} / {1}"
+  - Key: ui.gameover.stat_gold
+    Value: "Gold remaining: {0}"
+    SourceSnapshot: "\u5269\u4F59\u91D1\u5E01\uFF1A{0}"
+  - Key: ui.gameover.stat_hp
+    Value: "Final HP: {0} / {1}"
+    SourceSnapshot: "\u6700\u7EC8\u751F\u547D\uFF1A{0} / {1}"
+  - Key: ui.gameover.stat_relics
+    Value: "Relics held: {0}"
+    SourceSnapshot: "\u6301\u6709\u9057\u7269\uFF1A{0} \u4E2A"
+  - Key: ui.gameover.stat_seed
+    Value: "Seed: {0}"
+    SourceSnapshot: "\u79CD\u5B50\uFF1A{0}"
+  - Key: ui.gameover.victory
+    Value: "V I C T O R Y"
+    SourceSnapshot: "\u901A\u3000\u5173"
+  - Key: ui.gameover.victory_body
+    Value: "You defeated the boss at the deepest floor."
+    SourceSnapshot: "\u4F60\u51FB\u8D25\u4E86\u6700\u6DF1\u5904\u7684\u9996\u9886\u3002"
+  - Key: ui.map.no_data
+    Value: "No map data."
+    SourceSnapshot: "\u6CA1\u6709\u5730\u56FE\u6570\u636E\u3002"
+  - Key: ui.map.node_blocked
+    Value: "{0}{1} \u2014 unreachable"
+    SourceSnapshot: "{0}{1}\u3000\u2014\u3000\u65E0\u6CD5\u5230\u8FBE"
+  - Key: ui.map.node_enter
+    Value: "{0}{1} \u2014 click to enter"
+    SourceSnapshot: "{0}{1}\u3000\u2014\u3000\u70B9\u51FB\u8FDB\u5165"
+  - Key: ui.map.pick_next
+    Value: "Choose the next node to travel to."
+    SourceSnapshot: "\u9009\u62E9\u4E0B\u4E00\u4E2A\u8981\u524D\u5F80\u7684\u8282\u70B9\u3002"
+  - Key: ui.map.pick_start
+    Value: "Choose a starting node."
+    SourceSnapshot: "\u9009\u62E9\u4E00\u4E2A\u8D77\u70B9\u3002"
+  - Key: ui.map.unreachable
+    Value: "You cannot reach that node right now."
+    SourceSnapshot: "\u8FD9\u4E2A\u8282\u70B9\u73B0\u5728\u8D70\u4E0D\u5230\u3002"
+  - Key: ui.menu.hint
+    Value: "Click a lit node on the map to enter / In battle: click a card, pick a target, Space ends your turn"
+    SourceSnapshot: "\u5730\u56FE\u4E0A\u70B9\u4EAE\u7684\u8282\u70B9\u53EF\u4EE5\u8FDB\u5165 \uFF0F \u6218\u6597\u4E2D\uFF1A\u70B9\u724C\u9009\u76EE\u6807\uFF0C\u7A7A\u683C\u7ED3\u675F\u56DE\u5408"
+  - Key: ui.menu.new_run
+    Value: "New Run"
+    SourceSnapshot: "\u5F00\u59CB\u65B0\u6E38\u620F"
+  - Key: ui.menu.quit
+    Value: "Quit"
+    SourceSnapshot: "\u9000\u51FA"
+  - Key: ui.menu.seed_fixed
+    Value: "Fixed seed: {0}"
+    SourceSnapshot: "\u56FA\u5B9A\u79CD\u5B50\uFF1A{0}"
+  - Key: ui.menu.seed_random
+    Value: "Seed: random each run"
+    SourceSnapshot: "\u79CD\u5B50\uFF1A\u6BCF\u5C40\u968F\u673A"
+  - Key: ui.menu.subtitle
+    Value: "Stage 4 \u00B7 Map & Rewards"
+    SourceSnapshot: "\u9636\u6BB5 4 \u00B7 \u5730\u56FE\u4E0E\u5956\u52B1"
+  - Key: ui.menu.title
+    Value: "D E C K B U I L D E R"
+    SourceSnapshot: "\u5361 \u724C \u6784 \u7B51"
+  - Key: ui.picker.confirm
+    Value: "Confirm"
+    SourceSnapshot: "\u786E\u5B9A"
+  - Key: ui.picker.counter
+    Value: "Selected {0} / {1}"
+    SourceSnapshot: "\u5DF2\u9009 {0} / {1}"
+  - Key: ui.picker.skip
+    Value: "Skip"
+    SourceSnapshot: "\u8DF3\u8FC7"
+  - Key: ui.rest.body
+    Value: "The fire is still burning. You can catch your breath here, or sharpen your craft by its light."
+    SourceSnapshot: "\u706B\u5806\u8FD8\u5728\u71C3\u70E7\u3002\u4F60\u53EF\u4EE5\u5728\u8FD9\u91CC\u6B47\u4E00\u53E3\u6C14\uFF0C\u6216\u662F\u501F\u7740\u706B\u5149\u6253\u78E8\u81EA\u5DF1\u7684\u6280\u827A\u3002"
+  - Key: ui.rest.leave
+    Value: "Leave"
+    SourceSnapshot: "\u79BB\u3000\u5F00"
+  - Key: ui.rest.pick_upgrade
+    Value: "Choose a card to upgrade"
+    SourceSnapshot: "\u9009\u62E9\u8981\u5347\u7EA7\u7684\u5361"
+  - Key: ui.rest.rest_button
+    Value: "REST \u2014 heal {0} HP"
+    SourceSnapshot: "\u4F11\u3000\u6574\u3000\u2014\u3000\u56DE\u590D {0} \u70B9\u751F\u547D"
+  - Key: ui.rest.rested
+    Value: "You rested for a while and healed {0} HP."
+    SourceSnapshot: "\u4F60\u4F11\u6574\u4E86\u4E00\u4F1A\u513F\uFF0C\u56DE\u590D\u4E86 {0} \u70B9\u751F\u547D\u3002"
+  - Key: ui.rest.title
+    Value: "Campfire"
+    SourceSnapshot: "\u7BDD\u3000\u706B"
+  - Key: ui.rest.upgrade_button
+    Value: "SMITH \u2014 upgrade a card"
+    SourceSnapshot: "\u6253\u3000\u78E8\u3000\u2014\u3000\u5347\u7EA7\u4E00\u5F20\u724C"
+  - Key: ui.rest.upgraded
+    Value: "\"{0}\" has been upgraded."
+    SourceSnapshot: "\u300C{0}\u300D\u5DF2\u7ECF\u5347\u7EA7\u3002"
+  - Key: ui.reward.card_choices
+    Value: "\u25A4 Card reward ({0} choices)"
+    SourceSnapshot: "\u25A4 \u5361\u724C\u4E09\u9009\u4E00\uFF08{0} \u5F20\u5019\u9009\uFF09"
+  - Key: ui.reward.card_choices_short
+    Value: "\u25A4 Card reward"
+    SourceSnapshot: "\u25A4 \u5361\u724C\u4E09\u9009\u4E00"
+  - Key: ui.reward.empty
+    Value: "No rewards."
+    SourceSnapshot: "\u6CA1\u6709\u5956\u52B1\u3002"
+  - Key: ui.reward.gold
+    Value: "\u25C6 {0} Gold"
+    SourceSnapshot: "\u25C6 {0} \u91D1\u5E01"
+  - Key: ui.reward.leave
+    Value: "Leave"
+    SourceSnapshot: "\u79BB\u3000\u5F00"
+  - Key: ui.reward.potion
+    Value: "\u2652 Potion: {0}"
+    SourceSnapshot: "\u2652 \u836F\u6C34\uFF1A{0}"
+  - Key: ui.reward.potion_full_suffix
+    Value: " (potion slots full)"
+    SourceSnapshot: "\u3000\uFF08\u836F\u6C34\u69FD\u5DF2\u6EE1\uFF09"
+  - Key: ui.reward.relic
+    Value: "\u2726 Relic: {0}"
+    SourceSnapshot: "\u2726 \u9057\u7269\uFF1A{0}"
+  - Key: ui.reward.skip_rest
+    Value: "Skip Remaining Rewards"
+    SourceSnapshot: "\u8DF3\u8FC7\u5269\u4F59\u5956\u52B1"
+  - Key: ui.reward.taken_suffix
+    Value: " (taken)"
+    SourceSnapshot: "\u3000\uFF08\u5DF2\u9886\u53D6\uFF09"
+  - Key: ui.reward.title_battle
+    Value: "Battle Rewards"
+    SourceSnapshot: "\u6218\u6597\u5956\u52B1"
+  - Key: ui.reward.title_treasure
+    Value: "Treasure"
+    SourceSnapshot: "\u5B9D\u3000\u7BB1"
+  - Key: ui.shop.bought_card
+    Value: "Bought \"{0}\"."
+    SourceSnapshot: "\u4E70\u4E0B\u4E86\u300C{0}\u300D\u3002"
+  - Key: ui.shop.bought_potion
+    Value: "Bought the \"{0}\" potion."
+    SourceSnapshot: "\u4E70\u4E0B\u4E86\u836F\u6C34\u300C{0}\u300D\u3002"
+  - Key: ui.shop.bought_relic
+    Value: "Bought the relic \"{0}\"."
+    SourceSnapshot: "\u4E70\u4E0B\u4E86\u9057\u7269\u300C{0}\u300D\u3002"
+  - Key: ui.shop.closed
+    Value: "The shopkeeper is not in today."
+    SourceSnapshot: "\u5E97\u4E3B\u4ECA\u5929\u6CA1\u5F00\u95E8\u3002"
+  - Key: ui.shop.deck_too_small
+    Value: "Your deck is too small to remove another card."
+    SourceSnapshot: "\u724C\u5E93\u91CC\u7684\u724C\u592A\u5C11\u4E86\uFF0C\u4E0D\u80FD\u518D\u79FB\u9664\u3002"
+  - Key: ui.shop.kind_card
+    Value: "[Card]"
+    SourceSnapshot: "[\u5361\u724C]"
+  - Key: ui.shop.kind_potion
+    Value: "[Potion]"
+    SourceSnapshot: "[\u836F\u6C34]"
+  - Key: ui.shop.kind_relic
+    Value: "[Relic]"
+    SourceSnapshot: "[\u9057\u7269]"
+  - Key: ui.shop.kind_service
+    Value: "[Service]"
+    SourceSnapshot: "[\u670D\u52A1]"
+  - Key: ui.shop.leave
+    Value: "Leave"
+    SourceSnapshot: "\u79BB\u3000\u5F00"
+  - Key: ui.shop.not_enough_gold
+    Value: "Not enough Gold \u2014 you need {0} more."
+    SourceSnapshot: "\u91D1\u5E01\u4E0D\u8DB3\uFF0C\u8FD8\u5DEE {0}\u3002"
+  - Key: ui.shop.pick_removal
+    Value: "Choose a card to remove"
+    SourceSnapshot: "\u9009\u62E9\u8981\u79FB\u9664\u7684\u5361"
+  - Key: ui.shop.potion_full
+    Value: "Your potion slots are full. Drink or discard one first."
+    SourceSnapshot: "\u836F\u6C34\u69FD\u5DF2\u6EE1\uFF0C\u5148\u559D\u6389\u6216\u5012\u6389\u4E00\u74F6\u518D\u6765\u3002"
+  - Key: ui.shop.removed
+    Value: "Removed \"{0}\"."
+    SourceSnapshot: "\u79FB\u9664\u4E86\u300C{0}\u300D\u3002"
+  - Key: ui.shop.row_potion_full
+    Value: "{0}  {1}  \u2014  \u25C6 {2}  (potion slots full)"
+    SourceSnapshot: "{0}\u3000{1}\u3000\u2014\u3000\u25C6 {2}\u3000\uFF08\u836F\u6C34\u69FD\u5DF2\u6EE1\uFF09"
+  - Key: ui.shop.row_sold
+    Value: "{0}  \u2014  SOLD"
+    SourceSnapshot: "{0}\u3000\u2014\u3000\u5DF2\u552E\u51FA"
+  - Key: ui.shop.title
+    Value: "Shop"
+    SourceSnapshot: "\u5546\u3000\u5E97"
+  - Key: ui.topbar.floor
+    Value: "Floor {0} / {1}"
+    SourceSnapshot: "\u7B2C {0} / {1} \u5C42"
+  - Key: ui.topbar.hp
+    Value: "\u2665 {0} / {1}"
+    SourceSnapshot: "\u2665 {0} / {1}"
+  - Key: ui.unit.block
+    Value: "[ Block {0} ]"
+    SourceSnapshot: "[ \u62A4\u7532 {0} ]"
+  - Key: ui.unit.dead
+    Value: "{0} (down)"
+    SourceSnapshot: "{0}\uFF08\u5DF2\u5012\u4E0B\uFF09"
+  - Key: card.adrenaline.name
+    Value: "Adrenaline"
+    SourceSnapshot: "\u80BE\u4E0A\u817A\u7D20"
+  - Key: card.adrenaline.desc
+    Value: "Gain {1} Energy. Draw {0} card(s). Exhaust."
+    SourceSnapshot: "\u83B7\u5F97 {1} \u70B9\u80FD\u91CF\uFF0C\u62BD {0} \u5F20\u724C\u3002\u6D88\u8017\u3002"
+  - Key: card.ambush.name
+    Value: "Ambush"
+    SourceSnapshot: "\u4F0F\u51FB"
+  - Key: card.ambush.desc
+    Value: "Deal {0} damage for each card in your hand. Retain."
+    SourceSnapshot: "\u6BCF\u6709\u4E00\u5F20\u624B\u724C\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u4FDD\u7559\u3002"
+  - Key: card.ambush_plus.name
+    Value: "Ambush+"
+    SourceSnapshot: "\u4F0F\u51FB+"
+  - Key: card.ambush_plus.desc
+    Value: "Deal {0} damage for each card in your hand. Retain."
+    SourceSnapshot: "\u6BCF\u6709\u4E00\u5F20\u624B\u724C\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u4FDD\u7559\u3002"
+  - Key: card.barricade.name
+    Value: "Barricade"
+    SourceSnapshot: "\u58C1\u5792"
+  - Key: card.barricade.desc
+    Value: "Block is no longer removed at the start of your turn."
+    SourceSnapshot: "\u62A4\u7532\u4E0D\u518D\u4E8E\u56DE\u5408\u5F00\u59CB\u65F6\u6D88\u5931\u3002"
+  - Key: card.bash.name
+    Value: "Bash"
+    SourceSnapshot: "\u91CD\u51FB"
+  - Key: card.bash.desc
+    Value: "Deal {0} damage. Apply {1} Vulnerable."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0C\u65BD\u52A0 {1} \u5C42\u6613\u4F24\u3002"
+  - Key: card.battle_fervor.name
+    Value: "Battle Fervor"
+    SourceSnapshot: "\u6218\u610F"
+  - Key: card.battle_fervor.desc
+    Value: "Gain {0} Strength. Innate."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u5C42\u529B\u91CF\u3002\u56FA\u6709\u3002"
+  - Key: card.bladedance.name
+    Value: "Blade Dance"
+    SourceSnapshot: "\u5200\u5203\u4E4B\u821E"
+  - Key: card.bladedance.desc
+    Value: "Deal 4 damage to a random enemy, once for each card in your hand."
+    SourceSnapshot: "\u5BF9\u968F\u673A\u654C\u4EBA\u9020\u6210 4 \u70B9\u4F24\u5BB3\uFF0C\u6B21\u6570\u7B49\u4E8E\u4F60\u7684\u624B\u724C\u6570\u3002"
+  - Key: card.body_slam.name
+    Value: "Body Slam"
+    SourceSnapshot: "\u8089\u640F"
+  - Key: card.body_slam.desc
+    Value: "Deal damage equal to your current Block ({0})."
+    SourceSnapshot: "\u9020\u6210\u7B49\u540C\u4E8E\u4F60\u5F53\u524D\u62A4\u7532\u503C\uFF08{0}\uFF09\u7684\u4F24\u5BB3\u3002"
+  - Key: card.burden_of_proof.name
+    Value: "Burden of Proof"
+    SourceSnapshot: "\u4E3E\u8BC1\u4E4B\u8D23"
+  - Key: card.burden_of_proof.desc
+    Value: "Gain {0} Block. Retain. If this is still in your hand at the end of your turn, lose 2 HP."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u4FDD\u7559\u3002\u56DE\u5408\u7ED3\u675F\u65F6\u82E5\u4ECD\u5728\u624B\u724C\uFF0C\u5931\u53BB 2 \u70B9\u751F\u547D\u3002"
+  - Key: card.burn.name
+    Value: "Burn"
+    SourceSnapshot: "\u707C\u70E7"
+  - Key: card.burn.desc
+    Value: "Unplayable. If this is still in your hand at the end of your turn, take 2 damage."
+    SourceSnapshot: "\u4E0D\u53EF\u6253\u51FA\u3002\u56DE\u5408\u7ED3\u675F\u65F6\u82E5\u4ECD\u5728\u624B\u724C\uFF0C\u53D7\u5230 2 \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.cleave.name
+    Value: "Cleave"
+    SourceSnapshot: "\u6A2A\u626B"
+  - Key: card.cleave.desc
+    Value: "Deal {0} damage to ALL enemies."
+    SourceSnapshot: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.cleave_plus.name
+    Value: "Cleave+"
+    SourceSnapshot: "\u6A2A\u626B+"
+  - Key: card.cleave_plus.desc
+    Value: "Deal {0} damage to ALL enemies."
+    SourceSnapshot: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.composure.name
+    Value: "Composure"
+    SourceSnapshot: "\u9759\u5FC3"
+  - Key: card.composure.desc
+    Value: "Gain {0} Block. Retain."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u4FDD\u7559\u3002"
+  - Key: card.composure_plus.name
+    Value: "Composure+"
+    SourceSnapshot: "\u9759\u5FC3+"
+  - Key: card.composure_plus.desc
+    Value: "Gain {0} Block. Retain."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u4FDD\u7559\u3002"
+  - Key: card.dazed.name
+    Value: "Dazed"
+    SourceSnapshot: "\u7729\u6655"
+  - Key: card.dazed.desc
+    Value: "Unplayable. Ethereal (exhausted if still in your hand at the end of your turn)."
+    SourceSnapshot: "\u4E0D\u53EF\u6253\u51FA\u3002\u865A\u65E0\uFF08\u56DE\u5408\u7ED3\u675F\u65F6\u82E5\u4ECD\u5728\u624B\u724C\u5219\u6D88\u8017\uFF09\u3002"
+  - Key: card.defend.name
+    Value: "Defend"
+    SourceSnapshot: "\u9632\u5FA1"
+  - Key: card.defend.desc
+    Value: "Gain {0} Block."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
+  - Key: card.defend_plus.name
+    Value: "Defend+"
+    SourceSnapshot: "\u9632\u5FA1+"
+  - Key: card.defend_plus.desc
+    Value: "Gain {0} Block."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
+  - Key: card.demon_form.name
+    Value: "Demon Form"
+    SourceSnapshot: "\u6076\u9B54\u5F62\u6001"
+  - Key: card.demon_form.desc
+    Value: "At the start of each turn, gain 2 Strength."
+    SourceSnapshot: "\u6BCF\u56DE\u5408\u5F00\u59CB\u65F6\u83B7\u5F97 2 \u70B9\u529B\u91CF\u3002"
+  - Key: card.doubt.name
+    Value: "Doubt"
+    SourceSnapshot: "\u7591\u8651"
+  - Key: card.doubt.desc
+    Value: "Unplayable. If this is still in your hand at the end of your turn, gain 1 Weak."
+    SourceSnapshot: "\u4E0D\u53EF\u6253\u51FA\u3002\u56DE\u5408\u7ED3\u675F\u65F6\u82E5\u4ECD\u5728\u624B\u724C\uFF0C\u83B7\u5F97 1 \u5C42\u865A\u5F31\u3002"
+  - Key: card.field_dressing.name
+    Value: "Field Dressing"
+    SourceSnapshot: "\u6218\u5730\u5305\u624E"
+  - Key: card.field_dressing.desc
+    Value: "Gain {0} Regeneration."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u5C42\u518D\u751F\u3002"
+  - Key: card.finisher.name
+    Value: "Finisher"
+    SourceSnapshot: "\u7EC8\u7ED3\u6280"
+  - Key: card.finisher.desc
+    Value: "Deal {0} damage. If the target is below 50% HP, deal it again."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u82E5\u76EE\u6807\u751F\u547D\u4F4E\u4E8E 50%\uFF0C\u518D\u9020\u6210\u4E00\u6B21\u3002"
+  - Key: card.fleeting_insight.name
+    Value: "Fleeting Insight"
+    SourceSnapshot: "\u8F6C\u77AC\u987F\u609F"
+  - Key: card.fleeting_insight.desc
+    Value: "Draw {0} card(s). Gain {1} Energy. Ethereal. Exhaust."
+    SourceSnapshot: "\u62BD {0} \u5F20\u724C\uFF0C\u83B7\u5F97 {1} \u70B9\u80FD\u91CF\u3002\u865A\u65E0\u3002\u6D88\u8017\u3002"
+  - Key: card.flurry.name
+    Value: "Flurry"
+    SourceSnapshot: "\u75BE\u98CE\u8FDE\u6253"
+  - Key: card.flurry.desc
+    Value: "Deal 4 damage {0} times."
+    SourceSnapshot: "\u9020\u6210 4 \u70B9\u4F24\u5BB3\uFF0C\u91CD\u590D {0} \u6B21\u3002"
+  - Key: card.flurry_plus.name
+    Value: "Flurry+"
+    SourceSnapshot: "\u75BE\u98CE\u8FDE\u6253+"
+  - Key: card.flurry_plus.desc
+    Value: "Deal 4 damage {0} times."
+    SourceSnapshot: "\u9020\u6210 4 \u70B9\u4F24\u5BB3\uFF0C\u91CD\u590D {0} \u6B21\u3002"
+  - Key: card.follow_up.name
+    Value: "Follow Up"
+    SourceSnapshot: "\u4E58\u80DC\u8FFD\u51FB"
+  - Key: card.follow_up.desc
+    Value: "Deal {0} damage. If the last card played was an Attack, draw 1 card; otherwise gain 3 Block."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u82E5\u4E0A\u4E00\u5F20\u6253\u51FA\u7684\u662F\u653B\u51FB\u724C\uFF0C\u62BD 1 \u5F20\u724C\uFF1B\u5426\u5219\u83B7\u5F97 3 \u70B9\u62A4\u7532\u3002"
+  - Key: card.gather_strength.name
+    Value: "Gather Strength"
+    SourceSnapshot: "\u84C4\u529B"
+  - Key: card.gather_strength.desc
+    Value: "At the start of your next turn, gain 2 Strength and 8 Block. Exhaust."
+    SourceSnapshot: "\u4E0B\u56DE\u5408\u5F00\u59CB\u65F6\uFF0C\u83B7\u5F97 2 \u5C42\u529B\u91CF\u4E0E 8 \u70B9\u62A4\u7532\u3002\u6D88\u8017\u3002"
+  - Key: card.hold_fast.name
+    Value: "Hold Fast"
+    SourceSnapshot: "\u628A\u6301"
+  - Key: card.hold_fast.desc
+    Value: "Choose {0} card(s) in your hand to Retain this turn. Draw {1} card(s)."
+    SourceSnapshot: "\u9009\u62E9 {0} \u5F20\u624B\u724C\uFF0C\u672C\u56DE\u5408\u7ED3\u675F\u65F6\u4FDD\u7559\u5B83\u3002\u62BD {1} \u5F20\u724C\u3002"
+  - Key: card.inflame.name
+    Value: "Inflame"
+    SourceSnapshot: "\u6012\u706B\u4E2D\u70E7"
+  - Key: card.inflame.desc
+    Value: "Gain {0} Strength."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u529B\u91CF\u3002"
+  - Key: card.injury.name
+    Value: "Injury"
+    SourceSnapshot: "\u4F24\u52BF"
+  - Key: card.injury.desc
+    Value: "Unplayable."
+    SourceSnapshot: "\u4E0D\u53EF\u6253\u51FA\u3002"
+  - Key: card.iron_wave.name
+    Value: "Iron Wave"
+    SourceSnapshot: "\u94C1\u6EDA\u6CE2"
+  - Key: card.iron_wave.desc
+    Value: "Gain {1} Block. Deal {0} damage."
+    SourceSnapshot: "\u83B7\u5F97 {1} \u70B9\u62A4\u7532\uFF0C\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.iron_wave_plus.name
+    Value: "Iron Wave+"
+    SourceSnapshot: "\u94C1\u6EDA\u6CE2+"
+  - Key: card.iron_wave_plus.desc
+    Value: "Gain {1} Block. Deal {0} damage."
+    SourceSnapshot: "\u83B7\u5F97 {1} \u70B9\u62A4\u7532\uFF0C\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.last_stand.name
+    Value: "Last Stand"
+    SourceSnapshot: "\u80CC\u6C34\u4E00\u6218"
+  - Key: card.last_stand.desc
+    Value: "Deal {0} damage. If you are below 50% HP, deal it again."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u82E5\u4F60\u7684\u751F\u547D\u4F4E\u4E8E 50%\uFF0C\u518D\u9020\u6210\u4E00\u6B21\u3002"
+  - Key: card.offering.name
+    Value: "Offering"
+    SourceSnapshot: "\u732E\u796D"
+  - Key: card.offering.desc
+    Value: "Lose 6 HP. Gain {0} Energy. Draw {1} card(s). Exhaust."
+    SourceSnapshot: "\u5931\u53BB 6 \u70B9\u751F\u547D\uFF0C\u83B7\u5F97 {0} \u70B9\u80FD\u91CF\uFF0C\u62BD {1} \u5F20\u724C\u3002\u6D88\u8017\u3002"
+  - Key: card.opening.name
+    Value: "Opening"
+    SourceSnapshot: "\u5148\u624B"
+  - Key: card.opening.desc
+    Value: "Draw {0} card(s). Innate. Exhaust."
+    SourceSnapshot: "\u62BD {0} \u5F20\u724C\u3002\u56FA\u6709\u3002\u6D88\u8017\u3002"
+  - Key: card.phantom_blade.name
+    Value: "Phantom Blade"
+    SourceSnapshot: "\u5E7B\u5F71\u4E4B\u5203"
+  - Key: card.phantom_blade.desc
+    Value: "Deal {0} damage. Ethereal."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u865A\u65E0\u3002"
+  - Key: card.phantom_blade_plus.name
+    Value: "Phantom Blade+"
+    SourceSnapshot: "\u5E7B\u5F71\u4E4B\u5203+"
+  - Key: card.phantom_blade_plus.desc
+    Value: "Deal {0} damage. Ethereal."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u865A\u65E0\u3002"
+  - Key: card.poison_stab.name
+    Value: "Poison Stab"
+    SourceSnapshot: "\u6DEC\u6BD2\u4E4B\u523A"
+  - Key: card.poison_stab.desc
+    Value: "Deal {0} damage. Apply {1} Poison."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0C\u65BD\u52A0 {1} \u5C42\u4E2D\u6BD2\u3002"
+  - Key: card.purge.name
+    Value: "Purge"
+    SourceSnapshot: "\u51C0\u9664"
+  - Key: card.purge.desc
+    Value: "Choose {0} card(s) in your hand to Exhaust. Exhaust."
+    SourceSnapshot: "\u9009\u62E9\u6D88\u8017 {0} \u5F20\u624B\u724C\u3002\u6D88\u8017\u3002"
+  - Key: card.recall.name
+    Value: "Recall"
+    SourceSnapshot: "\u56DE\u6536"
+  - Key: card.recall.desc
+    Value: "Choose {0} card(s) from your discard pile and add them to your hand."
+    SourceSnapshot: "\u4ECE\u5F03\u724C\u5806\u4E2D\u9009\u62E9 {0} \u5F20\u724C\u52A0\u5165\u624B\u724C\u3002"
+  - Key: card.reinforcements.name
+    Value: "Reinforcements"
+    SourceSnapshot: "\u589E\u63F4"
+  - Key: card.reinforcements.desc
+    Value: "Add {0} Strike(s) to your hand (they vanish after this battle). Draw {1} card(s). Exhaust."
+    SourceSnapshot: "\u5C06 {0} \u5F20\u6253\u51FB\u52A0\u5165\u624B\u724C\uFF08\u672C\u573A\u6218\u6597\u540E\u6D88\u5931\uFF09\u3002\u62BD {1} \u5F20\u724C\u3002\u6D88\u8017\u3002"
+  - Key: card.shrug_it_off.name
+    Value: "Shrug It Off"
+    SourceSnapshot: "\u8038\u80A9"
+  - Key: card.shrug_it_off.desc
+    Value: "Gain {0} Block. Draw {1} card(s)."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\uFF0C\u62BD {1} \u5F20\u724C\u3002"
+  - Key: card.shrug_it_off_plus.name
+    Value: "Shrug It Off+"
+    SourceSnapshot: "\u8038\u80A9+"
+  - Key: card.shrug_it_off_plus.desc
+    Value: "Gain {0} Block. Draw {1} card(s)."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\uFF0C\u62BD {1} \u5F20\u724C\u3002"
+  - Key: card.sift.name
+    Value: "Sift"
+    SourceSnapshot: "\u7B5B\u9009"
+  - Key: card.sift.desc
+    Value: "Choose {0} card(s) in your hand to discard, then draw {1} card(s)."
+    SourceSnapshot: "\u9009\u62E9\u5F03\u6389 {0} \u5F20\u624B\u724C\uFF0C\u7136\u540E\u62BD {1} \u5F20\u724C\u3002"
+  - Key: card.sift_plus.name
+    Value: "Sift+"
+    SourceSnapshot: "\u7B5B\u9009+"
+  - Key: card.sift_plus.desc
+    Value: "Choose {0} card(s) in your hand to discard, then draw {1} card(s)."
+    SourceSnapshot: "\u9009\u62E9\u5F03\u6389 {0} \u5F20\u624B\u724C\uFF0C\u7136\u540E\u62BD {1} \u5F20\u724C\u3002"
+  - Key: card.slimed.name
+    Value: "Slimed"
+    SourceSnapshot: "\u7C98\u6DB2"
+  - Key: card.slimed.desc
+    Value: "Exhaust."
+    SourceSnapshot: "\u6D88\u8017\u3002"
+  - Key: card.spare_blade.name
+    Value: "Spare Blade"
+    SourceSnapshot: "\u5907\u7528\u5200\u5203"
+  - Key: card.spare_blade.desc
+    Value: "Deal {0} damage. Retain."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u4FDD\u7559\u3002"
+  - Key: card.spare_blade_plus.name
+    Value: "Spare Blade+"
+    SourceSnapshot: "\u5907\u7528\u5200\u5203+"
+  - Key: card.spare_blade_plus.desc
+    Value: "Deal {0} damage. Retain."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u4FDD\u7559\u3002"
+  - Key: card.stash.name
+    Value: "Stash"
+    SourceSnapshot: "\u85CF\u724C"
+  - Key: card.stash.desc
+    Value: "Choose {0} card(s) in your hand to put on top of the draw pile. Draw {1} card(s)."
+    SourceSnapshot: "\u9009\u62E9 {0} \u5F20\u624B\u724C\u653E\u56DE\u62BD\u724C\u5806\u9876\u3002\u62BD {1} \u5F20\u724C\u3002"
+  - Key: card.strike.name
+    Value: "Strike"
+    SourceSnapshot: "\u6253\u51FB"
+  - Key: card.strike.desc
+    Value: "Deal {0} damage."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.strike_plus.name
+    Value: "Strike+"
+    SourceSnapshot: "\u6253\u51FB+"
+  - Key: card.strike_plus.desc
+    Value: "Deal {0} damage."
+    SourceSnapshot: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.time_bomb.name
+    Value: "Time Bomb"
+    SourceSnapshot: "\u5EF6\u65F6\u70B8\u5F39"
+  - Key: card.time_bomb.desc
+    Value: "At the end of your turn, deal 14 damage to ALL enemies."
+    SourceSnapshot: "\u56DE\u5408\u7ED3\u675F\u65F6\uFF0C\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 14 \u70B9\u4F24\u5BB3\u3002"
+  - Key: card.transcribe.name
+    Value: "Transcribe"
+    SourceSnapshot: "\u6620\u5199"
+  - Key: card.transcribe.desc
+    Value: "Choose {0} card(s) in your hand and add a copy to your hand (it vanishes after this battle)."
+    SourceSnapshot: "\u9009\u62E9 {0} \u5F20\u624B\u724C\uFF0C\u590D\u5236\u4E00\u4EFD\u5230\u624B\u724C\uFF08\u672C\u573A\u6218\u6597\u540E\u6D88\u5931\uFF09\u3002"
+  - Key: card.vigil.name
+    Value: "Vigil"
+    SourceSnapshot: "\u5B88\u591C"
+  - Key: card.vigil.desc
+    Value: "Gain {0} Block. Innate."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u56FA\u6709\u3002"
+  - Key: card.ward.name
+    Value: "Ward"
+    SourceSnapshot: "\u5B88\u62A4\u5492"
+  - Key: card.ward.desc
+    Value: "Gain {0} Artifact. Exhaust."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u5C42\u795E\u5668\u3002\u6D88\u8017\u3002"
+  - Key: card.whirlwind.name
+    Value: "Whirlwind"
+    SourceSnapshot: "\u65CB\u98CE\u65A9"
+  - Key: card.whirlwind.desc
+    Value: "Deal {0} damage to ALL enemies X times."
+    SourceSnapshot: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0CX \u6B21\u3002"
+  - Key: card.wild_gamble.name
+    Value: "Wild Gamble"
+    SourceSnapshot: "\u5B64\u6CE8\u4E00\u63B7"
+  - Key: card.wild_gamble.desc
+    Value: "Randomly gain one of: 8 Block / draw 2 cards / 2 Energy."
+    SourceSnapshot: "\u968F\u673A\u83B7\u5F97\u4E0B\u5217\u4E4B\u4E00\uFF1A8 \u70B9\u62A4\u7532 / \u62BD 2 \u5F20\u724C / 2 \u70B9\u80FD\u91CF\u3002"
+  - Key: card.wound.name
+    Value: "Wound"
+    SourceSnapshot: "\u4F24\u53E3"
+  - Key: card.wound.desc
+    Value: "Unplayable."
+    SourceSnapshot: "\u4E0D\u53EF\u6253\u51FA\u3002"
+  - Key: status.artifact.name
+    Value: "Artifact"
+    SourceSnapshot: "\u795E\u5668"
+  - Key: status.artifact.desc
+    Value: "Negates the next {stacks} debuff(s) applied to you."
+    SourceSnapshot: "\u62B5\u6D88\u63A5\u4E0B\u6765 {stacks} \u6B21\u65BD\u52A0\u7ED9\u4F60\u7684\u51CF\u76CA\u3002"
+  - Key: status.barricade.name
+    Value: "Barricade"
+    SourceSnapshot: "\u58C1\u5792"
+  - Key: status.barricade.desc
+    Value: "Block is no longer removed at the start of your turn."
+    SourceSnapshot: "\u62A4\u7532\u4E0D\u518D\u4E8E\u56DE\u5408\u5F00\u59CB\u65F6\u6D88\u5931\u3002"
+  - Key: status.demon_form.name
+    Value: "Demon Form"
+    SourceSnapshot: "\u6076\u9B54\u5F62\u6001"
+  - Key: status.demon_form.desc
+    Value: "Gain {stacks} Strength at the start of each turn."
+    SourceSnapshot: "\u6BCF\u56DE\u5408\u5F00\u59CB\u83B7\u5F97 {stacks} \u70B9\u529B\u91CF\u3002"
+  - Key: status.poison.name
+    Value: "Poison"
+    SourceSnapshot: "\u4E2D\u6BD2"
+  - Key: status.poison.desc
+    Value: "At the end of your turn, take {stacks} damage that ignores Block, then lose 1 stack."
+    SourceSnapshot: "\u56DE\u5408\u7ED3\u675F\u53D7\u5230 {stacks} \u70B9\u65E0\u89C6\u62A4\u7532\u4F24\u5BB3\uFF0C\u7136\u540E\u5C42\u6570 -1\u3002"
+  - Key: status.regenerate.name
+    Value: "Regeneration"
+    SourceSnapshot: "\u518D\u751F"
+  - Key: status.regenerate.desc
+    Value: "At the end of your turn, heal {stacks} HP, then lose 1 stack."
+    SourceSnapshot: "\u56DE\u5408\u7ED3\u675F\u56DE\u590D {stacks} \u70B9\u751F\u547D\uFF0C\u7136\u540E\u5C42\u6570 -1\u3002"
+  - Key: status.revive.name
+    Value: "Revival"
+    SourceSnapshot: "\u56DE\u5149"
+  - Key: status.revive.desc
+    Value: "When you would take lethal damage, survive at 1 HP and heal 10 HP. Consumes one stack."
+    SourceSnapshot: "\u53D7\u5230\u81F4\u6B7B\u4F24\u5BB3\u65F6\u4FDD\u7559 1 \u70B9\u751F\u547D\uFF0C\u5E76\u56DE\u590D 10 \u70B9\u751F\u547D\u3002\u6D88\u8017\u4E00\u5C42\u3002"
+  - Key: status.strength.name
+    Value: "Strength"
+    SourceSnapshot: "\u529B\u91CF"
+  - Key: status.strength.desc
+    Value: "All attack damage +{stacks}."
+    SourceSnapshot: "\u6240\u6709\u653B\u51FB\u4F24\u5BB3 +{stacks}\u3002"
+  - Key: status.thorns.name
+    Value: "Thorns"
+    SourceSnapshot: "\u8346\u68D8"
+  - Key: status.thorns.desc
+    Value: "When attacked, deal {stacks} damage back to the attacker."
+    SourceSnapshot: "\u53D7\u5230\u653B\u51FB\u65F6\u5BF9\u653B\u51FB\u8005\u9020\u6210 {stacks} \u70B9\u4F24\u5BB3\u3002"
+  - Key: status.vulnerable.name
+    Value: "Vulnerable"
+    SourceSnapshot: "\u6613\u4F24"
+  - Key: status.vulnerable.desc
+    Value: "Takes 50% more attack damage. {stacks} turn(s) remaining."
+    SourceSnapshot: "\u53D7\u5230\u7684\u653B\u51FB\u4F24\u5BB3 +50%\uFF0C\u5269\u4F59 {stacks} \u56DE\u5408\u3002"
+  - Key: status.weak.name
+    Value: "Weak"
+    SourceSnapshot: "\u865A\u5F31"
+  - Key: status.weak.desc
+    Value: "Deals 25% less attack damage. {stacks} turn(s) remaining."
+    SourceSnapshot: "\u9020\u6210\u7684\u653B\u51FB\u4F24\u5BB3 -25%\uFF0C\u5269\u4F59 {stacks} \u56DE\u5408\u3002"
+  - Key: relic.anchor.name
+    Value: "Anchor"
+    SourceSnapshot: "\u94C1\u951A"
+  - Key: relic.anchor.desc
+    Value: "Gain 10 Block on the first turn of each battle."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u7684\u7B2C\u4E00\u56DE\u5408\u83B7\u5F97 10 \u70B9\u62A4\u7532\u3002"
+  - Key: relic.artifact_totem.name
+    Value: "Artifact Totem"
+    SourceSnapshot: "\u795E\u5668\u56FE\u817E"
+  - Key: relic.artifact_totem.desc
+    Value: "At the start of each battle, gain 1 Artifact (negates the next debuff applied to you)."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u83B7\u5F97 1 \u5C42\u795E\u5668\uFF08\u62B5\u6D88\u4E0B\u4E00\u6B21\u65BD\u52A0\u5230\u4F60\u8EAB\u4E0A\u7684\u51CF\u76CA\uFF09\u3002"
+  - Key: relic.bag_of_preparation.name
+    Value: "Bag of Preparation"
+    SourceSnapshot: "\u5907\u6218\u5305"
+  - Key: relic.bag_of_preparation.desc
+    Value: "Draw 2 extra cards on the first turn of each battle."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u7684\u7B2C\u4E00\u56DE\u5408\u989D\u5916\u62BD 2 \u5F20\u724C\u3002"
+  - Key: relic.black_star.name
+    Value: "Black Star"
+    SourceSnapshot: "\u9ED1\u661F"
+  - Key: relic.black_star.desc
+    Value: "Gain 1 extra Energy each turn."
+    SourceSnapshot: "\u6BCF\u56DE\u5408\u989D\u5916\u83B7\u5F97 1 \u70B9\u80FD\u91CF\u3002"
+  - Key: relic.blood_vial.name
+    Value: "Blood Vial"
+    SourceSnapshot: "\u8840\u74F6"
+  - Key: relic.blood_vial.desc
+    Value: "Heal 2 HP at the start of each battle."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u56DE\u590D 2 \u70B9\u751F\u547D\u3002"
+  - Key: relic.bronze_scales.name
+    Value: "Bronze Scales"
+    SourceSnapshot: "\u9752\u94DC\u9CDE\u7247"
+  - Key: relic.bronze_scales.desc
+    Value: "Gain 3 Thorns at the start of each battle."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u83B7\u5F97 3 \u5C42\u8346\u68D8\u3002"
+  - Key: relic.burning_blood.name
+    Value: "Burning Blood"
+    SourceSnapshot: "\u71C3\u70E7\u4E4B\u8840"
+  - Key: relic.burning_blood.desc
+    Value: "Heal 6 HP after winning a battle."
+    SourceSnapshot: "\u6218\u6597\u80DC\u5229\u540E\u56DE\u590D 6 \u70B9\u751F\u547D\u3002"
+  - Key: relic.echo_charm.name
+    Value: "Echo Charm"
+    SourceSnapshot: "\u56DE\u54CD\u62A4\u7B26"
+  - Key: relic.echo_charm.desc
+    Value: "The first Attack you play each turn resolves one extra time."
+    SourceSnapshot: "\u6BCF\u56DE\u5408\u6253\u51FA\u7684\u7B2C\u4E00\u5F20\u653B\u51FB\u724C\u4F1A\u989D\u5916\u7ED3\u7B97\u4E00\u6B21\u3002"
+  - Key: relic.lantern.name
+    Value: "Lantern"
+    SourceSnapshot: "\u63D0\u706F"
+  - Key: relic.lantern.desc
+    Value: "Gain 1 extra Energy on the first turn of each battle."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u7684\u7B2C\u4E00\u56DE\u5408\u989D\u5916\u83B7\u5F97 1 \u70B9\u80FD\u91CF\u3002"
+  - Key: relic.lizard_tail.name
+    Value: "Lizard Tail"
+    SourceSnapshot: "\u8725\u8734\u5C3E\u5DF4"
+  - Key: relic.lizard_tail.desc
+    Value: "Once per battle, the first time you would take lethal damage, survive at 1 HP and heal 10 HP."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u4E2D\uFF0C\u7B2C\u4E00\u6B21\u53D7\u5230\u81F4\u6B7B\u4F24\u5BB3\u65F6\u4FDD\u7559 1 \u70B9\u751F\u547D\uFF0C\u5E76\u56DE\u590D 10 \u70B9\u751F\u547D\u3002"
+  - Key: relic.meditation_beads.name
+    Value: "Meditation Beads"
+    SourceSnapshot: "\u51A5\u60F3\u5FF5\u73E0"
+  - Key: relic.meditation_beads.desc
+    Value: "Every 3 Skills you play, heal 2 HP."
+    SourceSnapshot: "\u6BCF\u6253\u51FA 3 \u5F20\u6280\u80FD\u724C\uFF0C\u56DE\u590D 2 \u70B9\u751F\u547D\u3002"
+  - Key: relic.pen_nib.name
+    Value: "Pen Nib"
+    SourceSnapshot: "\u7B14\u5C16"
+  - Key: relic.pen_nib.desc
+    Value: "The first Attack you play each turn costs 1 less."
+    SourceSnapshot: "\u6BCF\u56DE\u5408\u6253\u51FA\u7684\u7B2C\u4E00\u5F20\u653B\u51FB\u724C\u8D39\u7528 -1\u3002"
+  - Key: relic.philosophers_stone.name
+    Value: "Philosopher's Stone"
+    SourceSnapshot: "\u8D24\u8005\u4E4B\u77F3"
+  - Key: relic.philosophers_stone.desc
+    Value: "Draw 1 extra card each turn."
+    SourceSnapshot: "\u6BCF\u56DE\u5408\u989D\u5916\u62BD 1 \u5F20\u724C\u3002"
+  - Key: relic.recycler.name
+    Value: "Recycler"
+    SourceSnapshot: "\u56DE\u6536\u5668"
+  - Key: relic.recycler.desc
+    Value: "Skills you play are shuffled back into the draw pile instead of going to the discard pile."
+    SourceSnapshot: "\u6253\u51FA\u7684\u6280\u80FD\u724C\u6D17\u56DE\u62BD\u724C\u5806\uFF0C\u800C\u4E0D\u662F\u8FDB\u5165\u5F03\u724C\u5806\u3002"
+  - Key: relic.toolbox.name
+    Value: "Toolbox"
+    SourceSnapshot: "\u5DE5\u5177\u7BB1"
+  - Key: relic.toolbox.desc
+    Value: "Gain 12 extra Gold after winning a battle."
+    SourceSnapshot: "\u6218\u6597\u80DC\u5229\u540E\u989D\u5916\u83B7\u5F97 12 \u91D1\u5E01\u3002"
+  - Key: relic.vajra.name
+    Value: "Vajra"
+    SourceSnapshot: "\u91D1\u521A\u6775"
+  - Key: relic.vajra.desc
+    Value: "Gain 1 Strength at the start of each battle."
+    SourceSnapshot: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u83B7\u5F97 1 \u70B9\u529B\u91CF\u3002"
+  - Key: potion.block.name
+    Value: "Bulwark Potion"
+    SourceSnapshot: "\u94C1\u58C1\u836F\u6C34"
+  - Key: potion.block.desc
+    Value: "Gain {0} Block."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
+  - Key: potion.cleanse.name
+    Value: "Clarity Potion"
+    SourceSnapshot: "\u6F84\u6F88\u836F\u6C34"
+  - Key: potion.cleanse.desc
+    Value: "Choose {0} card(s) in your hand to Exhaust, then draw {1} card(s)."
+    SourceSnapshot: "\u9009\u62E9 {0} \u5F20\u624B\u724C\u6D88\u8017\uFF0C\u7136\u540E\u62BD {1} \u5F20\u724C\u3002"
+  - Key: potion.draw.name
+    Value: "Insight Potion"
+    SourceSnapshot: "\u7075\u611F\u836F\u6C34"
+  - Key: potion.draw.desc
+    Value: "Draw {0} card(s)."
+    SourceSnapshot: "\u62BD {0} \u5F20\u724C\u3002"
+  - Key: potion.energy.name
+    Value: "Vigor Potion"
+    SourceSnapshot: "\u6D3B\u529B\u836F\u6C34"
+  - Key: potion.energy.desc
+    Value: "Gain {0} Energy."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u70B9\u80FD\u91CF\u3002"
+  - Key: potion.fire.name
+    Value: "Fire Potion"
+    SourceSnapshot: "\u706B\u7130\u836F\u6C34"
+  - Key: potion.fire.desc
+    Value: "Deal {0} damage to one enemy."
+    SourceSnapshot: "\u5BF9\u4E00\u4E2A\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
+  - Key: potion.fracture.name
+    Value: "Fracture Potion"
+    SourceSnapshot: "\u788E\u88C2\u836F\u6C34"
+  - Key: potion.fracture.desc
+    Value: "Deal 5 damage to ALL enemies {0} times."
+    SourceSnapshot: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 5 \u70B9\u4F24\u5BB3\uFF0C\u91CD\u590D {0} \u6B21\u3002"
+  - Key: potion.healing.name
+    Value: "Healing Potion"
+    SourceSnapshot: "\u6CBB\u7597\u836F\u6C34"
+  - Key: potion.healing.desc
+    Value: "Heal {0} HP."
+    SourceSnapshot: "\u56DE\u590D {0} \u70B9\u751F\u547D\u3002"
+  - Key: potion.poison.name
+    Value: "Venom Potion"
+    SourceSnapshot: "\u5267\u6BD2\u836F\u6C34"
+  - Key: potion.poison.desc
+    Value: "Apply {0} Poison to one enemy."
+    SourceSnapshot: "\u5BF9\u4E00\u4E2A\u654C\u4EBA\u65BD\u52A0 {0} \u5C42\u4E2D\u6BD2\u3002"
+  - Key: potion.strength.name
+    Value: "Strength Potion"
+    SourceSnapshot: "\u529B\u91CF\u836F\u6C34"
+  - Key: potion.strength.desc
+    Value: "Gain {0} Strength."
+    SourceSnapshot: "\u83B7\u5F97 {0} \u5C42\u529B\u91CF\u3002"
+  - Key: potion.weak.name
+    Value: "Weakening Potion"
+    SourceSnapshot: "\u524A\u5F31\u836F\u6C34"
+  - Key: potion.weak.desc
+    Value: "Apply {0} Weak to one enemy."
+    SourceSnapshot: "\u5BF9\u4E00\u4E2A\u654C\u4EBA\u65BD\u52A0 {0} \u5C42\u865A\u5F31\u3002"
+  - Key: enemy.cultist.name
+    Value: "Cultist"
+    SourceSnapshot: "\u90AA\u6559\u5F92"
+  - Key: enemy.gremlin_nob.name
+    Value: "Gremlin Nob"
+    SourceSnapshot: "\u5C0F\u6076\u9B54\u5934\u76EE"
+  - Key: enemy.guardian.name
+    Value: "The Guardian"
+    SourceSnapshot: "\u5B88\u536B\u8005"
+  - Key: enemy.jawworm.name
+    Value: "Jaw Worm"
+    SourceSnapshot: "\u989A\u866B"
+  - Key: enemy.louse.name
+    Value: "Red Louse"
+    SourceSnapshot: "\u7EA2\u8272\u8671\u5B50"
+  - Key: enemy.slime.name
+    Value: "Acid Slime"
+    SourceSnapshot: "\u9178\u6DB2\u53F2\u83B1\u59C6"
+  - Key: enemy.cultist.action.0.name
+    Value: "Ritual"
+    SourceSnapshot: "\u4EEA\u5F0F"
+  - Key: enemy.cultist.action.1.name
+    Value: "Dark Strike"
+    SourceSnapshot: "\u97AD\u7B1E"
+  - Key: enemy.gremlin_nob.action.0.name
+    Value: "Bellow"
+    SourceSnapshot: "\u5486\u54EE"
+  - Key: enemy.gremlin_nob.action.1.name
+    Value: "Rush"
+    SourceSnapshot: "\u91CD\u62F3"
+  - Key: enemy.gremlin_nob.action.2.name
+    Value: "Skull Bash"
+    SourceSnapshot: "\u8DFA\u811A"
+  - Key: enemy.guardian.action.0.name
+    Value: "Charging Up"
+    SourceSnapshot: "\u5145\u80FD"
+  - Key: enemy.guardian.action.1.name
+    Value: "Slam"
+    SourceSnapshot: "\u91CD\u51FB"
+  - Key: enemy.guardian.action.2.name
+    Value: "Defensive Mode"
+    SourceSnapshot: "\u62A4\u76FE"
+  - Key: enemy.guardian.action.3.name
+    Value: "Fierce Bash"
+    SourceSnapshot: "\u72C2\u66B4\u7A81\u523A"
+  - Key: enemy.guardian.action.4.name
+    Value: "Whirlwind"
+    SourceSnapshot: "\u6BC1\u706D"
+  - Key: enemy.jawworm.action.0.name
+    Value: "Chomp"
+    SourceSnapshot: "\u731B\u51FB"
+  - Key: enemy.jawworm.action.1.name
+    Value: "Bellow"
+    SourceSnapshot: "\u8F70\u9E23"
+  - Key: enemy.jawworm.action.2.name
+    Value: "Thrash"
+    SourceSnapshot: "\u786C\u5316"
+  - Key: enemy.louse.action.0.name
+    Value: "Bite"
+    SourceSnapshot: "\u6495\u54AC"
+  - Key: enemy.louse.action.1.name
+    Value: "Curl Up"
+    SourceSnapshot: "\u8737\u7F29"
+  - Key: enemy.louse.action.2.name
+    Value: "Spit Web"
+    SourceSnapshot: "\u626C\u5C18"
+  - Key: enemy.slime.action.0.name
+    Value: "Tackle"
+    SourceSnapshot: "\u6495\u54AC"
+  - Key: enemy.slime.action.1.name
+    Value: "Corrosive Spit"
+    SourceSnapshot: "\u8150\u8680"
+  - Key: enemy.slime.action.2.name
+    Value: "Lick"
+    SourceSnapshot: "\u55B7\u5410\u7C98\u6DB2"
+  - Key: encounter.cultist.name
+    Value: "Cultist"
+    SourceSnapshot: "\u90AA\u6559\u5F92"
+  - Key: encounter.double_slime.name
+    Value: "Two Slimes"
+    SourceSnapshot: "\u4E24\u53EA\u53F2\u83B1\u59C6"
+  - Key: encounter.gremlin_nob.name
+    Value: "Gremlin Nob"
+    SourceSnapshot: "\u5C0F\u6076\u9B54\u5934\u76EE"
+  - Key: encounter.guardian.name
+    Value: "The Guardian"
+    SourceSnapshot: "\u5B88\u536B\u8005"
+  - Key: encounter.jawworm.name
+    Value: "Jaw Worm"
+    SourceSnapshot: "\u989A\u866B"
+  - Key: encounter.louse_pack.name
+    Value: "Louse Swarm"
+    SourceSnapshot: "\u8671\u5B50\u7FA4"
+  - Key: encounter.mixed.name
+    Value: "Mixed Party"
+    SourceSnapshot: "\u6DF7\u5408\u5C0F\u961F"
+  - Key: encounter.nob_and_louse.name
+    Value: "Nob and Lackey"
+    SourceSnapshot: "\u5934\u76EE\u4E0E\u968F\u4ECE"
+  - Key: encounter.slime.name
+    Value: "Slime"
+    SourceSnapshot: "\u53F2\u83B1\u59C6"
+  - Key: encounter.slime_and_louse.name
+    Value: "Slime and Louse"
+    SourceSnapshot: "\u53F2\u83B1\u59C6\u4E0E\u8671\u5B50"
+  - Key: encounter.worm_and_cultist.name
+    Value: "Jaw Worm and Cultist"
+    SourceSnapshot: "\u989A\u866B\u4E0E\u90AA\u6559\u5F92"
+  - Key: event.abandoned_camp.title
+    Value: "Abandoned Camp"
+    SourceSnapshot: "\u5E9F\u5F03\u8425\u5730"
+  - Key: event.abandoned_camp.desc
+    Value: "Supplies still lie beside the dead fire. Whoever camped here left in a hurry."
+    SourceSnapshot: "\u7184\u706D\u7684\u706B\u5806\u65C1\u8FD8\u7559\u7740\u4E00\u4E9B\u8865\u7ED9\uFF0C\u770B\u6765\u4E3B\u4EBA\u8D70\u5F97\u5F88\u6025\u3002"
+  - Key: event.abandoned_camp.option.0.text
+    Value: "Scavenge the supplies"
+    SourceSnapshot: "\u641C\u522E\u8865\u7ED9"
+  - Key: event.gambling_ghost.title
+    Value: "Gambling Ghost"
+    SourceSnapshot: "\u8D4C\u9B3C\u5E7D\u9B42"
+  - Key: event.gambling_ghost.desc
+    Value: "A translucent shape rolls dice in midair.\n\"Care for a wager? Even odds \u2014 but if you win, heh heh.\""
+    SourceSnapshot: "\u4E00\u56E2\u534A\u900F\u660E\u7684\u5F71\u5B50\u5728\u7A7A\u4E2D\u63B7\u7740\u9AB0\u5B50\u3002\n\u300C\u62BC\u4E00\u628A\uFF1F\u8F93\u8D62\u5404\u534A\uFF0C\u4F46\u8D62\u7684\u8BDD\u2014\u2014\u563F\u563F\u3002\u300D"
+  - Key: event.gambling_ghost.option.0.text
+    Value: "Bet 50 Gold"
+    SourceSnapshot: "\u62BC\u4E0A 50 \u91D1\u5E01"
+  - Key: event.gambling_ghost.option.0.hint
+    Value: "Not enough Gold"
+    SourceSnapshot: "\u91D1\u5E01\u4E0D\u8DB3"
+  - Key: event.gambling_ghost.option.1.text
+    Value: "Refuse"
+    SourceSnapshot: "\u4E0D\u8D4C"
+  - Key: event.gambling_ghost.option.1.result
+    Value: "The shape hisses in disappointment and fades away."
+    SourceSnapshot: "\u5F71\u5B50\u53D1\u51FA\u5931\u671B\u7684\u5618\u58F0\uFF0C\u6D88\u6563\u4E86\u3002"
+  - Key: event.hidden_spring.title
+    Value: "Hidden Spring"
+    SourceSnapshot: "\u9690\u79D8\u6CC9\u773C"
+  - Key: event.hidden_spring.desc
+    Value: "Warm water seeps from a crack in the rock face, its surface faintly glowing."
+    SourceSnapshot: "\u5CA9\u58C1\u7684\u88C2\u7F1D\u91CC\u6E17\u51FA\u6E29\u70ED\u7684\u6CC9\u6C34\uFF0C\u6C34\u9762\u6CDB\u7740\u5FAE\u5149\u3002"
+  - Key: event.hidden_spring.option.0.text
+    Value: "Drink deeply"
+    SourceSnapshot: "\u75DB\u996E"
+  - Key: event.hidden_spring.option.0.result
+    Value: "The water tastes of rust, but it works."
+    SourceSnapshot: "\u6CC9\u6C34\u5E26\u7740\u94C1\u9508\u5473\uFF0C\u4F46\u786E\u5B9E\u6709\u6548\u3002"
+  - Key: event.hidden_spring.option.1.text
+    Value: "Fill your waterskin and leave"
+    SourceSnapshot: "\u88C5\u6EE1\u6C34\u56CA\u540E\u79BB\u5F00"
+  - Key: event.hidden_spring.option.1.result
+    Value: "It may come in handy later."
+    SourceSnapshot: "\u4E5F\u8BB8\u4EE5\u540E\u7528\u5F97\u4E0A\u3002"
+  - Key: event.shrine_of_blood.title
+    Value: "Shrine of Blood"
+    SourceSnapshot: "\u8840\u4E4B\u795E\u9F9B"
+  - Key: event.shrine_of_blood.desc
+    Value: "A line is carved into the stone slab: \"Pain, traded for power.\"\nDark red stains still linger in the groove."
+    SourceSnapshot: "\u77F3\u53F0\u4E0A\u523B\u7740\u4E00\u884C\u5B57\uFF1A\u300C\u4EE5\u75DB\u695A\u6362\u53D6\u529B\u91CF\u3002\u300D\n\u51F9\u69FD\u91CC\u8FD8\u6B8B\u7559\u7740\u6697\u7EA2\u8272\u7684\u75D5\u8FF9\u3002"
+  - Key: event.shrine_of_blood.option.0.text
+    Value: "Cut your palm"
+    SourceSnapshot: "\u5272\u7834\u624B\u638C"
+  - Key: event.shrine_of_blood.option.0.result
+    Value: "After the sting, something inside you catches fire."
+    SourceSnapshot: "\u523A\u75DB\u4E4B\u540E\uFF0C\u4F60\u611F\u5230\u67D0\u79CD\u4E1C\u897F\u88AB\u70B9\u71C3\u4E86\u3002"
+  - Key: event.shrine_of_blood.option.1.text
+    Value: "Leave"
+    SourceSnapshot: "\u79BB\u5F00"
+  - Key: event.shrine_of_blood.option.1.result
+    Value: "You decide not to touch it."
+    SourceSnapshot: "\u4F60\u51B3\u5B9A\u4E0D\u53BB\u78B0\u5B83\u3002"
+  - Key: event.sleeping_guardian.title
+    Value: "Sleeping Guardian"
+    SourceSnapshot: "\u6C89\u7761\u7684\u5B88\u536B"
+  - Key: event.sleeping_guardian.desc
+    Value: "A huge figure leans against the wall, motionless.\nGold is scattered at its feet, along with a bundle."
+    SourceSnapshot: "\u4E00\u4E2A\u5DE8\u5927\u7684\u8EAB\u5F71\u9760\u5728\u5899\u8FB9\u4E00\u52A8\u4E0D\u52A8\u3002\n\u5B83\u811A\u8FB9\u6563\u843D\u7740\u4E0D\u5C11\u91D1\u5E01\uFF0C\u8FD8\u6709\u4E00\u4E2A\u5305\u88F9\u3002"
+  - Key: event.sleeping_guardian.option.0.text
+    Value: "Quietly take the Gold"
+    SourceSnapshot: "\u6084\u6084\u62FF\u8D70\u91D1\u5E01"
+  - Key: event.sleeping_guardian.option.0.result
+    Value: "You hold your breath. The haul is generous."
+    SourceSnapshot: "\u4F60\u5C4F\u4F4F\u547C\u5438\uFF0C\u6536\u83B7\u9887\u4E30\u3002"
+  - Key: event.sleeping_guardian.option.1.text
+    Value: "Open the bundle"
+    SourceSnapshot: "\u6253\u5F00\u90A3\u4E2A\u5305\u88F9"
+  - Key: event.sleeping_guardian.option.1.result
+    Value: "Something good was inside \u2014 but you made a noise."
+    SourceSnapshot: "\u5305\u88F9\u91CC\u662F\u4E2A\u597D\u4E1C\u897F\u2014\u2014\u4F46\u4F60\u5F04\u51FA\u4E86\u58F0\u54CD\u3002"
+  - Key: event.sleeping_guardian.option.2.text
+    Value: "Sneak past it"
+    SourceSnapshot: "\u7ED5\u5F00\u5B83"
+  - Key: event.wandering_smith.title
+    Value: "Wandering Smith"
+    SourceSnapshot: "\u6E38\u65B9\u94C1\u5320"
+  - Key: event.wandering_smith.desc
+    Value: "An old man with an enormous toolbox blocks your path.\n\"Want your gear to bite a little harder? Not for free, mind you.\""
+    SourceSnapshot: "\u4E00\u4E2A\u80CC\u7740\u5DE8\u5927\u5DE5\u5177\u7BB1\u7684\u8001\u4EBA\u62E6\u4F4F\u4E86\u4F60\u3002\n\u300C\u60F3\u8BA9\u4F60\u7684\u5BB6\u4F19\u4EC0\u66F4\u8D81\u624B\u4E9B\u5417\uFF1F\u5F53\u7136\uFF0C\u4E0D\u767D\u5E72\u3002\u300D"
+  - Key: event.wandering_smith.option.0.text
+    Value: "Sharpen one (50 Gold)"
+    SourceSnapshot: "\u6253\u78E8\u4E00\u4EF6\uFF0850 \u91D1\u5E01\uFF09"
+  - Key: event.wandering_smith.option.0.hint
+    Value: "Not enough Gold"
+    SourceSnapshot: "\u91D1\u5E01\u4E0D\u8DB3"
+  - Key: event.wandering_smith.option.0.result
+    Value: "The old man hammers away for a while."
+    SourceSnapshot: "\u8001\u4EBA\u53EE\u53EE\u5F53\u5F53\u6572\u4E86\u4E00\u9635\u3002"
+  - Key: event.wandering_smith.option.1.text
+    Value: "Throw out the dead weight (75 Gold)"
+    SourceSnapshot: "\u4E22\u6389\u7D2F\u8D58\uFF0875 \u91D1\u5E01\uFF09"
+  - Key: event.wandering_smith.option.1.hint
+    Value: "Not enough Gold"
+    SourceSnapshot: "\u91D1\u5E01\u4E0D\u8DB3"
+  - Key: event.wandering_smith.option.1.result
+    Value: "\"Should've dumped that thing ages ago.\""
+    SourceSnapshot: "\u300C\u8FD9\u73A9\u610F\u513F\u65E9\u8BE5\u6254\u4E86\u3002\u300D"
+  - Key: event.wandering_smith.option.2.text
+    Value: "Decline"
+    SourceSnapshot: "\u8C22\u7EDD"
+  - Key: event.whispering_idol.title
+    Value: "Whispering Idol"
+    SourceSnapshot: "\u4F4E\u8BED\u795E\u50CF"
+  - Key: event.whispering_idol.desc
+    Value: "A faceless stone figure stands at the fork in the road.\nAs you lean closer, a voice that is not your own speaks in your head: \"Power. For just a little price.\""
+    SourceSnapshot: "\u4E00\u5C0A\u6CA1\u6709\u9762\u5B54\u7684\u77F3\u50CF\u7ACB\u5728\u5C94\u8DEF\u53E3\u3002\n\u4F60\u51D1\u8FD1\u65F6\uFF0C\u8111\u5B50\u91CC\u54CD\u8D77\u4E00\u4E2A\u4E0D\u5C5E\u4E8E\u81EA\u5DF1\u7684\u58F0\u97F3\uFF1A\u300C\u529B\u91CF\u3002\u53EA\u8981\u4E00\u70B9\u70B9\u4EE3\u4EF7\u3002\u300D"
+  - Key: event.whispering_idol.option.0.text
+    Value: "Accept the power"
+    SourceSnapshot: "\u63A5\u53D7\u529B\u91CF"
+  - Key: event.whispering_idol.option.0.result
+    Value: "You got what you wanted. Something else moved into your deck."
+    SourceSnapshot: "\u4F60\u62FF\u5230\u4E86\u60F3\u8981\u7684\u4E1C\u897F\u3002\u67D0\u79CD\u4E1C\u897F\u4E5F\u4F4F\u8FDB\u4E86\u4F60\u7684\u724C\u7EC4\u3002"
+  - Key: event.whispering_idol.option.1.text
+    Value: "Loot the idol (gain Gold)"
+    SourceSnapshot: "\u63A0\u593A\u795E\u50CF\uFF08\u83B7\u5F97\u91D1\u5E01\uFF09"
+  - Key: event.whispering_idol.option.1.result
+    Value: "As the stone shatters, the voice laughs."
+    SourceSnapshot: "\u77F3\u50CF\u788E\u88C2\u65F6\uFF0C\u90A3\u4E2A\u58F0\u97F3\u7B11\u4E86\u3002"
+  - Key: event.whispering_idol.option.2.text
+    Value: "Cover your ears and walk away"
+    SourceSnapshot: "\u6342\u4F4F\u8033\u6735\u8D70\u5F00"
+  - Key: event.whispering_idol.option.2.result
+    Value: "The voice grows distant."
+    SourceSnapshot: "\u58F0\u97F3\u6E10\u6E10\u8FDC\u4E86\u3002"

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,26 +12,145 @@ namespace Game.UI
     /// </summary>
     public static class UIFactory
     {
-        private static Font _font;
+        // ================================================================= 字体
 
-        /// <summary>取一个能显示中文的字体。优先系统中文字体，最后退回内置字体。</summary>
-        public static Font Font
+        /// <summary>
+        /// 按语言给出系统字体的候选链，取第一个装了的。
+        ///
+        /// ★ 中日韩共用汉字码位但<b>字形不同</b>（直 / 骨 / 令 在简中、繁中、日文里是三套写法），
+        ///   所以不能一份字体走天下——那样日文会渲染成中国字形，母语玩家一眼看得出来。
+        /// </summary>
+        private static readonly Dictionary<string, string[]> FontCandidates = new Dictionary<string, string[]>
+        {
+            ["zh-Hans"] = new[] { "Microsoft YaHei", "微软雅黑", "Source Han Sans SC", "Noto Sans SC", "SimHei", "黑体" },
+            ["zh-Hant"] = new[] { "Microsoft JhengHei", "微軟正黑體", "Source Han Sans TC", "Noto Sans TC", "PMingLiU" },
+            ["ja"] = new[] { "Yu Gothic UI", "Yu Gothic", "游ゴシック", "Meiryo", "メイリオ", "Source Han Sans", "Noto Sans JP", "MS Gothic" },
+            ["en"] = new[] { "Segoe UI", "Arial", "Helvetica", "Liberation Sans" },
+        };
+
+        /// <summary>候选链全落空时的兜底顺序（覆盖面最广的几个）。</summary>
+        private static readonly string[] LastResortFonts =
+            { "Microsoft YaHei", "Segoe UI", "Arial", "Arial Unicode MS" };
+
+        /// <summary>
+        /// 缺字兜底用的字体族。
+        ///
+        /// ★ 界面里混着大量<b>非拉丁符号</b>：♥ ◆ ⚔ ☠ ♨ ▣ ▤ ✦ ♒ ▲ ▼ 以及提示框的 【】。
+        ///   英文候选链选中的 Segoe UI 只覆盖其中一部分，缺的那些 TMP 会渲染成 □
+        ///   并在 Console 刷 "was not found in the font asset or any potential fallbacks"。
+        ///   把一个 CJK 大字体挂成 fallback，缺什么就从它那里取。
+        ///
+        /// ★ 这比「把符号也翻译掉」更根本：翻译只能处理已知的那几个，
+        ///   而 fallback 对<b>将来任何人加的任何字符</b>都有效。
+        /// </summary>
+        private static readonly string[] FallbackFonts =
+            { "Microsoft YaHei", "微软雅黑", "Segoe UI Symbol", "Arial Unicode MS", "Noto Sans SC" };
+
+        private static TMP_FontAsset _fontAsset;
+        private static string _fontAssetLanguage;
+        private static TMP_FontAsset _fallbackAsset;
+        private static bool _fallbackTried;
+        private static HashSet<string> _installedFonts;
+
+        /// <summary>
+        /// 当前语言用的 TMP 字体资产。
+        ///
+        /// ★ 用 <c>CreateFontAsset(familyName, styleName)</c> 建，它走 <c>AtlasPopulationMode.DynamicOS</c>：
+        ///   字形在用到的那一刻才从系统字体文件光栅化进图集。中文有两万多个常用字，
+        ///   预烘一张静态图集要么巨大要么缺字，按需光栅化是唯一现实的做法。
+        /// </summary>
+        public static TMP_FontAsset FontAsset
         {
             get
             {
-                if (_font != null) return _font;
+                string lang = CurrentFontLanguage;
+                if (_fontAsset != null && _fontAssetLanguage == lang) return _fontAsset;
 
-                string[] candidates = { "Microsoft YaHei", "微软雅黑", "SimHei", "黑体", "Arial Unicode MS", "Segoe UI" };
-                for (int i = 0; i < candidates.Length; i++)
-                {
-                    var f = UnityEngine.Font.CreateDynamicFontFromOSFont(candidates[i], 16);
-                    if (f != null) { _font = f; return _font; }
-                }
-
-                _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                if (_font == null) _font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-                return _font;
+                _fontAsset = BuildFontAsset(lang) ?? TMP_Settings.defaultFontAsset;
+                AttachFallback(_fontAsset);
+                _fontAssetLanguage = lang;
+                return _fontAsset;
             }
+        }
+
+        /// <summary>
+        /// 字体该按哪个语言选。由 <see cref="GameApp"/> 在语言变化时写入。
+        /// ★ 写完必须调 <see cref="InvalidateFont"/>，否则已缓存的字体资产不会重建。
+        /// </summary>
+        public static string CurrentFontLanguage = Game.Localization.Loc.SourceLanguage;
+
+        /// <summary>
+        /// 语言变了要重建字体资产。切语言时由 <see cref="GameApp"/> 调。
+        /// ★ 兜底字体<b>不</b>跟着重建：它与语言无关，而且重建一次要重新光栅化整张图集。
+        /// </summary>
+        public static void InvalidateFont()
+        {
+            _fontAsset = null;
+            _fontAssetLanguage = null;
+        }
+
+        /// <summary>
+        /// 给主字体挂上缺字兜底。
+        ///
+        /// ★ 必须防「把自己挂成自己的 fallback」：简中语言下主字体就是微软雅黑，
+        ///   自引用会让 TMP 在查不到字形时无限绕圈。
+        /// </summary>
+        private static void AttachFallback(TMP_FontAsset primary)
+        {
+            if (primary == null) return;
+
+            if (!_fallbackTried)
+            {
+                _fallbackTried = true;
+                _fallbackAsset = TryBuild(FallbackFonts);
+            }
+
+            if (_fallbackAsset == null || _fallbackAsset == primary) return;
+
+            if (primary.fallbackFontAssetTable == null)
+                primary.fallbackFontAssetTable = new List<TMP_FontAsset>(1);
+
+            if (!primary.fallbackFontAssetTable.Contains(_fallbackAsset))
+                primary.fallbackFontAssetTable.Add(_fallbackAsset);
+        }
+
+        private static TMP_FontAsset BuildFontAsset(string lang)
+        {
+            if (_installedFonts == null)
+                _installedFonts = new HashSet<string>(Font.GetOSInstalledFontNames(), StringComparer.OrdinalIgnoreCase);
+
+            if (FontCandidates.TryGetValue(lang, out var candidates))
+            {
+                var built = TryBuild(candidates);
+                if (built != null) return built;
+            }
+
+            return TryBuild(LastResortFonts);
+        }
+
+        private static TMP_FontAsset TryBuild(string[] families)
+        {
+            for (int i = 0; i < families.Length; i++)
+            {
+                // ★ 先查装没装再建。CreateFontAsset 找不到字体时会 Debug.Log 一条，
+                //   直接盲试整条候选链会在控制台刷出一串「找不到字体」的假错误。
+                if (!IsInstalled(families[i])) continue;
+
+                var fa = TMP_FontAsset.CreateFontAsset(families[i], "Regular");
+                if (fa != null) return fa;
+            }
+            return null;
+        }
+
+        private static bool IsInstalled(string family)
+        {
+            if (_installedFonts.Contains(family)) return true;
+
+            // 系统字体名常带样式后缀（"Microsoft YaHei" ↔ "Microsoft YaHei Regular"），做一次前缀匹配
+            foreach (var name in _installedFonts)
+                if (name.StartsWith(family, StringComparison.OrdinalIgnoreCase)) return true;
+
+            return false;
         }
 
         public static Canvas CreateCanvas(string name)
@@ -60,22 +182,67 @@ namespace Game.UI
             return (RectTransform)go.transform;
         }
 
-        public static Text CreateText(Transform parent, string name, string content, int size,
-                                      TextAnchor anchor = TextAnchor.MiddleCenter, Color? color = null)
+        /// <summary>
+        /// 建一个文字节点。
+        ///
+        /// ★ 参数仍然收 <see cref="TextAnchor"/> 而不是 TMP 自己的 <see cref="TextAlignmentOptions"/>：
+        ///   全工程几十个调用点写的都是 <c>TextAnchor.MiddleCenter</c>，
+        ///   在这里做一次映射，迁 TMP 时那些调用点一行都不用动。
+        /// </summary>
+        public static TMP_Text CreateText(Transform parent, string name, string content, int size,
+                                          TextAnchor anchor = TextAnchor.MiddleCenter, Color? color = null)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
 
-            var t = go.GetComponent<Text>();
-            t.font = Font;
+            var t = go.GetComponent<TextMeshProUGUI>();
+            t.font = FontAsset;
             t.fontSize = size;
             t.text = content;
-            t.alignment = anchor;
+            t.alignment = ToTmpAlignment(anchor);
             t.color = color ?? Color.white;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.overflowMode = TextOverflowModes.Overflow;
             t.raycastTarget = false;
             return t;
+        }
+
+        /// <summary>
+        /// 让文字在框放不下时自动缩字号。
+        ///
+        /// ★ 本地化必备：中文换英文后文本平均膨胀 1.6–2 倍，而本工程的卡面、按钮尺寸
+        ///   全是程序化写死的。给定宽区域开这个开关，比逐个语言手调字号现实得多。
+        /// </summary>
+        public static void EnableAutoSize(TMP_Text t, float min, float max)
+        {
+            if (t == null) return;
+            t.enableAutoSizing = true;
+            t.fontSizeMin = min;
+            t.fontSizeMax = max;
+            t.overflowMode = TextOverflowModes.Truncate;
+        }
+
+        /// <summary>用 uGUI 的 <see cref="TextAnchor"/> 设置对齐，省得调用点去背 TMP 的枚举名。</summary>
+        public static void SetAlignment(TMP_Text t, TextAnchor anchor)
+        {
+            if (t != null) t.alignment = ToTmpAlignment(anchor);
+        }
+
+        private static TextAlignmentOptions ToTmpAlignment(TextAnchor anchor)
+        {
+            switch (anchor)
+            {
+                case TextAnchor.UpperLeft: return TextAlignmentOptions.TopLeft;
+                case TextAnchor.UpperCenter: return TextAlignmentOptions.Top;
+                case TextAnchor.UpperRight: return TextAlignmentOptions.TopRight;
+                case TextAnchor.MiddleLeft: return TextAlignmentOptions.Left;
+                case TextAnchor.MiddleCenter: return TextAlignmentOptions.Center;
+                case TextAnchor.MiddleRight: return TextAlignmentOptions.Right;
+                case TextAnchor.LowerLeft: return TextAlignmentOptions.BottomLeft;
+                case TextAnchor.LowerCenter: return TextAlignmentOptions.Bottom;
+                case TextAnchor.LowerRight: return TextAlignmentOptions.BottomRight;
+                default: return TextAlignmentOptions.Center;
+            }
         }
 
         public static Button CreateButton(Transform parent, string name, string label, int fontSize, Color bg)
@@ -123,9 +290,9 @@ namespace Game.UI
             return btn;
         }
 
-        /// <summary>取按钮上的 Text，用于改文字 / 改颜色。</summary>
-        public static Text LabelOf(Button btn)
-            => btn != null ? btn.GetComponentInChildren<Text>() : null;
+        /// <summary>取按钮上的文字节点，用于改文字 / 改颜色。</summary>
+        public static TMP_Text LabelOf(Button btn)
+            => btn != null ? btn.GetComponentInChildren<TMP_Text>() : null;
 
         /// <summary>
         /// 设置按钮可用性。★ 除了 interactable 还要改颜色——uGUI 默认的禁用色很不明显，

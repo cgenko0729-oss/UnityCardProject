@@ -142,3 +142,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 01c08ce56610d024c9a8718afe120d46, type: 2}
   - {fileID: 11400000, guid: 50f25aa75005f1e4e92ced28ebf5c2dd, type: 2}
   - {fileID: 11400000, guid: ff5b714b007b3af46b6018dcd11c0e06, type: 2}
+  Locales:
+  - {fileID: 11400000, guid: abfb1c7ae234429e93998946ec7c7844, type: 2}

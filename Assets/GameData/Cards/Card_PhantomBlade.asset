@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 8
   DescriptionTemplate: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u865A\u65E0\u3002"
   Effects:
-  - rid: 1041046769074962822
+  - rid: 1041046769074962989
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 11400000, guid: 5bfdfbf914b6430419ff9d91abdf5ab1, type: 2}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962822
+    - rid: 1041046769074962989
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

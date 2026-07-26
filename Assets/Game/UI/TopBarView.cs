@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using Game.Core;
+using Game.Localization;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,9 +15,9 @@ namespace Game.UI
     {
         private GameApp _app;
         private RectTransform _root;
-        private Text _hpText;
-        private Text _goldText;
-        private Text _floorText;
+        private TMP_Text _hpText;
+        private TMP_Text _goldText;
+        private TMP_Text _floorText;
         private RectTransform _relicRow;
 
         private readonly List<string> _shownRelics = new List<string>();
@@ -54,14 +56,14 @@ namespace Game.UI
             if (_root.gameObject.activeSelf != visible) _root.gameObject.SetActive(visible);
             if (!visible || run == null) return;
 
-            _hpText.text = $"♥ {run.Hp} / {run.MaxHp}";
+            _hpText.text = Loc.T("ui.topbar.hp", "♥ {0} / {1}", run.Hp, run.MaxHp);
             _goldText.text = $"◆ {run.Gold}";
 
             int floor = run.Map != null && run.CurrentNodeId >= 0
                 ? run.Map.GetNode(run.CurrentNodeId).Row + 1
                 : 0;
             int total = run.Map != null ? run.Map.RowCount : 0;
-            _floorText.text = total > 0 ? $"第 {floor} / {total} 层" : "";
+            _floorText.text = total > 0 ? Loc.T("ui.topbar.floor", "第 {0} / {1} 层", floor, total) : "";
 
             RefreshRelics(run);
         }
@@ -100,7 +102,7 @@ namespace Game.UI
                 //   遗物 / 关键字 / 状态 / 意图 / 药水不会长出五种不同的提示框。
                 TooltipTarget.Attach(chip.gameObject, new StaticTooltipSource(
                     relic.DisplayName,
-                    relic.Def != null ? relic.Def.Description : "",
+                    relic.Def != null ? relic.Def.LocalizedDescription : "",
                     TooltipContent.KeywordAccent));
             }
         }

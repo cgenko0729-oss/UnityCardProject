@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Battle;
+using Game.Localization;
 using UnityEngine;
 
 namespace Game.UI
@@ -58,7 +59,7 @@ namespace Game.UI
                         FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), $"-{e.Value}",
                             new Color(1f, 0.45f, 0.4f));
                     }
-                    AddLog($"{NameOf(e.TargetUid)} 受到 {e.Value} 点伤害");
+                    AddLog(Loc.T("log.damaged", "{0} 受到 {1} 点伤害", NameOf(e.TargetUid), e.Value));
                     break;
                 }
 
@@ -66,7 +67,7 @@ namespace Game.UI
                 {
                     var view = _screen.FindUnitView(e.TargetUid);
                     if (view != null)
-                        FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), $"挡下 {e.Value}",
+                        FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), Loc.T("float.blocked", "挡下 {0}", e.Value),
                             new Color(0.6f, 0.85f, 1f), 26);
                     break;
                 }
@@ -75,9 +76,9 @@ namespace Game.UI
                 {
                     var view = _screen.FindUnitView(e.TargetUid);
                     if (view != null)
-                        FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), $"+{e.Value} 护甲",
+                        FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), Loc.T("float.block_gain", "+{0} 护甲", e.Value),
                             new Color(0.6f, 0.85f, 1f), 26);
-                    AddLog($"{NameOf(e.TargetUid)} 获得 {e.Value} 点护甲");
+                    AddLog(Loc.T("log.block_gain", "{0} 获得 {1} 点护甲", NameOf(e.TargetUid), e.Value));
                     break;
                 }
 
@@ -87,64 +88,64 @@ namespace Game.UI
                     if (view != null)
                         FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), $"+{e.Value}",
                             new Color(0.5f, 1f, 0.5f));
-                    AddLog($"{NameOf(e.TargetUid)} 回复 {e.Value} 点生命");
+                    AddLog(Loc.T("log.healed", "{0} 回复 {1} 点生命", NameOf(e.TargetUid), e.Value));
                     break;
                 }
 
                 case BattleEventType.StatusApplied:
-                    AddLog($"{NameOf(e.TargetUid)} 获得 [{e.Id}] x{e.Value}");
+                    AddLog(Loc.T("log.status_applied", "{0} 获得 [{1}] x{2}", NameOf(e.TargetUid), e.Id, e.Value));
                     break;
 
                 case BattleEventType.StatusTriggered:
-                    AddLog($"{NameOf(e.TargetUid)} 的 [{e.Id}] 触发（{e.Value}）");
+                    AddLog(Loc.T("log.status_triggered", "{0} 的 [{1}] 触发（{2}）", NameOf(e.TargetUid), e.Id, e.Value));
                     break;
 
                 case BattleEventType.CardPlayed:
-                    AddLog($"打出「{e.Id}」（消耗 {e.Value} 能量）");
+                    AddLog(Loc.T("log.card_played", "打出「{0}」（消耗 {1} 能量）", e.Id, e.Value));
                     break;
 
                 case BattleEventType.CardExhausted:
-                    AddLog($"「{e.Id}」被消耗");
+                    AddLog(Loc.T("log.card_exhausted", "「{0}」被消耗", e.Id));
                     break;
 
                 case BattleEventType.CardDiscarded:
-                    AddLog($"「{e.Id}」被弃掉");
+                    AddLog(Loc.T("log.card_discarded", "「{0}」被弃掉", e.Id));
                     break;
 
                 case BattleEventType.CardRetained:
-                    AddLog($"「{e.Id}」将保留到下回合");
+                    AddLog(Loc.T("log.card_retained", "「{0}」将保留到下回合", e.Id));
                     break;
 
                 case BattleEventType.CardSelectionRequested:
-                    AddLog($"等待选择 {e.Value} 张牌…");
+                    AddLog(Loc.T("log.awaiting_selection", "等待选择 {0} 张牌…", e.Value));
                     break;
 
                 case BattleEventType.PotionUsed:
-                    AddLog($"喝下药水「{e.Id}」");
+                    AddLog(Loc.T("log.potion_used", "喝下药水「{0}」", e.Id));
                     break;
 
                 case BattleEventType.PotionDiscarded:
-                    AddLog($"倒掉了药水「{e.Id}」");
+                    AddLog(Loc.T("log.potion_discarded", "倒掉了药水「{0}」", e.Id));
                     break;
 
                 case BattleEventType.DeckShuffled:
-                    AddLog("洗牌");
+                    AddLog(Loc.T("log.shuffle", "洗牌"));
                     break;
 
                 case BattleEventType.TurnStarted:
-                    AddLog($"—— 第 {e.Value} 回合 ——");
+                    AddLog(Loc.T("log.turn_start", "—— 第 {0} 回合 ——", e.Value));
                     break;
 
                 case BattleEventType.EnemyTurnStarted:
-                    AddLog("敌人行动");
+                    AddLog(Loc.T("log.enemy_turn", "敌人行动"));
                     break;
 
                 case BattleEventType.UnitDied:
-                    AddLog($"{NameOf(e.TargetUid)} 倒下了");
+                    AddLog(Loc.T("log.died", "{0} 倒下了", NameOf(e.TargetUid)));
                     break;
 
                 case BattleEventType.BattleEnded:
-                    AddLog(e.Value == 1 ? "★ 战斗胜利 ★" : "☠ 战斗失败 ☠");
+                    AddLog(e.Value == 1 ? Loc.T("log.victory", "★ 战斗胜利 ★") : Loc.T("log.defeat", "☠ 战斗失败 ☠"));
                     break;
 
                 case BattleEventType.Message:

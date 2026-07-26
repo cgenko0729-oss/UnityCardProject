@@ -26,8 +26,8 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u523A\u75DB\u4E4B\u540E\uFF0C\u4F60\u611F\u5230\u67D0\u79CD\u4E1C\u897F\u88AB\u70B9\u71C3\u4E86\u3002"
     Effects:
-    - rid: 1041046769074962782
-    - rid: 1041046769074962783
+    - rid: 1041046769074962949
+    - rid: 1041046769074962950
     EndsEvent: 1
   - Text: "\u79BB\u5F00"
     Condition:
@@ -43,13 +43,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962782
+    - rid: 1041046769074962949
       type: {class: HpRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: -12
         PercentOfMax: 0
         MinMagnitude: 1
-    - rid: 1041046769074962783
+    - rid: 1041046769074962950
       type: {class: AddCardRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Card: {fileID: 0}
