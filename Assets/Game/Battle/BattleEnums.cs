@@ -21,6 +21,8 @@ namespace Game.Battle
         StatusApplied, StatusRemoved, StatusTriggered,
         EnergyChanged, IntentChanged,
         PotionUsed, PotionDiscarded,
+        /// <summary>某个遗物刚刚生效了。<c>Id</c> 是遗物 Id。</summary>
+        RelicTriggered,
         UnitDied, Message
     }
 

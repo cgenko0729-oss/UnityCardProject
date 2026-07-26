@@ -252,6 +252,30 @@ namespace Game.Battle
             Events.Enqueue(new BattleEvent(type, sourceUid, targetUid, value, id));
         }
 
+        /// <summary>
+        /// 报告「这个遗物刚刚生效了」。来源不是遗物时什么也不做。
+        ///
+        /// ★ 遗物的效果全部藏在 Hook 里，玩家在画面上**完全看不到它工作**——
+        ///   金刚杵开局给了 1 点力量、回响护符让第一张攻击牌打了两次，
+        ///   界面上只有结果，没有「是谁干的」。这条事件就是补上那半句话。
+        ///
+        /// ★ 为什么不在 <c>Collect</c> 或 Hook 的调用点统一发：
+        ///   那里只知道「问过这个 Hook 了」，不知道它到底做没做事。
+        ///   十二个拦截点里绝大多数每回合都会被问一遍，无差别发事件等于让整条遗物栏一直在闪。
+        ///   只有行为类自己知道「我这次真的改了东西」，所以由它来发。
+        ///
+        /// ★ 绝对不要在 <see cref="ICardPlayHook.ModifyCardCost"/> 里发：
+        ///   那条路是 UI **每帧**为每张手牌算费用时走的（铁律 4 的预览路径），
+        ///   在那里发事件会把队列灌爆，而且 <see cref="StateVersion"/> 每帧递增
+        ///   会让意图数值陷入无休止的重算。
+        /// </summary>
+        public void PostRelicTriggered(in HookSource src, int value = 0)
+        {
+            if (src.Relic == null) return;
+            Post(BattleEventType.RelicTriggered, src.Owner != null ? src.Owner.Uid : 0,
+                 src.Owner != null ? src.Owner.Uid : 0, value, src.Relic.Id);
+        }
+
         // ================================================================= 触发队列（防递归）
 
         private readonly Queue<Action> _triggerQueue = new Queue<Action>(16);

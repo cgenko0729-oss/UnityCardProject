@@ -30,7 +30,7 @@ namespace Game.Relics.Impl
             var player = ctx.Player;
             if (player == null) return;
 
-            ctx.Post(BattleEventType.Message, 0, player.Uid, 0, src.Relic != null ? src.Relic.Id : "relic");
+            ctx.PostRelicTriggered(src);
             player.AddStatus(ctx, Status, Stacks, player);
         }
 
@@ -53,6 +53,9 @@ namespace Game.Relics.Impl
         {
             var player = ctx.Player;
             if (player == null) return;
+            if (Heal <= 0 && Block <= 0) return;
+
+            ctx.PostRelicTriggered(src);
             if (Heal > 0) player.Heal(ctx, Heal);
             if (Block > 0) player.AddBlock(ctx, Block);
         }
@@ -77,6 +80,9 @@ namespace Game.Relics.Impl
         public void OnBattleEnd(BattleContext ctx, in HookSource src, bool victory)
         {
             if (!victory) return;
+            if (HealOnVictory <= 0 && GoldOnVictory <= 0) return;
+
+            ctx.PostRelicTriggered(src);
 
             // ★ 必须治疗 BattleUnit 而不是直接改 RunContext.Hp：
             //   EndBattle 会在所有 OnBattleEnd 跑完之后执行 Run.Hp = Player.Hp，
@@ -105,14 +111,20 @@ namespace Game.Relics.Impl
 
         private bool Active(BattleContext ctx) => !FirstTurnOnly || ctx.TurnNumber <= 1;
 
+        // ★ 这两个只在 BattleController.BeginTurn 里各调一次，不是每帧的预览路径，
+        //   所以可以安全地报「我生效了」。见 BattleContext.PostRelicTriggered 的注释。
         public void ModifyTurnDraw(BattleContext ctx, in HookSource src, ref int count)
         {
-            if (ExtraDraw != 0 && Active(ctx)) count += ExtraDraw;
+            if (ExtraDraw == 0 || !Active(ctx)) return;
+            count += ExtraDraw;
+            ctx.PostRelicTriggered(src, ExtraDraw);
         }
 
         public void ModifyTurnEnergy(BattleContext ctx, in HookSource src, ref int amount)
         {
-            if (ExtraEnergy != 0 && Active(ctx)) amount += ExtraEnergy;
+            if (ExtraEnergy == 0 || !Active(ctx)) return;
+            amount += ExtraEnergy;
+            ctx.PostRelicTriggered(src, ExtraEnergy);
         }
     }
 
@@ -165,7 +177,10 @@ namespace Game.Relics.Impl
                 ? ctx.AttacksPlayedThisTurn == 0
                 : ctx.CardsPlayedThisTurn == 0;
 
-            if (first) extraPlays += 1;
+            if (!first) return;
+
+            extraPlays += 1;
+            ctx.PostRelicTriggered(src);
         }
 
         public void ModifyCardDestination(BattleContext ctx, in HookSource src, CardInstance card, ref CardPile pile) { }
@@ -192,8 +207,10 @@ namespace Game.Relics.Impl
 
             // 已经被判定为消耗（虚无 / 临时卡 / 带消耗关键字）的牌不改写，否则临时卡会永远留在牌库里
             if (pile == CardPile.Exhaust) return;
+            if (pile == Destination) return;   // 本来就要去那儿，不算这个遗物干的
 
             pile = Destination;
+            ctx.PostRelicTriggered(src);
         }
     }
 
@@ -221,7 +238,7 @@ namespace Game.Relics.Impl
             if (relic.Counter < Threshold) return;
 
             relic.Counter = 0;
-            ctx.Post(BattleEventType.Message, 0, ctx.Player.Uid, 0, relic.Id);
+            ctx.PostRelicTriggered(src);
             ctx.Player.Heal(ctx, HealAmount);
         }
 

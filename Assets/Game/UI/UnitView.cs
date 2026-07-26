@@ -20,6 +20,12 @@ namespace Game.UI
         private BattleScreen _screen;
         private Image _bg;
         private Image _hpFill;
+
+        /// <summary>延迟血条（残影）。掉血时它停一拍再追下来，那段空隙就是「刚刚掉了多少」。</summary>
+        private Image _hpGhost;
+
+        /// <summary>Body 上的整体透明度，死亡淡出用。</summary>
+        private CanvasGroup _group;
         private TMP_Text _nameText;
         private TMP_Text _hpText;
         private TMP_Text _blockText;
@@ -68,9 +74,14 @@ namespace Game.UI
             //   点击一律由不动的根节点接。
             v._bg.raycastTarget = false;
 
+            // 死亡时整块淡出。★ 逐个 Graphic 改 alpha 要遍历十几个节点、还要记住每个的原色，
+            //   CanvasGroup 一个数字搞定，而且不会破坏 Refresh 每帧重写的 _bg.color。
+            v._group = body.gameObject.AddComponent<CanvasGroup>();
+
             // 面板刚建出来时，表现值就是当前的逻辑值——此刻没有任何待播事件
             v._shownHp = unit.Hp;
             v._shownBlock = unit.Block;
+            v._ghostPct = unit.MaxHp > 0 ? Mathf.Clamp01((float)unit.Hp / unit.MaxHp) : 0f;
 
             v._intentText = UIFactory.CreateText(body, "Intent", "", 20, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.4f));
             UIFactory.SetAnchored(v._intentText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
@@ -82,6 +93,25 @@ namespace Game.UI
 
             var hpBg = UIFactory.CreatePanel(body, "HpBg", new Color(0.1f, 0.1f, 0.1f));
             UIFactory.SetAnchored(hpBg, new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -104), new Vector2(-10, -74));
+
+            // ---- 延迟血条（残影条）
+            //
+            // ★ 建在 HpFill **之前**：兄弟顺序 = 遮挡顺序，残影在底下，
+            //   露出来的就只有「主条到残影之间」那一段，正好是刚刚掉掉的血。
+            //   顺序反了的话残影会把主条整个盖住，血条看起来永远是满的。
+            //
+            // ★ 这是打击感最便宜的一笔：血条本来就是一个 fillAmount，
+            //   加一条滞后的同款就有了「掉了多少」的量感，而不只是「现在剩多少」。
+            var ghost = UIFactory.CreatePanel(hpBg, "HpGhost", new Color(1f, 0.85f, 0.45f));
+            ghost.anchorMin = Vector2.zero;
+            ghost.anchorMax = Vector2.one;
+            ghost.offsetMin = Vector2.zero;
+            ghost.offsetMax = Vector2.zero;
+            var ghostImg = ghost.GetComponent<Image>();
+            ghostImg.type = Image.Type.Filled;
+            ghostImg.fillMethod = Image.FillMethod.Horizontal;
+            ghostImg.raycastTarget = false;
+            v._hpGhost = ghostImg;
 
             var fill = UIFactory.CreatePanel(hpBg, "HpFill", new Color(0.75f, 0.22f, 0.22f));
             fill.anchorMin = Vector2.zero;
@@ -127,19 +157,26 @@ namespace Game.UI
             float pct = Unit.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)_shownHp / Unit.MaxHp);
             _hpFill.fillAmount = pct;
             _hpText.text = $"{_shownHp} / {Unit.MaxHp}";
-            _blockText.text = _shownBlock > 0 ? Loc.T("ui.unit.block", "[ 护甲 {0} ]", _shownBlock) : "";
 
+            UpdateGhostBar(pct);
+            UpdateBlockText();
             RefreshStatusChips();
 
-            if (!Unit.IsPlayer)
-            {
-                _intentText.text = DisplayAlive ? FormatIntent(Unit.CurrentIntent) : "";
-            }
+            if (!Unit.IsPlayer) UpdateIntent();
 
             Color c = _baseColor;
             if (!DisplayAlive) c = new Color(0.12f, 0.12f, 0.12f);
             else if (highlighted) c = Color.Lerp(_baseColor, new Color(1f, 0.9f, 0.4f), 0.5f);
             else if (targetable) c = Color.Lerp(_baseColor, Color.white, 0.15f);
+
+            if (DisplayAlive) c = ApplyLowHpPulse(c, pct);
+
+            // 护甲蓝闪在白闪之前：两者同时发生时（挡下一部分又掉了血），白闪该压在上面
+            if (_blockFlashTimer > 0f)
+            {
+                _blockFlashTimer -= Time.deltaTime;
+                c = Color.Lerp(c, new Color(0.45f, 0.72f, 1f), Mathf.Clamp01(_blockFlashTimer * 3f));
+            }
 
             if (_flashTimer > 0f)
             {
@@ -151,6 +188,102 @@ namespace Game.UI
             _nameText.text = DisplayAlive
                 ? Unit.DisplayName
                 : Loc.T("ui.unit.dead", "{0}（已倒下）", Unit.DisplayName);
+        }
+
+        // ============================================================ 延迟血条
+
+        /// <summary>挨打后残影条先停住多久再开始追。停顿本身就是「刚刚掉了这么多」的读数时间。</summary>
+        private const float GhostHold = 0.28f;
+
+        /// <summary>残影条追赶速度（每秒百分比）。</summary>
+        private const float GhostSpeed = 0.55f;
+
+        private float _ghostPct;
+        private float _ghostHold;
+
+        private void UpdateGhostBar(float pct)
+        {
+            if (_ghostPct <= pct)
+            {
+                // 治疗 / 对齐：残影没有理由落在主条后面，直接跟上
+                _ghostPct = pct;
+                _ghostHold = 0f;
+            }
+            else if (_ghostHold > 0f)
+            {
+                _ghostHold -= Time.deltaTime;
+            }
+            else
+            {
+                _ghostPct = Mathf.MoveTowards(_ghostPct, pct, GhostSpeed * Time.deltaTime);
+            }
+
+            _hpGhost.fillAmount = _ghostPct;
+        }
+
+        // ============================================================ 低血量
+
+        private const float LowHpThreshold = 0.3f;
+        private const float LowHpPulseSpeed = 3.4f;
+
+        /// <summary>
+        /// 血量见底时面板脉动。★ 只给玩家做：敌人残血是好消息，不需要报警。
+        /// 让「我快死了」变成余光里就能感觉到的东西，而不是一个要低头去读的数字。
+        /// </summary>
+        private Color ApplyLowHpPulse(Color c, float pct)
+        {
+            if (!Unit.IsPlayer || pct > LowHpThreshold || !FeedbackSettings.FlashEnabled) return c;
+
+            // 越接近 0 越强
+            float urgency = 1f - pct / LowHpThreshold;
+            float wave = (Mathf.Sin(Time.unscaledTime * LowHpPulseSpeed) + 1f) * 0.5f;
+
+            return Color.Lerp(c, new Color(0.62f, 0.10f, 0.12f), wave * urgency * 0.75f);
+        }
+
+        // ============================================================ 护甲 / 意图的变化提示
+
+        private int _lastShownBlock = -1;
+        private string _lastIntentText;
+
+        private void UpdateBlockText()
+        {
+            _blockText.text = _shownBlock > 0 ? Loc.T("ui.unit.block", "[ 护甲 {0} ]", _shownBlock) : "";
+
+            if (_lastShownBlock == _shownBlock) return;
+            bool first = _lastShownBlock < 0;
+            _lastShownBlock = _shownBlock;
+
+            if (first || _shownBlock <= 0) return;
+            Punch(_blockText.rectTransform, 0.28f, 0.24f);
+        }
+
+        /// <summary>
+        /// 意图变了就弹一下。
+        /// ★ 玩家给敌人上虚弱之后意图数字会变小，这是他刚刚那张牌**唯一**的可见回报，
+        ///   而原来它是静默替换的，很容易完全没被注意到。
+        /// </summary>
+        private void UpdateIntent()
+        {
+            string text = DisplayAlive ? FormatIntent(Unit.CurrentIntent) : "";
+            _intentText.text = text;
+
+            if (_lastIntentText == text) return;
+            bool first = _lastIntentText == null;
+            _lastIntentText = text;
+
+            if (first || string.IsNullOrEmpty(text)) return;
+            Punch(_intentText.rectTransform, 0.35f, 0.28f);
+        }
+
+        /// <summary>弹一下就回来。★ 每次都先 Kill：连着变两次时两条 tween 会抢同一个 localScale。</summary>
+        private static void Punch(RectTransform rt, float strength, float duration)
+        {
+            if (rt == null || FeedbackSettings.HitMotionScale <= 0.001f) return;
+
+            DOTween.Kill(rt);
+            rt.localScale = Vector3.one;
+            rt.DOPunchScale(Vector3.one * (strength * FeedbackSettings.HitMotionScale), duration, 6, 0.6f);
         }
 
         // ============================================================ 表现血量
@@ -200,7 +333,11 @@ namespace Game.UI
         ///   「血掉了多少」是信息，「怎么表现」受 <see cref="FeedbackSettings"/> 控制，
         ///   关掉闪白的玩家仍然必须看到血条正确地掉。
         /// </summary>
-        public void OnDamaged(int amount) => _shownHp = Mathf.Max(0, _shownHp - amount);
+        public void OnDamaged(int amount)
+        {
+            _shownHp = Mathf.Max(0, _shownHp - amount);
+            _ghostHold = GhostHold;
+        }
 
         public void OnHealed(int amount)
         {
@@ -213,6 +350,25 @@ namespace Game.UI
         public void OnBlockConsumed(int amount) => _shownBlock = Mathf.Max(0, _shownBlock - amount);
 
         public void OnBlockCleared() => _shownBlock = 0;
+
+        /// <summary>表现护甲已经归零。<see cref="BattlePresenter"/> 用它判断这一下是不是把盾打穿了。</summary>
+        public bool ShownBlockEmpty => _shownBlock <= 0;
+
+        /// <summary>
+        /// 挨了一下但被护甲吃掉：蓝色一闪，护甲数字弹一下；打穿了则更重。
+        /// ★ 不走 <see cref="PlayHit"/>：那是「打到肉上」的表现，被挡下不该有击退，
+        ///   否则玩家分不清自己到底掉没掉血。
+        /// </summary>
+        public void PlayBlockHit(bool broke)
+        {
+            if (FeedbackSettings.FlashEnabled)
+                _blockFlashTimer = broke ? 0.45f : 0.22f;
+
+            Punch(_blockText.rectTransform, broke ? 0.55f : 0.3f, broke ? 0.35f : 0.24f);
+        }
+
+        /// <summary>护甲被削时的蓝闪计时。与受击白闪分开——颜色不同，含义也不同。</summary>
+        private float _blockFlashTimer;
 
         private static string FormatIntent(Intent intent)
         {
@@ -274,6 +430,9 @@ namespace Game.UI
 
             if (_body == null) return;
 
+            // 已经在倒下了就不要再被推来推去——死亡动画是这块面板最后的位姿主人
+            if (_deathPlayed) return;
+
             severity = Mathf.Clamp01(severity);
             float boost = (lethal ? LethalBoost : 1f) * FeedbackSettings.HitMotionScale;
             if (boost <= 0.001f)
@@ -313,17 +472,100 @@ namespace Game.UI
         }
 
         /// <summary>
+        /// 攻击前冲：朝目标猛探一下再弹回。
+        ///
+        /// ★ 这是「打出去了」的那半句话。本工程的单位就是几块色块，
+        ///   前冲比任何粒子都更像「我打了它」，而且和受击反应共用同一套位姿通道。
+        ///
+        /// ★ 前冲若正撞上自己挨打（荆棘反弹），后来的那个会 Kill 掉前一个——
+        ///   同一个 Body 只能有一个位姿主人，这是刻意的，不是竞态。
+        /// </summary>
+        public void PlayLunge(Vector2 direction)
+        {
+            if (_body == null || _deathPlayed) return;
+            if (direction.sqrMagnitude < 0.0001f) return;
+
+            float scale = FeedbackSettings.HitMotionScale;
+            if (scale <= 0.001f) return;
+
+            DOTween.Kill(_body);
+            _body.localScale = Vector3.one;
+
+            var seq = DOTween.Sequence().SetTarget(_body);
+            seq.Append(DOTween.To(() => _body.anchoredPosition, v => _body.anchoredPosition = v,
+                                  direction * (LungeDistance * scale), LungeOutTime).SetEase(Ease.OutQuad));
+            seq.Append(DOTween.To(() => _body.anchoredPosition, v => _body.anchoredPosition = v,
+                                  Vector2.zero, LungeBackTime).SetEase(Ease.OutBack));
+        }
+
+        private const float LungeDistance = 40f;
+        private const float LungeOutTime = 0.08f;
+        private const float LungeBackTime = 0.20f;
+
+        // ============================================================ 死亡
+
+        private const float DeathTime = 0.55f;
+        private const float DeathSink = -46f;
+        private const float DeathTilt = 12f;
+        private const float DeathAlpha = 0.28f;
+
+        private bool _deathPlayed;
+
+        /// <summary>
+        /// 倒下：白闪一下 → 下沉 + 倾倒 + 淡出。
+        ///
+        /// ★ 只播一次（<see cref="_deathPlayed"/>）。死亡事件本身只来一条，
+        ///   但状态衰减、亡语这些会让面板在之后继续被刷新，没有这道闸就会反复重播。
+        ///
+        /// ★ 面板**不销毁**：铁律 7——死亡单位不从 AllUnits 移除，只是 Hp 为 0。
+        ///   界面上留一具变暗的躯壳，和逻辑层是同一个语义。
+        /// </summary>
+        public void PlayDeath()
+        {
+            if (_body == null || _deathPlayed) return;
+            _deathPlayed = true;
+
+            Flash(FlashLethal);
+            DOTween.Kill(_body);
+
+            var seq = DOTween.Sequence().SetTarget(_body);
+
+            // 先被打得一缩，再软下去——直接开始沉会像是自己走下去的
+            seq.Append(_body.DOScale(new Vector3(1.14f, 0.86f, 1f), 0.09f).SetEase(Ease.OutQuad));
+            seq.Append(_body.DOScale(new Vector3(0.92f, 0.88f, 1f), DeathTime).SetEase(Ease.InQuad));
+
+            seq.Join(DOTween.To(() => _body.anchoredPosition, v => _body.anchoredPosition = v,
+                                new Vector2(0f, DeathSink), DeathTime).SetEase(Ease.InQuad));
+
+            seq.Join(_body.DOLocalRotate(new Vector3(0f, 0f, DeathTilt), DeathTime).SetEase(Ease.InQuad));
+
+            if (_group != null)
+            {
+                seq.Join(DOTween.To(() => _group.alpha, a => _group.alpha = a, DeathAlpha, DeathTime)
+                                .SetTarget(_body));
+            }
+        }
+
+        /// <summary>
         /// ★ 铁律 45：对象要没了就必须把它身上的 tween 收掉。
         ///   战斗结束、切界面、敌人面板重建都会销毁本组件，而 tween 活在 DOTween 的全局队列里，
         ///   没人收的话它会继续去写一个已经销毁的 RectTransform。
         /// </summary>
         private void OnDisable()
         {
+            if (_intentText != null) DOTween.Kill(_intentText.rectTransform);
+            if (_blockText != null) DOTween.Kill(_blockText.rectTransform);
+
+            for (int i = 0; i < _chipRoots.Count; i++)
+                if (_chipRoots[i] != null) DOTween.Kill(_chipRoots[i]);
+
             if (_body == null) return;
 
             DOTween.Kill(_body);
             _body.anchoredPosition = Vector2.zero;
             _body.localScale = Vector3.one;
+            _body.localRotation = Quaternion.identity;
+            if (_group != null) _group.alpha = 1f;
         }
 
         // ============================================================ 飘字槽位
@@ -406,10 +648,25 @@ namespace Game.UI
             }
         }
 
+        /// <summary>
+        /// 重建前的那一批状态 Id。
+        /// ★ 只给**新出现**的状态播弹入动画：整个牌子列表是一起重建的，
+        ///   不区分的话，新上一层易伤会让屏幕上原有的四个牌子跟着一起蹦，
+        ///   玩家反而看不出到底哪个是新的。
+        /// </summary>
+        private readonly HashSet<string> _previousChipIds = new HashSet<string>();
+
         private void RebuildStatusChips(List<StatusInstance> list)
         {
+            _previousChipIds.Clear();
+            for (int i = 0; i < _chipIds.Count; i++) _previousChipIds.Add(_chipIds[i]);
+
             for (int i = 0; i < _chipRoots.Count; i++)
-                if (_chipRoots[i] != null) Destroy(_chipRoots[i].gameObject);
+            {
+                if (_chipRoots[i] == null) continue;
+                DOTween.Kill(_chipRoots[i]);
+                Destroy(_chipRoots[i].gameObject);
+            }
 
             _chipRoots.Clear();
             _chipLabels.Clear();
@@ -435,10 +692,24 @@ namespace Game.UI
 
                 TooltipTarget.Attach(chip.gameObject, new StatusTooltipSource(Unit, s.Id));
 
+                if (!_previousChipIds.Contains(s.Id)) PlayChipEnter(chip);
+
                 _chipRoots.Add(chip);
                 _chipLabels.Add(label);
                 _chipIds.Add(s.Id);
             }
+        }
+
+        /// <summary>
+        /// 新状态弹入。★ 给敌人上易伤 / 虚弱原本是完全无声无息的——
+        /// 玩家打出那张牌之后，唯一的变化是面板角落多了一行小字。
+        /// </summary>
+        private static void PlayChipEnter(RectTransform chip)
+        {
+            if (FeedbackSettings.HitMotionScale <= 0.001f) return;
+
+            chip.localScale = new Vector3(0.5f, 0.5f, 1f);
+            chip.DOScale(Vector3.one, 0.28f).SetEase(Ease.OutBack);
         }
 
         // ============================================================ 词条源

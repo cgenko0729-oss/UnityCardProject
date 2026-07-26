@@ -161,8 +161,7 @@ namespace Game.UI
                     if (view != null)
                     {
                         view.OnBlockConsumed(e.Value);
-                        FloatingText.Spawn(_screen.PopupLayer, _screen.AnchoredPosOf(view), Loc.T("float.blocked", "挡下 {0}", e.Value),
-                            new Color(0.6f, 0.85f, 1f), 26);
+                        PlayBlockFeedback(e, view);
                     }
                     break;
                 }
@@ -242,19 +241,39 @@ namespace Game.UI
                     AddLog(Loc.T("log.shuffle", "洗牌"));
                     break;
 
+                case BattleEventType.UnitDied:
+                {
+                    // 倒下也震一下——它和挨打是两件事，中间隔着完整的一拍
+                    _screen.Shake(DeathShake, DeathShakeTime);
+
+                    var view = _screen.FindUnitView(e.TargetUid);
+                    if (view != null) view.PlayDeath();
+
+                    AddLog(Loc.T("log.died", "{0} 倒下了", NameOf(e.TargetUid)));
+                    break;
+                }
+
                 case BattleEventType.TurnStarted:
+                    _screen.ShowBanner(Loc.T("ui.battle.banner_turn", "第 {0} 回合", e.Value),
+                                       new Color(1f, 0.94f, 0.72f));
                     AddLog(Loc.T("log.turn_start", "—— 第 {0} 回合 ——", e.Value));
                     break;
 
                 case BattleEventType.EnemyTurnStarted:
+                    _screen.ShowBanner(Loc.T("ui.battle.banner_enemy", "敌人回合"),
+                                       new Color(1f, 0.62f, 0.55f));
                     AddLog(Loc.T("log.enemy_turn", "敌人行动"));
                     break;
 
-                case BattleEventType.UnitDied:
-                    // 倒下也震一下——它和挨打是两件事，中间隔着完整的一拍
-                    _screen.Shake(DeathShake, DeathShakeTime);
-                    AddLog(Loc.T("log.died", "{0} 倒下了", NameOf(e.TargetUid)));
+                case BattleEventType.RelicTriggered:
+                {
+                    // ★ 顶栏挂在 GameApp 下、本类挂在会被反复销毁的战斗界面下，
+                    //   中间隔着一层，走 TopBarView 的静态桥。单场战斗调试场景里没有顶栏，
+                    //   那里这一句是空操作（见 TopBarView._current 的注释）。
+                    TopBarView.FlashRelic(e.Id);
+                    AddLog(Loc.T("log.relic_triggered", "遗物「{0}」生效", RelicNameOf(e.Id)));
                     break;
+                }
 
                 case BattleEventType.BattleEnded:
                     AddLog(e.Value == 1 ? Loc.T("log.victory", "★ 战斗胜利 ★") : Loc.T("log.defeat", "☠ 战斗失败 ☠"));
@@ -297,6 +316,13 @@ namespace Game.UI
         private const float BigDamageRatio = 0.09f;
         private const float HugeDamageRatio = 0.20f;
 
+        /// <summary>玩家挨到这个占比以上才全屏红闪。★ 门槛要高：全屏闪光是这套反馈里最扰人的一项。</summary>
+        private const float PlayerFlashThreshold = 0.12f;
+
+        /// <summary>护甲被打穿时的震动。比同等伤害小——碎的是盾不是人。</summary>
+        private const float BlockBreakShake = 12f;
+        private const float BlockBreakShakeTime = 0.2f;
+
         /// <summary>
         /// 一次伤害的全部表现：闪白 + 击退 + 挤压 + 飘字 + 震屏 +（致命时）顿帧慢放。
         ///
@@ -311,8 +337,19 @@ namespace Game.UI
             float severity = Mathf.Clamp01((float)e.Value / maxHp);
             bool lethal = e.Has(BattleEventFlags.Lethal);
 
+            var dir = KnockbackDir(e.SourceUid, e.TargetUid);
+
+            // ---- 攻击者前冲。★ 这是「打出去了」的那半句话：
+            //      本工程的单位就是几块色块，前冲比任何粒子都更像「我打了它」。
+            var attacker = _screen.FindUnitView(e.SourceUid);
+            if (attacker != null && attacker != view) attacker.PlayLunge(dir);
+
             // ---- 受击反应
-            view.PlayHit(severity, KnockbackDir(e.SourceUid, e.TargetUid), lethal);
+            view.PlayHit(severity, dir, lethal);
+
+            // ---- 玩家挨了一记重的：全屏红闪
+            if (target != null && target.IsPlayer && severity >= PlayerFlashThreshold)
+                _screen.ScreenFlash(new Color(1f, 0.12f, 0.12f), Mathf.Lerp(0.16f, 0.4f, severity));
 
             // ---- 飘字
             FloatingText.Spawn(
@@ -342,6 +379,48 @@ namespace Game.UI
             {
                 TimeFeedback.Instance.HitStop(HeavyHitStop);
             }
+        }
+
+        /// <summary>
+        /// 护甲被削 / 被打穿的表现。
+        ///
+        /// ★ 「盾还剩多少」和「盾没了」是玩家最需要一眼分清的两件事，
+        ///   而原来两者都只是同一行小字「挡下 5」。护甲归零那一刻单独给一次
+        ///   碎裂飘字 + 一记短震，这条信息才算真的传达出去了。
+        ///
+        /// ★ 判据是「削完之后表现护甲为 0」而不是「后面紧跟着一条 DamageDealt」：
+        ///   后者要前瞻队列，而伤害刚好被护甲吃干净时并不会有后续事件——
+        ///   那种情况盾同样是碎的，只是没人流血。
+        /// </summary>
+        private void PlayBlockFeedback(in BattleEvent e, UnitView view)
+        {
+            bool broke = view.ShownBlockEmpty;
+
+            FloatingText.Spawn(
+                _screen.PopupLayer,
+                _screen.AnchoredPosOf(view) + view.NextFloatOffset(),
+                broke
+                    ? Loc.T("float.block_break", "护甲破碎")
+                    : Loc.T("float.blocked", "挡下 {0}", e.Value),
+                broke ? new Color(0.85f, 0.9f, 1f) : new Color(0.6f, 0.85f, 1f),
+                broke ? 34 : 26,
+                broke ? FloatKind.Damage : FloatKind.Info);
+
+            view.PlayBlockHit(broke);
+
+            if (broke) _screen.Shake(BlockBreakShake, BlockBreakShakeTime);
+        }
+
+        /// <summary>遗物 Id → 本地化后的名字。查不到就退回 Id，至少还能看出是哪个。</summary>
+        private string RelicNameOf(string relicId)
+        {
+            var run = _ctx != null ? _ctx.Run : null;
+            if (run == null || run.Relics == null) return relicId;
+
+            for (int i = 0; i < run.Relics.Count; i++)
+                if (run.Relics[i].Id == relicId) return run.Relics[i].DisplayName;
+
+            return relicId;
         }
 
         /// <summary>
