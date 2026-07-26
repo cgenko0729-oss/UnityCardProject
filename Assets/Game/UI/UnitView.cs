@@ -17,8 +17,21 @@ namespace Game.UI
     {
         public BattleUnit Unit { get; private set; }
 
+        public const float UnitWidth = 260f;
+        public const float UnitHeight = 200f;
+
         private BattleScreen _screen;
         private Image _bg;
+
+        /// <summary>敌人立绘。没配图时为 null，此处的一切表现要按无立绘的老路走。</summary>
+        private Image _art;
+
+        /// <summary>
+        /// 提亮层：受击白闪 / 护甲蓝闪 / 可选中高亮都叠在它上面。
+        /// ★ 不能再靠改 <see cref="_bg"/> 的颜色——立绘会把 Body 底色整个盖住。
+        /// </summary>
+        private RectTransform _tint;
+        private Image _tintImage;
 
         /// <summary>
         /// 血条的两条。★ 存的是 <see cref="RectTransform"/> 而不是 <see cref="Image"/>：
@@ -42,6 +55,12 @@ namespace Game.UI
         private float _flashTimer;
         private Color _baseColor;
 
+        /// <summary>倒下后的面板底色（无立绘）。</summary>
+        private static readonly Color DeadPanelColor = new Color(0.12f, 0.12f, 0.12f);
+
+        /// <summary>倒下后给立绘的染色。★ 不能用 0.12 那个值——乘到图上会黑成一团看不出是什么。</summary>
+        private static readonly Color DeadArtTint = new Color(0.38f, 0.36f, 0.40f);
+
         /// <summary>
         /// 打击反应（击退 / 挤压）作用的节点。★ 所有可见内容都在它下面，面板根节点是空的。
         ///
@@ -63,7 +82,7 @@ namespace Game.UI
             // 根节点只负责「占位 + 吃点击」。alpha 不能真的是 0——完全透明时调试起来看不见范围，
             // 但只要 raycastTarget 为真它照样收事件（同 CardView 的 HoverPad 的做法）。
             var rt = UIFactory.CreatePanel(parent, "Unit_" + unit.Name, new Color(0f, 0f, 0f, 0.004f));
-            UIFactory.SetSize(rt, 260, 200);
+            UIFactory.SetSize(rt, UnitWidth, UnitHeight);
 
             var v = rt.gameObject.AddComponent<UnitView>();
             v._screen = screen;
@@ -82,6 +101,33 @@ namespace Game.UI
             // 死亡时整块淡出。★ 逐个 Graphic 改 alpha 要遍历十几个节点、还要记住每个的原色，
             //   CanvasGroup 一个数字搞定，而且不会破坏 Refresh 每帧重写的 _bg.color。
             v._group = body.gameObject.AddComponent<CanvasGroup>();
+
+            // ---- 立绘。★ 必须建在这里：兄弟顺序 = 遮挡顺序，
+            //      它要垫在意图 / 名字 / 血条 / 状态**全部之下**，只盖住 Body 的底色。
+            var art = UIFactory.CreateArtWindow(body, "Art", unit.EnemyDef != null ? unit.EnemyDef.Art : null,
+                UnitWidth, UnitHeight, anchorY: 1f);
+            if (art != null)
+            {
+                UIFactory.Stretch(art);
+                v._art = art.GetComponentInChildren<Image>();
+
+                // 有立绘时底色改成白：Image.color 是**乘算**，留着深红会把整张图染红
+                v._baseColor = Color.white;
+            }
+
+            // ---- 提亮层。受击白闪、护甲蓝闪、可选中高亮全部改由它承载。
+            //
+            // ★★ 这一层是立绘接进来之后**必须**加的，不是锦上添花：
+            //   原来「闪白」写的是 _bg.color（Color.Lerp(c, white, t)）。
+            //   立绘一铺上去就把 Body 底色整个盖住，于是所有有立绘的敌人
+            //   受击闪白、护甲蓝闪会全部静默消失——而画面上一切正常、不报任何错。
+            //
+            // ★ 无立绘时的观感一点没变：不透明底色 c 上叠一层 alpha 为 t 的白，
+            //   结果正是 c*(1-t) + white*t，与原来的 Lerp 逐像素相同。
+            v._tint = UIFactory.CreatePanel(body, "Tint", new Color(1f, 1f, 1f, 0f));
+            UIFactory.Stretch(v._tint);
+            v._tintImage = v._tint.GetComponent<Image>();
+            v._tintImage.raycastTarget = false;
 
             // 面板刚建出来时，表现值就是当前的逻辑值——此刻没有任何待播事件
             v._shownHp = unit.Hp;
@@ -198,26 +244,41 @@ namespace Game.UI
 
             if (!Unit.IsPlayer) UpdateIntent();
 
+            // ---- 底色（乘算的那一半）：死亡变暗、被指向时染黄、残血脉动。
+            //      有立绘时 _baseColor 是白，这些就正好变成对立绘的染色。
             Color c = _baseColor;
-            if (!DisplayAlive) c = new Color(0.12f, 0.12f, 0.12f);
+            if (!DisplayAlive) c = _art != null ? DeadArtTint : DeadPanelColor;
             else if (highlighted) c = Color.Lerp(_baseColor, new Color(1f, 0.9f, 0.4f), 0.5f);
-            else if (targetable) c = Color.Lerp(_baseColor, Color.white, 0.15f);
 
             if (DisplayAlive) c = ApplyLowHpPulse(c, pct);
+
+            if (_art != null) _art.color = c; else _bg.color = c;
+
+            // ---- 提亮层（叠加的那一半）：可选中、护甲蓝闪、受击白闪。
+            //
+            // ★ 这三样原本都是 Color.Lerp(c, 某个亮色, t) 写进 _bg.color 的。
+            //   立绘一铺上去 Body 底色就再也看不见，只能改成一层叠加。
+            //   数学上等价：不透明底色 c 上叠 alpha 为 t 的亮色 = Lerp(c, 亮色, t)，
+            //   所以没有立绘的单位观感一点没变。
+            Color overlay = Color.clear;
+
+            if (DisplayAlive && targetable && !highlighted)
+                overlay = new Color(1f, 1f, 1f, 0.15f);
 
             // 护甲蓝闪在白闪之前：两者同时发生时（挡下一部分又掉了血），白闪该压在上面
             if (_blockFlashTimer > 0f)
             {
                 _blockFlashTimer -= Time.deltaTime;
-                c = Color.Lerp(c, new Color(0.45f, 0.72f, 1f), Mathf.Clamp01(_blockFlashTimer * 3f));
+                overlay = new Color(0.45f, 0.72f, 1f, Mathf.Clamp01(_blockFlashTimer * 3f));
             }
 
             if (_flashTimer > 0f)
             {
                 _flashTimer -= Time.deltaTime;
-                c = Color.Lerp(c, Color.white, Mathf.Clamp01(_flashTimer * 4f));
+                overlay = new Color(1f, 1f, 1f, Mathf.Clamp01(_flashTimer * 4f));
             }
-            _bg.color = c;
+
+            if (_tintImage != null) _tintImage.color = overlay;
 
             _nameText.text = DisplayAlive
                 ? Unit.DisplayName
@@ -636,6 +697,9 @@ namespace Game.UI
 
         private const float StatusRowHeight = 21f;
 
+        /// <summary>状态图标边长。行高 21，留一点上下余量。</summary>
+        private const float StatusIconSize = 17f;
+
         /// <summary>状态区域名义上能放几行。超出的会溢到面板下方——和原来那段文字溢出的行为一致。</summary>
         private const int StatusRowsShown = 3;
 
@@ -721,8 +785,25 @@ namespace Game.UI
                 UIFactory.SetAnchored(chip, new Vector2(0, 1), new Vector2(1, 1),
                     new Vector2(0, y - StatusRowHeight + 2f), new Vector2(0, y));
 
-                var label = UIFactory.CreateText(chip, "Label", "", 15, TextAnchor.MiddleCenter, accent);
-                UIFactory.Stretch(label.rectTransform);
+                // 有图标就在牌子左端放一个，文字（名字 + 层数）跟着右移。
+                // ★ 图标不替代文字：层数是每回合都在变的关键读数，
+                //   只画一个图标的话玩家就得靠悬停才能知道「易伤还剩几层」。
+                var icon = UIFactory.CreateArtWindow(chip, "Icon",
+                    s.Def.Icon, StatusIconSize, StatusIconSize, anchorY: 0.5f);
+
+                float labelLeft = 0f;
+                if (icon != null)
+                {
+                    icon.anchorMin = icon.anchorMax = new Vector2(0f, 0.5f);
+                    icon.pivot = new Vector2(0f, 0.5f);
+                    icon.anchoredPosition = new Vector2(3f, 0f);
+                    labelLeft = StatusIconSize + 6f;
+                }
+
+                var label = UIFactory.CreateText(chip, "Label", "", 15,
+                    icon != null ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, accent);
+                UIFactory.SetAnchored(label.rectTransform, Vector2.zero, Vector2.one,
+                    new Vector2(labelLeft, 0f), Vector2.zero);
 
                 TooltipTarget.Attach(chip.gameObject, new StatusTooltipSource(Unit, s.Id));
 

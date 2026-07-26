@@ -80,7 +80,7 @@ namespace Game.UI
             for (int i = 0; i < map.Nodes.Count; i++)
             {
                 var node = map.Nodes[i];
-                var view = MapNodeView.Create(content, this, node);
+                var view = MapNodeView.Create(content, this, node, Db != null ? Db.GetMapIcon(node.Type) : null);
                 ((RectTransform)view.transform).anchoredPosition = PositionOf(node, map);
                 _views.Add(view);
             }

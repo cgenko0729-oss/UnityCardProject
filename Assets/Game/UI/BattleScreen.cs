@@ -1040,6 +1040,9 @@ namespace Game.UI
         }
 
         private static readonly Color PotionColor = new Color(0.20f, 0.40f, 0.34f);
+
+        /// <summary>药水图标边长。槽位行高 46，留出上下各 6 的余量。</summary>
+        private const float PotionIconSize = 32f;
         private static readonly Color PotionSelectedColor = new Color(0.38f, 0.68f, 0.55f);
 
         private void RebuildPotionBar(List<PotionInstance> potions)
@@ -1078,6 +1081,28 @@ namespace Game.UI
                     potion.DisplayName, 17, PotionColor, () => OnPotionClicked(index));
                 UIFactory.SetAnchored((RectTransform)btn.transform, new Vector2(0, 1), new Vector2(1, 1),
                     new Vector2(0, y - 40), new Vector2(-42, y - 6));
+
+                // ★ 图标塞在按钮左端，名字往右让位。图标**不铺满按钮**：
+                //   选中态是靠 tween 按钮底色表示的（OnPotionClicked），
+                //   铺满就等于把「我正拿着这瓶药水在找目标」这个唯一的可见反馈盖掉。
+                var potionIcon = UIFactory.CreateArtWindow(btn.transform, "Icon",
+                    potion.Def != null ? potion.Def.Icon : null,
+                    PotionIconSize, PotionIconSize, anchorY: 0.5f);
+
+                if (potionIcon != null)
+                {
+                    potionIcon.anchorMin = potionIcon.anchorMax = new Vector2(0f, 0.5f);
+                    potionIcon.pivot = new Vector2(0f, 0.5f);
+                    potionIcon.anchoredPosition = new Vector2(6f, 0f);
+
+                    var label = UIFactory.LabelOf(btn);
+                    if (label != null)
+                    {
+                        UIFactory.SetAnchored(label.rectTransform, Vector2.zero, Vector2.one,
+                            new Vector2(PotionIconSize + 10f, 0f), Vector2.zero);
+                        UIFactory.SetAlignment(label, TextAnchor.MiddleLeft);
+                    }
+                }
 
                 // 悬停就能读到说明，不必先点一下「选中」。点选那条路依然保留：
                 // 药水是一次性资源，「先看清再确认」这一步不能因为有了 tooltip 就砍掉。

@@ -130,13 +130,29 @@ namespace Game.UI
                 _shownRelics.Add(relic.Id);
 
                 var chip = UIFactory.CreatePanel(_relicRow, "Relic_" + relic.Id, new Color(0.35f, 0.30f, 0.16f));
-                UIFactory.SetSize(chip, 40, 40);
+                UIFactory.SetSize(chip, RelicChipSize, RelicChipSize);
                 var le = chip.gameObject.AddComponent<LayoutElement>();
-                le.preferredWidth = 40; le.minWidth = 40;
+                le.preferredWidth = RelicChipSize; le.minWidth = RelicChipSize;
 
-                // 没有图标就用名字首字占位——总比一个空方块强
-                var label = UIFactory.CreateText(chip, "Ch", ShortLabel(relic.DisplayName), 20);
-                UIFactory.Stretch(label.rectTransform);
+                // ★ 图标**留 3px 内边距**，不铺满整格。看着是审美，实际是功能：
+                //   FlashRelic 靠 tween 这块 chip 的底色来表示「这个遗物刚刚触发了」，
+                //   图标若铺满，底色被完全盖住，有图标的遗物触发时就什么也看不见了。
+                //   留一圈边之后，闪光变成一道发亮的外框，照样成立。
+                var icon = UIFactory.CreateArtWindow(chip, "Icon",
+                    relic.Def != null ? relic.Def.Icon : null,
+                    RelicChipSize - RelicIconInset * 2f, RelicChipSize - RelicIconInset * 2f, anchorY: 0.5f);
+
+                if (icon != null)
+                {
+                    icon.anchorMin = icon.anchorMax = icon.pivot = new Vector2(0.5f, 0.5f);
+                    icon.anchoredPosition = Vector2.zero;
+                }
+                else
+                {
+                    // 没有图标就用名字首字占位——总比一个空方块强
+                    var label = UIFactory.CreateText(chip, "Ch", ShortLabel(relic.DisplayName), 20);
+                    UIFactory.Stretch(label.rectTransform);
+                }
 
                 // ★ 原本这里挂的是本类私有的 RelicHover + 一个位置写死的 Text。
                 //   现在统一走 TooltipView：全局只有一套样式、一处摆放逻辑，
@@ -151,6 +167,11 @@ namespace Game.UI
         }
 
         // ============================================================ 触发闪光
+
+        private const float RelicChipSize = 40f;
+
+        /// <summary>图标四周留的边。见 RefreshRelics 里的注释——这圈边是触发闪光唯一的载体。</summary>
+        private const float RelicIconInset = 3f;
 
         private static readonly Color RelicIdleColor = new Color(0.35f, 0.30f, 0.16f);
         private static readonly Color RelicFlashColor = new Color(1f, 0.92f, 0.55f);
