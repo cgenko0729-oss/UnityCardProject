@@ -243,6 +243,75 @@ namespace Game.UI
             return (RectTransform)go.transform;
         }
 
+        // ================================================================= 美术
+
+        /// <summary>
+        /// 建一个「插画窗」：一块固定比例的窗口，图片**裁切填满**它，多出来的部分被裁掉。
+        /// 返回窗口容器；<paramref name="sprite"/> 为 null 时返回 null（调用方据此走无图布局）。
+        ///
+        /// <para>★ 为什么不用 <c>Image.preserveAspect</c>：那个是 **letterbox（留黑边）**，
+        ///   不是 cover。一张 512×768 的立绘塞进 170×96 的横窗，preserveAspect 会把它
+        ///   缩成中间一条细竖图、两边大片空白——看起来就像图没挂上。
+        ///   要 cover 只能自己算：按宽高比决定「贴宽还是贴高」，另一边溢出，由父节点裁掉。</para>
+        ///
+        /// <para>★ 裁切用 <see cref="RectMask2D"/> 而不是 <c>Mask</c>：后者要一张 sprite 当模板、
+        ///   还会占用模板缓冲；<c>RectMask2D</c> 是纯矩形裁剪，正好是我们要的，而且不需要任何资产。</para>
+        /// </summary>
+        /// <param name="anchorY">
+        /// 图片纵向溢出时保留哪一段。0 = 底部，0.5 = 居中，1 = 顶部。
+        /// ★ 立绘默认给 1（保头不保脚）——人物图裁中间往往正好把脸切掉。
+        /// </param>
+        public static RectTransform CreateArtWindow(Transform parent, string name, Sprite sprite,
+                                                    float width, float height, float anchorY = 1f)
+        {
+            if (sprite == null) return null;
+
+            var window = CreateEmpty(parent, name);
+            SetSize(window, width, height);
+            window.gameObject.AddComponent<RectMask2D>();
+
+            var img = new GameObject("Art", typeof(RectTransform), typeof(Image));
+            img.transform.SetParent(window, false);
+
+            var image = img.GetComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;   // 插画不吃点击，射线要冒泡到卡根上去
+
+            var rt = (RectTransform)img.transform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+
+            var size = sprite.rect.size;
+            float spriteAspect = size.y > 0f ? size.x / size.y : 1f;
+            float windowAspect = height > 0f ? width / height : 1f;
+
+            float w, h;
+            if (spriteAspect > windowAspect)
+            {
+                // 图比窗「更宽」→ 贴高，左右溢出
+                h = height;
+                w = height * spriteAspect;
+            }
+            else
+            {
+                // 图比窗「更高」→ 贴宽，上下溢出
+                w = width;
+                h = width / spriteAspect;
+            }
+
+            rt.sizeDelta = new Vector2(w, h);
+
+            // 纵向溢出多少，按 anchorY 决定往哪边推。横向一律居中——
+            // 横向裁掉的通常是背景，纵向裁掉的可能是人物的脸。
+            //
+            // ★ 符号别写反：「保留顶部」(anchorY = 1) 要把图**往下**推，
+            //   让图的上缘与窗的上缘对齐 → y = -overflowY / 2。
+            float overflowY = h - height;
+            rt.anchoredPosition = new Vector2(0f, overflowY * (0.5f - anchorY));
+
+            return window;
+        }
+
         /// <summary>
         /// 建一个文字节点。
         ///
