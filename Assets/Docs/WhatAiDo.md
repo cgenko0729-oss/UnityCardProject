@@ -39,7 +39,7 @@
    - 想复现某一局：选中 `GameApp`，把 `Fixed Seed` 改成非 0
 5. 只调试单场战斗：菜单 `Tools/卡牌游戏/2. 创建战斗测试场景` → `Battle.unity`，
    选中 `BattleBootstrap` 改 `Encounter Id`。
-6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **198/198 通过**）。
+6. 跑测试：`Window → General → Test Runner → EditMode → Run All`（应为 **201/201 通过**）。
 7. 校验内容与架构规则：菜单 `Tools/卡牌游戏/3. 校验内容与架构规则`（应为 0 错误 0 警告）。
    CI / 命令行用 `-executeMethod Game.Editor.ContentValidator.ValidateBatch`，有错误时退出码为 1。
 
@@ -63,7 +63,7 @@
 | 阶段 5 存档与内容 | 🔶 部分完成 | ✅ SaveSystem / MetaSave；⬜ 自动对战模拟器 / 内容量产 / Fuzz |
 | 阶段 6 动画音效打磨 | 🔶 部分完成 | ✅ 本地化 / ✅ TextMeshPro / ✅ 打击反馈 / ✅ 逐张发牌；⬜ 音效 |
 
-**当前代码规模**：`Assets/Game/` 下 125 个 .cs 文件；测试 12 个文件 198 个用例。
+**当前代码规模**：`Assets/Game/` 下 125 个 .cs 文件；测试 12 个文件 201 个用例。
 **内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水、5 个关键字。
 **本地化规模**：`Locale_en.asset` 里 514 条译文，简体中文（源语言）+ 英文。
 （第七次会话写的「495 条」之后没人同步过——第九 / 十 / 十二次会话各加了一批。
@@ -467,6 +467,27 @@ Assets/
     牌堆按钮的「收到一张牌」反馈只能动 `scale`，不能动颜色：底色被
     `RefreshPileButtons` → `SetPileButton` 每帧写一次（表现播放期间要置灰），
     在别处 tween 颜色活不过一帧。这是铁律 54 的同一形状，只是换了个开关。
+
+62. **分子和分母必须回答同一个问题。**
+    能量球原本写的是 `Energy / EnergyPerTurn`：分子是「我现在有多少」，
+    分母却是**不含遗物加成的基础值**。带「黑星」（每回合 +1 能量）的玩家每回合都看到
+    **「4/3」**，读起来就是「我拿到了超出上限的能量，系统坏了」——
+    使用者据此报了一个并不存在的 bug，还把原因归给了一张牌。
+    分母现在走 `BattleContext.EnergyThisTurn`（基础值 + 所有 `IResourceHook` 修正）。
+    **一个诚实的数字比一条正确但对不上的公式重要**：玩家不会去读代码，只会读那两个数的关系。
+
+63. **「加成后的值」要存下来，不能让 UI 现算。**
+    算 `EnergyThisTurn` 必须跑一遍 `ModifyTurnEnergy`，而那条路上的实现会
+    `PostRelicTriggered`（「黑星生效」）。UI 每帧调一次的话，事件队列会被灌爆、
+    `StateVersion` 每帧递增、敌人意图数值陷入无休止重算——正是铁律 4 说的那件事。
+    逻辑层在 `BeginTurn` 里本来就算过一次，记下来即可。
+
+64. **加成绝不能回写进它自己的基础值。**
+    `Ctx.EnergyPerTurn` 是**下一回合的计算起点**，把 `ModifyTurnEnergy` 的结果写回去，
+    「每回合 +1」就变成 3 → 4 → 5 → 6 的逐回合复利。
+    这个改法非常自然，而且**第一回合看起来完全正确**，要到第三回合才看得出不对，
+    那时玩家多半只会觉得「这遗物好像有点强」。
+    `RelicTests.BlackStar_AddsOneEnergyEveryTurn_WithoutCompounding` 把它钉死了。
 
 ---
 
@@ -1263,3 +1284,35 @@ Assets/
   要做的话照 `UnitView._shownHp` 那个「表现值 vs 逻辑值」的写法办。
 - **`PileFlyFx.cs.meta` 是手写的**（Unity 占着工程锁，没法让它自己生成）。
   GUID 是新生成的、格式与既有 meta 逐字节一致；Unity 首次导入若有异议，删掉让它重建即可。
+
+### 2026-07-26 — 第十三次会话续：能量球显示的「4/3」（一个被误报成卡牌 bug 的显示问题）
+
+使用者报告：「用了一张下回合获得额外 1 点能量的牌之后，接下来**每一个回合**都多 1 点能量。」
+
+**排查结论：能量结算没有问题，卡池里也没有那张牌。**
+
+1. `BeginTurn` 每回合 `Ctx.Energy = 0` 再 `GainEnergy(...)`，
+   卡牌给的能量在结构上不可能跨回合留存。
+2. 卡池里只有 4 张牌碰能量（肾上腺素 / 转瞬顿悟 / 献祭 / 孤注一掷），**全部是当场生效**；
+   没有任何 `RunEffect` 或卡牌能改 `RunContext.EnergyPerTurn`。
+3. 截图里那 +1 来自**「黑星」遗物**（`ExtraEnergy = 1, FirstTurnOnly = false`），
+   顶栏三个遗物是 燃 / 黑 / 回，战斗日志第 6 回合开头就写着「遗物『黑星』生效」。
+   它与「提灯」只差 `FirstTurnOnly` 一位，而提灯才是「只有第一回合」的那个。
+
+**那为什么使用者会觉得是 bug**：能量球写的是 `Energy / EnergyPerTurn` ——
+分子「我现在有多少」，分母「不含加成的基础值」，于是每回合都显示 **「4/3」**。
+超出分母的分子看起来就是系统算错了。**这是一个真问题，只是不在它被报告的那个位置上。**
+
+**修法**（立为铁律 62–64）
+
+- `BattleContext.EnergyThisTurn` = 基础值 + 所有 `IResourceHook` 修正，由 `BeginTurn` 算完顺手记下；
+  能量球分母改用它 → 带黑星时显示「4/4」。
+- **不让 UI 现算**：算它要跑 `ModifyTurnEnergy`，那条路会 `PostRelicTriggered`，
+  每帧一次会灌爆事件队列并让 `StateVersion` 每帧递增（铁律 4）。
+- **不把加成回写进 `EnergyPerTurn`**：它是下一回合的计算起点，回写 = 逐回合复利。
+
+**验证**：EditMode **201/201 通过**（原 198 + 新增 3），四个程序集 0 error 0 warning。
+新增的三条里最值钱的是 `BlackStar_AddsOneEnergyEveryTurn_WithoutCompounding` ——
+复利那个改法第一回合看起来完全正确，要到第三回合才看得出不对。
+测试内容里同时新增了 `black_star` 遗物，与既有的 `lantern` 只差 `FirstTurnOnly` 一位，
+两者一起测才能证明那一位真的起作用。
