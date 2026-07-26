@@ -19,12 +19,12 @@ MonoBehaviour:
   DescriptionTemplate: "\u5BF9\u4E00\u4E2A\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
   TargetKind: 1
   Effects:
-  - rid: 1041046769074962658
+  - rid: 1041046769074962825
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962658
+    - rid: 1041046769074962825
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

@@ -24,13 +24,13 @@ MonoBehaviour:
   DescriptionTemplate: "\u4E0B\u56DE\u5408\u5F00\u59CB\u65F6\uFF0C\u83B7\u5F97 2
     \u5C42\u529B\u91CF\u4E0E 8 \u70B9\u62A4\u7532\u3002\u6D88\u8017\u3002"
   Effects:
-  - rid: 1041046769074962700
+  - rid: 1041046769074962867
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962700
+    - rid: 1041046769074962867
       type: {class: DelayedEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -41,9 +41,9 @@ MonoBehaviour:
           RequireStatusId: 
         Timing: 1
         Effects:
-        - rid: 1041046769074962701
-        - rid: 1041046769074962702
-    - rid: 1041046769074962701
+        - rid: 1041046769074962868
+        - rid: 1041046769074962869
+    - rid: 1041046769074962868
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -60,7 +60,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962702
+    - rid: 1041046769074962869
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

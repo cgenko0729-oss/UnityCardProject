@@ -18,12 +18,12 @@ MonoBehaviour:
   Rarity: 2
   Description: "\u6BCF\u573A\u6218\u6597\u5F00\u59CB\u65F6\u83B7\u5F97 1 \u5C42\u795E\u5668\uFF08\u62B5\u6D88\u4E0B\u4E00\u6B21\u65BD\u52A0\u5230\u4F60\u8EAB\u4E0A\u7684\u51CF\u76CA\uFF09\u3002"
   Behaviours:
-  - rid: 1041046769074962691
+  - rid: 1041046769074962858
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962691
+    - rid: 1041046769074962858
       type: {class: GrantStatusOnBattleStartBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         Status: {fileID: 11400000, guid: d945023bbb749914a869cdcaffdd773c, type: 2}

@@ -20,10 +20,10 @@ MonoBehaviour:
   MaxStacks: 99
   Description: "\u62B5\u6D88\u63A5\u4E0B\u6765 {stacks} \u6B21\u65BD\u52A0\u7ED9\u4F60\u7684\u51CF\u76CA\u3002"
   Behaviours:
-  - rid: 1041046769074962721
+  - rid: 1041046769074962888
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962721
+    - rid: 1041046769074962888
       type: {class: ArtifactBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data: 

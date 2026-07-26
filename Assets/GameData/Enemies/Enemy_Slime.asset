@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962778
+    - rid: 1041046769074962945
   - Name: "\u8150\u8680"
     Intent: 6
     Weight: 0
@@ -44,7 +44,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962779
+    - rid: 1041046769074962946
   - Name: "\u55B7\u5410\u7C98\u6DB2"
     Intent: 6
     Weight: 0
@@ -56,7 +56,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962780
+    - rid: 1041046769074962947
   FixedSequence: 00000000000000000100000002000000
   LoopSequence: 1
   PhaseHpThresholds: 
@@ -64,7 +64,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962778
+    - rid: 1041046769074962945
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -89,7 +89,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962779
+    - rid: 1041046769074962946
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -106,7 +106,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962780
+    - rid: 1041046769074962947
       type: {class: AddCardEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

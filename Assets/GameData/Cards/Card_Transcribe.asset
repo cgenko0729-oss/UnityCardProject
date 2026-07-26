@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u9009\u62E9 {0} \u5F20\u624B\u724C\uFF0C\u590D\u5236\u4E00\u4EFD\u5230\u624B\u724C\uFF08\u672C\u573A\u6218\u6597\u540E\u6D88\u5931\uFF09\u3002"
   Effects:
-  - rid: 1041046769074962694
+  - rid: 1041046769074962861
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962694
+    - rid: 1041046769074962861
       type: {class: SelectCardsEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
