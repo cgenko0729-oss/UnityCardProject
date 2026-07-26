@@ -52,6 +52,20 @@ namespace Game.Cards
             UpgradeLevel++;
         }
 
+        /// <summary>
+        /// 从存档还原一张牌。
+        ///
+        /// ★ <paramref name="def"/> 必须是**存档里那个 Id 直接查出来的定义**，
+        ///   也就是升过级的牌传进来的就是 <c>strike_plus</c>，
+        ///   <paramref name="upgradeLevel"/> 只是把计数补回去，**不会再升一次**。
+        ///   若改成「传基础版 + 在这里循环调 <see cref="Upgrade"/>」，
+        ///   而存档里存的又是当前 Id，就会双重升级——这正是架构文档 03 那份草稿的写法。
+        /// </summary>
+        public static CardInstance Restore(int uid, CardDefinition def, int upgradeLevel)
+        {
+            return new CardInstance(uid, def) { UpgradeLevel = upgradeLevel };
+        }
+
         /// <summary>复制一张牌。默认复制出来的是临时卡。uid 由调用方从 RunContext 取。</summary>
         public CardInstance Clone(int uid, bool temporary = true)
         {
