@@ -489,6 +489,18 @@ Assets/
     那时玩家多半只会觉得「这遗物好像有点强」。
     `RelicTests.BlackStar_AddsOneEnergyEveryTurn_WithoutCompounding` 把它钉死了。
 
+65. **布局组接管哪个轴，就必须把那个轴的尺寸报给它——`SetSize` 会被当场覆盖。**
+    `UIFactory.CreateHorizontalGroup` 是 `childControlHeight = true`（高度由布局组决定）。
+    顶栏遗物的 chip 只在 `LayoutElement` 上报了宽度，高度没人报 →
+    `LayoutElement` 返回 −1（忽略）→ 退回去问 chip 上的 `Image`，
+    而那个 `Image` **没有 sprite，`preferredHeight` 恒为 0** → chip 变成一条零高度的缝。
+    后果有两条，都不报错：
+    ① 悬停判定区面积为 0，**tooltip 永远弹不出来**；
+    ② 底色画不出来，`FlashRelic` 那圈「遗物生效」的闪光一并静默消失（铁律 48 白做了）。
+    而屏幕上仍然看得见那个字——占位 `Text` 会溢出零高度的父矩形照常渲染。
+    **表象是「东西明明在那儿，就是没反应」，没有任何线索指向布局。**
+    凡是往 `LayoutGroup` 里塞固定尺寸的节点，两个轴一起报，别只报一个。
+
 ---
 
 ## 七、会话记录
@@ -1312,6 +1324,28 @@ Assets/
 - **不把加成回写进 `EnergyPerTurn`**：它是下一回合的计算起点，回写 = 逐回合复利。
 
 **验证**：EditMode **201/201 通过**（原 198 + 新增 3），四个程序集 0 error 0 warning。
+
+> 使用者同时定下一条工作方式：**小改动不必每次跑全量测试，编译通过 + 判断没问题即可。**
+> 判断标准照既有惯例：改动只落在 `Game.UI`（EditMode 完全不覆盖它）就不跑；
+> 一旦碰 `Game.Runtime` 就跑——上面那次能量修复正是碰了 Runtime 才跑的。
+
+### 2026-07-26 — 第十三次会话续二：遗物悬停没有提示（零高度的 chip）
+
+使用者报告：鼠标悬停在顶栏遗物上，看不到效果说明。
+
+**根因不在 tooltip，在布局**——`TooltipTarget` 挂得好好的，是 chip 的**高度被压成了 0**，
+判定区面积为 0，`OnPointerEnter` 根本不会来。推导与两条连带后果见铁律 65。
+
+值得记的是它的**表象**：屏幕上明明看得见 燃 / 黑 / 回 三个字，
+所以第一直觉一定是去查 tooltip 系统（`Suppressed` 忘了放开？`raycastTarget` 关了？
+层级盖住了？），而真正的线索是**那三个字后面没有底色方块**——
+零高度的 `Image` 画不出来，而占位 `Text` 会溢出父矩形照常渲染。
+
+顺带修好了另一件从第十一次会话起就静默失效的事：`FlashRelic` 的「遗物生效」闪光
+靠 tween chip 的底色，chip 高度为 0 时那圈闪光**一直是看不见的**。
+铁律 48（图标留 3px 边，让闪光变成发亮外框）当时白做了。
+
+**验证**：`Game.UI` 0 error 0 warning。按上面那条约定，本次只在 `Game.UI`，未跑 EditMode。
 新增的三条里最值钱的是 `BlackStar_AddsOneEnergyEveryTurn_WithoutCompounding` ——
 复利那个改法第一回合看起来完全正确，要到第三回合才看得出不对。
 测试内容里同时新增了 `black_star` 遗物，与既有的 `lantern` 只差 `FirstTurnOnly` 一位，
