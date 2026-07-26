@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Game.Battle;
@@ -31,6 +32,7 @@ namespace Game.Editor
         private const string EventDir = RootDir + "/Events";
         private const string PotionDir = RootDir + "/Potions";
         private const string KeywordDir = RootDir + "/Keywords";
+        private const string LocaleDir = RootDir + "/Locales";
 
         private static readonly Dictionary<string, StatusDefinition> Statuses = new Dictionary<string, StatusDefinition>();
         private static readonly Dictionary<string, CardDefinition> Cards = new Dictionary<string, CardDefinition>();
@@ -70,9 +72,9 @@ namespace Game.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log($"[SampleContent] 生成完成：{Statuses.Count} 个状态、{Cards.Count} 张卡、" +
-                      $"{Enemies.Count} 个敌人、{Encounters.Count} 场战斗、{Relics.Count} 个遗物、" +
-                      $"{Events.Count} 个事件、{PotionDefs.Count} 瓶药水、{KeywordDefs.Count} 个关键字。" +
+            Debug.Log($"[SampleContent] 生成并收录完成：{db.Statuses.Count} 个状态、{db.Cards.Count} 张卡、" +
+                      $"{db.Enemies.Count} 个敌人、{db.Encounters.Count} 场战斗、{db.Relics.Count} 个遗物、" +
+                      $"{db.Events.Count} 个事件、{db.Potions.Count} 瓶药水、{db.Keywords.Count} 个关键字。" +
                       $"数据库：{AssetDatabase.GetAssetPath(db)}");
             Selection.activeObject = db;
         }
@@ -793,17 +795,129 @@ namespace Game.Editor
         private static GameDatabase CreateDatabase()
         {
             var db = LoadOrCreate<GameDatabase>($"{RootDir}/GameDatabase.asset");
-            db.Cards = new List<CardDefinition>(Cards.Values);
-            db.Statuses = new List<StatusDefinition>(Statuses.Values);
-            db.Enemies = new List<EnemyDefinition>(Enemies.Values);
-            db.Encounters = new List<EncounterDefinition>(Encounters);
-            db.Relics = new List<RelicDefinition>(Relics.Values);
-            db.Events = new List<EventDefinition>(Events.Values);
-            db.Potions = new List<Potions.PotionDefinition>(PotionDefs.Values);
-            db.Keywords = new List<KeywordDefinition>(KeywordDefs);
+            // ★ 生成内容与 Inspector 手工内容必须能共存：
+            //   1. 先放入本次由代码生成的资产，它们是同 Id 冲突时的权威来源；
+            //   2. 再递归扫描各标准目录，把不冲突的手工 .asset 自动合并进数据库；
+            //   3. 同 Id 的另一份资产不静默覆盖，而是跳过并输出双方路径。
+            //
+            // 这样重新执行生成器不会再把手工内容从 GameDatabase 列表里挤掉。
+            // 从生成器代码删除一项并不会自动删除磁盘上的 .asset；只要资产仍在标准目录，
+            // 它就会作为手工内容继续被发现。要彻底移除，必须同时删除对应资产文件。
+            db.Cards = MergeGeneratedAndDiscovered(Cards.Values, CardDir, c => c.Id, "卡牌");
+            db.Statuses = MergeGeneratedAndDiscovered(Statuses.Values, StatusDir, s => s.Id, "状态");
+            db.Enemies = MergeGeneratedAndDiscovered(Enemies.Values, EnemyDir, e => e.Id, "敌人");
+            db.Encounters = MergeGeneratedAndDiscovered(Encounters, EncounterDir, e => e.Id, "战斗");
+            db.Relics = MergeGeneratedAndDiscovered(Relics.Values, RelicDir, r => r.Id, "遗物");
+            db.Events = MergeGeneratedAndDiscovered(Events.Values, EventDir, e => e.Id, "事件");
+            db.Potions = MergeGeneratedAndDiscovered(
+                PotionDefs.Values, PotionDir, p => p.Id, "药水");
+            db.Keywords = MergeGeneratedAndDiscovered(
+                KeywordDefs, KeywordDir, k => k.Keyword.ToString(), "关键字");
+
+            // 语言表通常由「导入本地化 CSV」自动登记，但也允许直接在 Inspector 创建。
+            // 这里以数据库里已经登记的表为优先，再补上 Locales 目录里尚未登记的表。
+            db.Locales = MergeGeneratedAndDiscovered(
+                db.Locales, LocaleDir, t => t.LanguageCode, "语言表");
             db.BuildIndex();
             EditorUtility.SetDirty(db);
             return db;
+        }
+
+        /// <summary>
+        /// 合并代码生成资产与标准目录下的手工资产。
+        ///
+        /// <para>生成列表先加入，因此与手工资产发生键冲突时生成资产优先。
+        /// 扫描顺序固定按资产路径排序，保证同一批内容在不同机器上的数据库顺序一致。</para>
+        ///
+        /// <para>这里不能只依赖 <c>AssetDatabase.FindAssets</c>：它在 batchmode 下可能没有搜索索引。
+        /// 因此直接扫描绝对目录，再把路径转换回 Unity 的 <c>Assets/...</c> 路径。</para>
+        /// </summary>
+        private static List<T> MergeGeneratedAndDiscovered<T>(
+            IEnumerable<T> generated, string directory, Func<T, string> keyOf, string label)
+            where T : ScriptableObject
+        {
+            var result = new List<T>();
+            var byKey = new Dictionary<string, T>(StringComparer.Ordinal);
+
+            if (generated != null)
+            {
+                foreach (var asset in generated)
+                    AddPreferredAsset(asset, keyOf, label, result, byKey);
+            }
+
+            string absoluteDirectory = Path.GetFullPath(
+                Path.Combine(Application.dataPath, "..", directory));
+            if (!Directory.Exists(absoluteDirectory)) return result;
+
+            var files = Directory.GetFiles(
+                absoluteDirectory, "*.asset", SearchOption.AllDirectories);
+            Array.Sort(files, StringComparer.Ordinal);
+
+            string normalizedDirectory = directory.Replace('\\', '/').TrimEnd('/');
+            for (int i = 0; i < files.Length; i++)
+            {
+                string relative = files[i].Substring(absoluteDirectory.Length)
+                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    .Replace('\\', '/');
+                string assetPath = normalizedDirectory + "/" + relative;
+                var asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+                if (asset == null || result.Contains(asset)) continue;
+
+                string key = keyOf(asset);
+                if (string.IsNullOrEmpty(key))
+                {
+                    Debug.LogError(
+                        $"[SampleContent] {label}资产「{assetPath}」没有有效 Id/键，" +
+                        "不会加入 GameDatabase。", asset);
+                    continue;
+                }
+
+                if (byKey.TryGetValue(key, out var preferred))
+                {
+                    string preferredPath = AssetDatabase.GetAssetPath(preferred);
+                    Debug.LogError(
+                        $"[SampleContent] {label} Id/键冲突「{key}」：" +
+                        $"优先保留「{preferredPath}」，跳过「{assetPath}」。" +
+                        "生成器管理的资产会先收录；两个手工资产冲突时，" +
+                        "资产路径排序靠前者优先。手工资产请改用唯一 Id/键。",
+                        asset);
+                    continue;
+                }
+
+                byKey.Add(key, asset);
+                result.Add(asset);
+            }
+
+            return result;
+        }
+
+        private static void AddPreferredAsset<T>(
+            T asset, Func<T, string> keyOf, string label,
+            List<T> result, Dictionary<string, T> byKey)
+            where T : ScriptableObject
+        {
+            if (asset == null || result.Contains(asset)) return;
+
+            string key = keyOf(asset);
+            if (string.IsNullOrEmpty(key))
+            {
+                Debug.LogError(
+                    $"[SampleContent] 代码生成的{label}资产「{AssetDatabase.GetAssetPath(asset)}」" +
+                    "没有有效 Id/键，不会加入 GameDatabase。", asset);
+                return;
+            }
+
+            if (byKey.TryGetValue(key, out var other))
+            {
+                Debug.LogError(
+                    $"[SampleContent] 代码生成的{label}键重复「{key}」：" +
+                    $"保留「{AssetDatabase.GetAssetPath(other)}」，" +
+                    $"跳过「{AssetDatabase.GetAssetPath(asset)}」。", asset);
+                return;
+            }
+
+            byKey.Add(key, asset);
+            result.Add(asset);
         }
 
         // ==================================================================== 工具

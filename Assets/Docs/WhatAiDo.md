@@ -765,3 +765,39 @@ Assets/
 - 语言选择目前存 `PlayerPrefs`（key = `game.language`），阶段 5 做 `MetaSave` 时要迁进去。
 - 繁体中文 / 日文：`UIFactory` 的字体候选链、`LocalizationTool` 的导出列都已经准备好，
   补一个 `LocaleTable` 资产即可，**零代码改动**。
+
+### 2026-07-26 — 第八次会话：项目使用指南 + 手工资产安全合并
+
+**使用者确认的范围**
+
+| 议题 | 选择 |
+|---|---|
+| 内容制作方式 | 生成器代码与 Inspector 手工资产两套流程都要 |
+| 手工资产登记 | 标准 `Assets/GameData/<Type>/` 目录自动发现 |
+| Id 冲突 | 生成资产优先；冲突手工资产跳过并输出双方路径 |
+| 删除语义 | 从生成器删代码不自动删资产；磁盘上的 `.asset` 仍会被发现 |
+| 指南读者 | 程序员；包含代码示例、调用链和影响范围 |
+
+**做了什么**
+
+1. 新增 `Assets/Docs/ProjectUseGuide.md`：
+   - 生成器与 Inspector 两套流程；
+   - 卡牌、效果、动态数值、状态、敌人、敌人 AI、Encounter、药水、遗物、事件、
+     RunEffect、条件、关键字、奖励/商店、初始牌组和本地化；
+   - 随机、存档、UI、美术和地图节点的影响范围；
+   - 常见错误与实际源码中的现有限制。
+2. `SampleContentGenerator.CreateDatabase()` 改为：
+   - 先收录生成器资产；
+   - 再递归扫描标准内容目录；
+   - 按 Id/键合并；
+   - 生成内容在冲突时优先；
+   - 手工内容不再因重新生成而从 `GameDatabase` 列表中消失。
+3. 语言表也会从 `Assets/GameData/Locales/` 补充登记；已经在数据库中的表保持优先。
+4. `Assets/Docs/Architecture/README.md` 的文档索引加入使用指南。
+
+**验证**
+
+- `Game.Runtime`、`Game.UI`、`Game.Editor` 使用 VS2022 MSBuild 编译：**0 error 0 warning**。
+- 文档本地链接目标全部存在，Markdown 代码围栏全部配对。
+- Unity 编辑器当前占用工程，未在本次会话中实际点击“生成示例内容”；首次使用时应关注
+  Console 是否出现手工资产 Id 冲突，并确认 `GameDatabase` 列表包含手工资产。

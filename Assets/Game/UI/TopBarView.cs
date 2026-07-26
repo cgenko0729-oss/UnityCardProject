@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using Game.Core;
 using Game.Localization;
 using TMPro;
@@ -21,6 +22,40 @@ namespace Game.UI
         private RectTransform _relicRow;
 
         private readonly List<string> _shownRelics = new List<string>();
+
+        /// <summary>遗物 Id → 它那个小方块，触发闪光靠它反查。</summary>
+        private readonly Dictionary<string, RectTransform> _chipByRelic = new Dictionary<string, RectTransform>();
+
+        // ============================================================ 跨层的桥
+
+        /// <summary>
+        /// 当前活着的顶栏。
+        ///
+        /// ★ 为什么需要这个静态引用：遗物栏挂在 <see cref="GameApp"/> 下（切界面不重建），
+        ///   而「遗物触发了」这条事件由 <see cref="BattlePresenter"/> 消费，
+        ///   后者挂在会被反复销毁的战斗界面上。两者隔着一整层，没有现成的通路。
+        ///
+        /// ★ 静态可变引用是有风险的一类东西（同 <c>TooltipView.Suppressed</c>，铁律 31），
+        ///   所以它只在 <see cref="Create"/> 里赋值、在 <see cref="OnDestroy"/> 里清掉，
+        ///   并且所有使用点都必须容忍它是 null——单场战斗调试场景（Battle.unity）里
+        ///   根本没有 GameApp，也就没有顶栏，那里一切照常，只是不闪。
+        /// </summary>
+        private static TopBarView _current;
+
+        /// <summary>闪一下某个遗物的小方块。找不到（没有顶栏 / 没有这个遗物）就什么也不做。</summary>
+        public static void FlashRelic(string relicId)
+        {
+            if (_current == null || string.IsNullOrEmpty(relicId)) return;
+            _current.FlashRelicChip(relicId);
+        }
+
+        private void OnDestroy()
+        {
+            foreach (var kv in _chipByRelic)
+                if (kv.Value != null) DOTween.Kill(kv.Value);
+
+            if (_current == this) _current = null;
+        }
 
         public static TopBarView Create(RectTransform parent, GameApp app)
         {
@@ -48,6 +83,8 @@ namespace Game.UI
             UIFactory.SetAnchored(view._relicRow, new Vector2(0, 0), new Vector2(1, 1),
                 new Vector2(400, 6), new Vector2(-270, -6));
 
+            // ★ 切语言时顶栏会被销毁重建（GameApp.OnLanguageChanged），所以这里是赋值而不是「只赋一次」。
+            _current = view;
             return view;
         }
 
@@ -79,6 +116,10 @@ namespace Game.UI
             }
             if (!changed) return;
 
+            foreach (var kv in _chipByRelic)
+                if (kv.Value != null) DOTween.Kill(kv.Value);
+            _chipByRelic.Clear();
+
             for (int i = _relicRow.childCount - 1; i >= 0; i--)
                 Destroy(_relicRow.GetChild(i).gameObject);
 
@@ -104,7 +145,45 @@ namespace Game.UI
                     relic.DisplayName,
                     relic.Def != null ? relic.Def.LocalizedDescription : "",
                     TooltipContent.KeywordAccent));
+
+                _chipByRelic[relic.Id] = chip;
             }
+        }
+
+        // ============================================================ 触发闪光
+
+        private static readonly Color RelicIdleColor = new Color(0.35f, 0.30f, 0.16f);
+        private static readonly Color RelicFlashColor = new Color(1f, 0.92f, 0.55f);
+
+        private const float RelicFlashTime = 0.55f;
+
+        /// <summary>
+        /// 遗物生效时闪一下并弹一下。
+        ///
+        /// ★ 遗物的效果全在 Hook 里，画面上**只有结果没有作者**：
+        ///   金刚杵开局给了 1 点力量、回响护符让第一张攻击牌打了两次，
+        ///   玩家看到的只是「力量 +1」和「打了两次」，完全不知道是哪个遗物干的，
+        ///   甚至会怀疑自己那个遗物到底有没有在工作。
+        /// </summary>
+        private void FlashRelicChip(string relicId)
+        {
+            if (!_chipByRelic.TryGetValue(relicId, out var chip) || chip == null) return;
+
+            var img = chip.GetComponent<Image>();
+            if (img == null) return;
+
+            DOTween.Kill(chip);
+            chip.localScale = Vector3.one;
+            img.color = RelicIdleColor;
+
+            var seq = DOTween.Sequence().SetTarget(chip);
+            seq.Append(DOTween.To(() => img.color, c => img.color = c, RelicFlashColor, 0.10f)
+                              .SetTarget(chip));
+            seq.Append(DOTween.To(() => img.color, c => img.color = c, RelicIdleColor, RelicFlashTime)
+                              .SetTarget(chip));
+
+            if (FeedbackSettings.HitMotionScale > 0.001f)
+                seq.Join(chip.DOPunchScale(Vector3.one * 0.4f, 0.4f, 6, 0.6f));
         }
 
         private static string ShortLabel(string name)

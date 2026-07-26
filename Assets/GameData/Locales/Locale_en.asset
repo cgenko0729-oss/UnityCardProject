@@ -58,6 +58,8 @@ MonoBehaviour:
   - Key: float.block_gain
     Value: "+{0} Block"
     SourceSnapshot: "+{0} \u62A4\u7532"
+  - Key: float.block_break
+    Value: "SHIELD BROKEN"
   - Key: float.blocked
     Value: "Blocked {0}"
     SourceSnapshot: "\u6321\u4E0B {0}"
@@ -199,6 +201,8 @@ MonoBehaviour:
   - Key: log.potion_used
     Value: "Drank the \"{0}\" potion"
     SourceSnapshot: "\u559D\u4E0B\u836F\u6C34\u300C{0}\u300D"
+  - Key: log.relic_triggered
+    Value: "Relic \"{0}\" activated"
   - Key: log.shuffle
     Value: "Shuffled"
     SourceSnapshot: "\u6D17\u724C"
@@ -442,6 +446,10 @@ MonoBehaviour:
   - Key: ui.battle.empty_slot
     Value: "Empty"
     SourceSnapshot: "\u7A7A \u69FD"
+  - Key: ui.battle.banner_enemy
+    Value: "ENEMY TURN"
+  - Key: ui.battle.banner_turn
+    Value: "TURN {0}"
   - Key: ui.battle.end_turn
     Value: "End Turn"
     SourceSnapshot: "\u7ED3\u675F\u56DE\u5408"

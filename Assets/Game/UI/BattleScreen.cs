@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using DG.Tweening;
 using Game.Battle;
 using Game.Cards;
 using Game.Core;
@@ -29,6 +30,8 @@ namespace Game.UI
 
         private RectTransform _battlefield;
         private ScreenShake _shake;
+        private BattleOverlayFx _overlayFx;
+        private RectTransform _energyPanel;
         private RectTransform _enemyRow;
         private RectTransform _playerSlot;
         private RectTransform _handArea;
@@ -185,6 +188,7 @@ namespace Game.UI
             // ---- 能量
             var energyBg = UIFactory.CreatePanel(root, "Energy", new Color(0.85f, 0.7f, 0.2f, 0.9f));
             UIFactory.SetAnchored(energyBg, new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 120), new Vector2(150, 230));
+            _energyPanel = energyBg;
             _energyText = UIFactory.CreateText(energyBg, "EnergyText", "3/3", 34, TextAnchor.MiddleCenter, Color.black);
             UIFactory.Stretch(_energyText.rectTransform);
 
@@ -238,6 +242,10 @@ namespace Game.UI
             _hintText = UIFactory.CreateText(root, "Hint", "", 24, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
             UIFactory.SetAnchored(_hintText.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
                 new Vector2(-500, 290), new Vector2(500, 340));
+
+            // ---- 整屏效果（回合横幅 / 受创闪光）。在手牌与提示之后、飘字之前：
+            //      要盖住战场和 HUD，但不该盖住伤害数字——那是要读的。
+            _overlayFx = BattleOverlayFx.Create(root);
 
             // ---- 飘字层
             PopupLayer = UIFactory.CreateEmpty(root, "PopupLayer");
@@ -348,12 +356,45 @@ namespace Game.UI
 
         private void PlaySelected(CardInstance card, BattleUnit target)
         {
+            // ★ 必须在 TryPlayCard **之前**算好飞行终点：出牌是同步结算的，
+            //   这一行返回时目标可能已经死了、面板可能已经变灰，甚至战斗都结束了。
+            PrepareFlyOut(card, target);
+
             if (!_controller.TryPlayCard(card, target, out var reason))
+            {
+                _flyOutUid = -1;   // 没打出去，那就没有牌要飞
                 ShowHint(ReasonText(reason));
+            }
             else
+            {
                 ShowHint("");
+            }
 
             _selected = null;
+        }
+
+        // ============================================================ 出牌飞行
+
+        /// <summary>刚打出去、等着从手牌里消失并飞走的那张牌。-1 表示没有。</summary>
+        private int _flyOutUid = -1;
+
+        /// <summary>它该飞向哪（PopupLayer 的本地坐标）。</summary>
+        private Vector2 _flyOutTo;
+
+        /// <summary>
+        /// 记下「这张牌该往哪飞」。
+        /// ★ 无目标的牌飞向玩家自己——防御、能力这类的作用对象本来就是自己，
+        ///   一律往敌人飞会让「获得护甲」看起来像是打了对面一下。
+        /// </summary>
+        private void PrepareFlyOut(CardInstance card, BattleUnit target)
+        {
+            _flyOutUid = card != null ? card.Uid : -1;
+            if (_flyOutUid < 0) return;
+
+            UnitView dest = target != null ? FindUnitView(target.Uid) : null;
+            if (dest == null && Ctx != null && Ctx.Player != null) dest = FindUnitView(Ctx.Player.Uid);
+
+            _flyOutTo = dest != null ? AnchoredPosOf(dest) : Vector2.zero;
         }
 
         /// <summary>取消一切「正在指目标」的状态：选中的牌、选中的药水、正在进行的拖拽。</summary>
@@ -479,9 +520,22 @@ namespace Game.UI
                 if (v == null) continue;
                 if (v.Card != null && _liveUids.Contains(v.Card.Uid)) continue;
 
+                bool flies = v.Card != null && v.Card.Uid == _flyOutUid;
+
                 if (v.Card != null) _viewByUid.Remove(v.Card.Uid);
                 ForgetCardView(v);
-                Destroy(v.gameObject);
+
+                // ★ 只有「刚被打出去」的那一张飞；被弃掉 / 被消耗 / 战斗结束清手牌的照旧直接销毁。
+                //   RefreshHandViews 只看得到「手牌变了」，看不到原因——原因由 PlaySelected 记在这里。
+                if (flies)
+                {
+                    _flyOutUid = -1;
+                    CardFlyOut.Play(v, PopupLayer, _flyOutTo);
+                }
+                else
+                {
+                    Destroy(v.gameObject);
+                }
             }
 
             // ---- 按手牌顺序重排，缺的现建
@@ -637,10 +691,33 @@ namespace Game.UI
             }
         }
 
+        /// <summary>上一帧看到的能量。-1 表示还没看过（首帧不该弹）。</summary>
+        private int _lastEnergy = -1;
+
+        /// <summary>
+        /// 花掉能量时能量球脉冲一下。
+        /// ★ 只在**减少**时弹：回合开始能量从 0 回满也是一次变化，但那是补给不是消耗，
+        ///   两者都弹的话每回合开头必弹一次，很快就没人看了。
+        /// </summary>
+        private void PulseEnergyOnSpend(int energy)
+        {
+            int previous = _lastEnergy;
+            _lastEnergy = energy;
+
+            if (previous < 0 || energy >= previous) return;
+            if (_energyPanel == null || FeedbackSettings.HitMotionScale <= 0.001f) return;
+
+            DOTween.Kill(_energyPanel);
+            _energyPanel.localScale = Vector3.one;
+            _energyPanel.DOPunchScale(Vector3.one * (0.3f * FeedbackSettings.HitMotionScale), 0.3f, 6, 0.6f);
+        }
+
         private void RefreshHud()
         {
             _turnText.text = Loc.T("ui.battle.turn_header", "第 {0} 回合    —    {1}", Ctx.TurnNumber, PhaseText(Ctx.Phase));
+
             _energyText.text = $"{Ctx.Energy}/{Ctx.EnergyPerTurn}";
+            PulseEnergyOnSpend(Ctx.Energy);
             _pileText.text = Loc.T("ui.battle.piles", "抽牌堆 {0}    弃牌堆 {1}    消耗堆 {2}", Ctx.Deck.DrawPile.Count, Ctx.Deck.DiscardPile.Count, Ctx.Deck.ExhaustPile.Count);
 
             if (_presenter != null)
@@ -827,6 +904,7 @@ namespace Game.UI
             TooltipView.Suppressed = false;
             TimeFeedback.RestoreIfActive();
             if (_shake != null) _shake.StopNow();
+            if (_energyPanel != null) DOTween.Kill(_energyPanel);
         }
 
         private void EndDrag()
@@ -1162,6 +1240,18 @@ namespace Game.UI
         public void Shake(float amplitude, float duration)
         {
             if (_shake != null) _shake.Shake(amplitude, duration);
+        }
+
+        /// <summary>播一条回合过场横幅。</summary>
+        public void ShowBanner(string text, Color color)
+        {
+            if (_overlayFx != null) _overlayFx.ShowBanner(text, color);
+        }
+
+        /// <summary>全屏闪一下（玩家挨了一记重的）。</summary>
+        public void ScreenFlash(Color color, float alpha)
+        {
+            if (_overlayFx != null) _overlayFx.Flash(color, alpha);
         }
 
         public UnitView FindUnitView(int uid)
