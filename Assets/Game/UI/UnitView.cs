@@ -19,10 +19,15 @@ namespace Game.UI
 
         private BattleScreen _screen;
         private Image _bg;
-        private Image _hpFill;
+
+        /// <summary>
+        /// 血条的两条。★ 存的是 <see cref="RectTransform"/> 而不是 <see cref="Image"/>：
+        /// 长度靠锚点驱动，不靠 <c>Image.fillAmount</c>——理由见 <see cref="MakeBar"/>。
+        /// </summary>
+        private RectTransform _hpFill;
 
         /// <summary>延迟血条（残影）。掉血时它停一拍再追下来，那段空隙就是「刚刚掉了多少」。</summary>
-        private Image _hpGhost;
+        private RectTransform _hpGhost;
 
         /// <summary>Body 上的整体透明度，死亡淡出用。</summary>
         private CanvasGroup _group;
@@ -102,27 +107,8 @@ namespace Game.UI
             //
             // ★ 这是打击感最便宜的一笔：血条本来就是一个 fillAmount，
             //   加一条滞后的同款就有了「掉了多少」的量感，而不只是「现在剩多少」。
-            var ghost = UIFactory.CreatePanel(hpBg, "HpGhost", new Color(1f, 0.85f, 0.45f));
-            ghost.anchorMin = Vector2.zero;
-            ghost.anchorMax = Vector2.one;
-            ghost.offsetMin = Vector2.zero;
-            ghost.offsetMax = Vector2.zero;
-            var ghostImg = ghost.GetComponent<Image>();
-            ghostImg.type = Image.Type.Filled;
-            ghostImg.fillMethod = Image.FillMethod.Horizontal;
-            ghostImg.raycastTarget = false;
-            v._hpGhost = ghostImg;
-
-            var fill = UIFactory.CreatePanel(hpBg, "HpFill", new Color(0.75f, 0.22f, 0.22f));
-            fill.anchorMin = Vector2.zero;
-            fill.anchorMax = Vector2.one;
-            fill.offsetMin = Vector2.zero;
-            fill.offsetMax = Vector2.zero;
-            var fillImg = fill.GetComponent<Image>();
-            fillImg.type = Image.Type.Filled;
-            fillImg.fillMethod = Image.FillMethod.Horizontal;
-            fillImg.raycastTarget = false;
-            v._hpFill = fillImg;
+            v._hpGhost = MakeBar(hpBg, "HpGhost", new Color(1f, 0.85f, 0.45f));
+            v._hpFill = MakeBar(hpBg, "HpFill", new Color(0.75f, 0.22f, 0.22f));
 
             v._hpText = UIFactory.CreateText(hpBg, "HpText", "", 18);
             UIFactory.Stretch(v._hpText.rectTransform);
@@ -148,6 +134,54 @@ namespace Game.UI
             return v;
         }
 
+        // ============================================================ 血条
+
+        /// <summary>
+        /// 建一条血条。左对齐、长度由锚点驱动。
+        ///
+        /// ★★ 这里**不能**用 <c>Image.type = Filled</c> + <c>fillAmount</c>，那条路是坏的：
+        ///   <see cref="UIFactory.CreatePanel"/> 建出来的 <see cref="Image"/> 没有 sprite，
+        ///   而 Unity 的 <c>Image.OnPopulateMesh</c> 在 <c>sprite == null</c> 时**直接画一个整块矩形并 return**，
+        ///   根本不看 <c>type</c>，于是 <c>fillAmount</c> 写什么都没用。
+        ///
+        ///   后果是血条从第一天起就恒满，只有旁边的「71 / 80」在变——
+        ///   而这个故障看起来完全像是「忘了刷新」，查错的方向一开始就是错的。
+        ///   这不是打击反馈引入的问题，它比这三层都老。
+        ///
+        /// ★ 改用锚点而不是「给 Image 塞一张 1x1 白图」：
+        ///   锚点是 uGUI 的原生布局语义，不依赖任何资产，也不需要在运行时造并持有一个 Sprite。
+        ///   本工程零 prefab 零资产，这条路更贴。
+        /// </summary>
+        private static RectTransform MakeBar(RectTransform parent, string name, Color color)
+        {
+            var rt = UIFactory.CreatePanel(parent, name, color);
+            rt.pivot = new Vector2(0f, 0.5f);
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.GetComponent<Image>().raycastTarget = false;
+            return rt;
+        }
+
+        /// <summary>把一条血条设成父容器宽度的 <paramref name="pct"/>。</summary>
+        private static void SetBar(RectTransform rt, float pct)
+        {
+            if (rt == null) return;
+
+            pct = Mathf.Clamp01(pct);
+
+            // 只动右锚点：左边永远贴着容器左缘，右边按比例走。
+            // offsetMin/Max 保持 0，所以宽度严格等于 pct × 容器宽度，随分辨率自动缩放。
+            var max = rt.anchorMax;
+            if (Mathf.Approximately(max.x, pct)) return;   // 没变就别碰，免得每帧标脏布局
+
+            max.x = pct;
+            rt.anchorMax = max;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+        }
+
         public void Refresh(BattleContext ctx, bool targetable, bool highlighted)
         {
             if (Unit == null) return;
@@ -155,7 +189,7 @@ namespace Game.UI
             AlignWhenIdle(ctx);
 
             float pct = Unit.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)_shownHp / Unit.MaxHp);
-            _hpFill.fillAmount = pct;
+            SetBar(_hpFill, pct);
             _hpText.text = $"{_shownHp} / {Unit.MaxHp}";
 
             UpdateGhostBar(pct);
@@ -218,7 +252,7 @@ namespace Game.UI
                 _ghostPct = Mathf.MoveTowards(_ghostPct, pct, GhostSpeed * Time.deltaTime);
             }
 
-            _hpGhost.fillAmount = _ghostPct;
+            SetBar(_hpGhost, _ghostPct);
         }
 
         // ============================================================ 低血量
