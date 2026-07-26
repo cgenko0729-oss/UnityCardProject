@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Events;
+using Game.Localization;
 using Game.RunEffects;
 using TMPro;
 using UnityEngine;
@@ -32,12 +33,12 @@ namespace Game.UI
             _def = Manager.CurrentEvent;
 
             var title = UIFactory.CreateText(Root, "Title",
-                _def != null ? _def.Title : "……", 40, TextAnchor.MiddleCenter, new Color(1f, 0.92f, 0.7f));
+                _def != null ? _def.LocalizedTitle : "……", 40, TextAnchor.MiddleCenter, new Color(1f, 0.92f, 0.7f));
             UIFactory.SetAnchored(title.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(0, -140), new Vector2(0, -76));
 
             _bodyText = UIFactory.CreateText(Root, "Body",
-                _def != null ? _def.Description : "这里空无一物。", 24, TextAnchor.UpperLeft,
+                _def != null ? _def.LocalizedDescription : Loc.T("ui.event.empty", "这里空无一物。"), 24, TextAnchor.UpperLeft,
                 new Color(0.86f, 0.88f, 0.92f));
             UIFactory.SetAnchored(_bodyText.rectTransform, new Vector2(0.5f, 1), new Vector2(0.5f, 1),
                 new Vector2(-460, -420), new Vector2(460, -150));
@@ -53,7 +54,7 @@ namespace Game.UI
 
             BuildOptions();
 
-            _leaveButton = UIFactory.CreateTextButton(Root, "Leave", "离　开", 30,
+            _leaveButton = UIFactory.CreateTextButton(Root, "Leave", Loc.T("ui.event.leave", "离　开"), 30,
                 new Color(0.30f, 0.36f, 0.42f), Leave);
             var rt = (RectTransform)_leaveButton.transform;
             rt.anchorMin = new Vector2(0.5f, 0f);
@@ -79,8 +80,14 @@ namespace Game.UI
                                && RunEffectResolver.CanApplyAll(option.Effects, probe);
 
                 string detail = RunEffectResolver.DescribeAll(option.Effects, probe);
-                string label = string.IsNullOrEmpty(detail) ? option.Text : $"{option.Text}　（{detail}）";
-                if (!enabled && !string.IsNullOrEmpty(option.DisabledHint)) label += $"　— {option.DisabledHint}";
+                string optionText = _def.LocalizedOptionText(i);
+                string label = string.IsNullOrEmpty(detail)
+                    ? optionText
+                    : Loc.T("ui.event.option_with_detail", "{0}　（{1}）", optionText, detail);
+
+                string hint = _def.LocalizedOptionDisabledHint(i);
+                if (!enabled && !string.IsNullOrEmpty(hint))
+                    label += Loc.T("ui.event.option_disabled_hint", "　— {0}", hint);
 
                 var btn = UIFactory.CreateTextButton(_optionList, "Option" + i, label, 24,
                     new Color(0.26f, 0.32f, 0.40f), () => Choose(index));
@@ -108,7 +115,8 @@ namespace Game.UI
 
             // 结果文案：配置里的旁白 + 效果自己产出的日志
             var sb = new System.Text.StringBuilder(128);
-            if (!string.IsNullOrEmpty(option.ResultText)) sb.AppendLine(option.ResultText);
+            string resultText = _def.LocalizedOptionResultText(index);
+            if (!string.IsNullOrEmpty(resultText)) sb.AppendLine(resultText);
             for (int i = 0; i < ctx.Log.Count; i++) sb.AppendLine(ctx.Log[i]);
             _resultText.text = sb.ToString();
 
@@ -139,7 +147,7 @@ namespace Game.UI
                 // ★ 不可取消：代价（金币 / 生命）在效果里已经付掉了，
                 //   允许取消等于白扣玩家的钱。休息点那种「还没付代价」的地方才给取消。
                 case RunChoiceKind.RemoveCard:
-                    App.ShowCardPicker(req.Title ?? "移除一张卡", Run.Deck, null, req.Count, false, picks =>
+                    App.ShowCardPicker(req.Title ?? Loc.T("run.removecard.one", "移除一张卡"), Run.Deck, null, req.Count, false, picks =>
                     {
                         // 倒序移除，避免前面的下标影响后面的
                         picks.Sort();
@@ -154,7 +162,7 @@ namespace Game.UI
                     Run.GetUpgradableCards(upgradable);
                     if (upgradable.Count == 0) { ProcessNextChoice(); break; }
 
-                    App.ShowCardPicker(req.Title ?? "升级一张卡", upgradable, null,
+                    App.ShowCardPicker(req.Title ?? Loc.T("run.upgradecard.one", "升级一张卡"), upgradable, null,
                         Mathf.Min(req.Count, upgradable.Count), false, picks =>
                         {
                             for (int i = 0; i < picks.Count; i++) upgradable[picks[i]].Upgrade();
@@ -164,7 +172,7 @@ namespace Game.UI
                 }
 
                 case RunChoiceKind.AddOneOfCards:
-                    App.ShowCardPicker(req.Title ?? "选择一张卡", null, req.Options, 1, true, picks =>
+                    App.ShowCardPicker(req.Title ?? Loc.T("ui.event.pick_card", "选择一张卡"), null, req.Options, 1, true, picks =>
                     {
                         if (picks.Count > 0) Run.AddCard(req.Options[picks[0]]);
                         ProcessNextChoice();

@@ -3,6 +3,7 @@ using System.Text;
 using Game.Battle;
 using Game.Cards;
 using Game.Core;
+using Game.Localization;
 using Game.Potions;
 using Game.Units;
 using TMPro;
@@ -174,7 +175,7 @@ namespace Game.UI
             UIFactory.Stretch(_energyText.rectTransform);
 
             // ---- 药水栏
-            var potionHeader = UIFactory.CreateText(root, "PotionHeader", "药　水", 20,
+            var potionHeader = UIFactory.CreateText(root, "PotionHeader", Loc.T("ui.battle.potions", "药　水"), 20,
                 TextAnchor.MiddleLeft, new Color(0.62f, 0.86f, 0.78f));
             UIFactory.SetAnchored(potionHeader.rectTransform, new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(28, top - 96), new Vector2(300, top - 68));
@@ -189,7 +190,7 @@ namespace Game.UI
                 new Vector2(40, 20), new Vector2(420, 110));
 
             // ---- 结束回合按钮
-            _endTurnButton = UIFactory.CreateButton(root, "EndTurn", "结束回合", 26, new Color(0.55f, 0.25f, 0.25f));
+            _endTurnButton = UIFactory.CreateButton(root, "EndTurn", Loc.T("ui.battle.end_turn", "结束回合"), 26, new Color(0.55f, 0.25f, 0.25f));
             UIFactory.SetAnchored((RectTransform)_endTurnButton.transform, new Vector2(1, 0), new Vector2(1, 0),
                 new Vector2(-260, 130), new Vector2(-40, 210));
             _endTurnButton.onClick.AddListener(OnEndTurnClicked);
@@ -312,7 +313,7 @@ namespace Game.UI
             if (_controller.NeedsTargetSelection(view.Card))
             {
                 _selected = view;
-                ShowHint("选择一个目标");
+                ShowHint(Loc.T("ui.battle.pick_target", "选择一个目标"));
             }
             else
             {
@@ -624,9 +625,9 @@ namespace Game.UI
 
         private void RefreshHud()
         {
-            _turnText.text = $"第 {Ctx.TurnNumber} 回合    —    {PhaseText(Ctx.Phase)}";
+            _turnText.text = Loc.T("ui.battle.turn_header", "第 {0} 回合    —    {1}", Ctx.TurnNumber, PhaseText(Ctx.Phase));
             _energyText.text = $"{Ctx.Energy}/{Ctx.EnergyPerTurn}";
-            _pileText.text = $"抽牌堆 {Ctx.Deck.DrawPile.Count}    弃牌堆 {Ctx.Deck.DiscardPile.Count}    消耗堆 {Ctx.Deck.ExhaustPile.Count}";
+            _pileText.text = Loc.T("ui.battle.piles", "抽牌堆 {0}    弃牌堆 {1}    消耗堆 {2}", Ctx.Deck.DrawPile.Count, Ctx.Deck.DiscardPile.Count, Ctx.Deck.ExhaustPile.Count);
 
             if (_presenter != null)
             {
@@ -642,7 +643,7 @@ namespace Game.UI
             if (Ctx.BattleEnded && !_resultPanel.gameObject.activeSelf && Ctx.Events.Count == 0)
             {
                 _resultPanel.gameObject.SetActive(true);
-                _resultText.text = Ctx.Victory ? "战 斗 胜 利" : "战 斗 失 败";
+                _resultText.text = Ctx.Victory ? Loc.T("ui.battle.victory", "战 斗 胜 利") : Loc.T("ui.battle.defeat", "战 斗 失 败");
                 _resultText.color = Ctx.Victory ? new Color(1f, 0.9f, 0.4f) : new Color(1f, 0.4f, 0.4f);
             }
         }
@@ -718,7 +719,7 @@ namespace Game.UI
             _playLineBar = bar.GetComponent<Image>();
             _playLineBar.raycastTarget = false;      // 这条线横穿屏幕，绝不能吃掉点击
 
-            _playLineLabel = UIFactory.CreateText(_playLine, "Label", "松 手 出 牌", 18,
+            _playLineLabel = UIFactory.CreateText(_playLine, "Label", Loc.T("ui.battle.play_line", "松 手 出 牌"), 18,
                 TextAnchor.MiddleCenter, PlayLineIdle);
             UIFactory.SetAnchored(_playLineLabel.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
                 new Vector2(-140f, 6f), new Vector2(140f, 32f));
@@ -757,7 +758,7 @@ namespace Game.UI
 
             view.SnapPosition = _dragMode == DragMode.Free;
 
-            ShowHint(_dragMode == DragMode.Aim ? "把箭头拖到目标身上，松手出牌" : "拖过白线松手出牌");
+            ShowHint(_dragMode == DragMode.Aim ? Loc.T("ui.battle.drag_aim", "把箭头拖到目标身上，松手出牌") : Loc.T("ui.battle.drag_free", "拖过白线松手出牌"));
         }
 
         public void OnCardDrag(CardView view, PointerEventData e)
@@ -784,7 +785,7 @@ namespace Game.UI
 
             if (mode == DragMode.Aim)
             {
-                if (target == null) { ShowHint("需要选择目标"); return; }
+                if (target == null) { ShowHint(Loc.T("fail.need_target", "需要选择目标")); return; }
                 PlaySelected(card, target);
             }
             else if (mode == DragMode.Free)
@@ -836,8 +837,8 @@ namespace Game.UI
                 {
                     _lastAimTarget = _aimTarget;
                     ShowHint(_aimTarget != null
-                        ? $"松手，对「{_aimTarget.Name}」打出「{_dragCard.Card.DisplayName}」"
-                        : "把箭头拖到目标身上，松手出牌");
+                        ? Loc.T("ui.battle.drag_locked", "松手，对「{0}」打出「{1}」", _aimTarget.DisplayName, _dragCard.Card.DisplayName)
+                        : Loc.T("ui.battle.drag_aim", "把箭头拖到目标身上，松手出牌"));
                 }
                 return;
             }
@@ -958,7 +959,7 @@ namespace Game.UI
                     UIFactory.SetAnchored(empty, new Vector2(0, 1), new Vector2(1, 1),
                         new Vector2(0, y - 40), new Vector2(0, y - 6));
 
-                    var emptyText = UIFactory.CreateText(empty, "EmptyText", "空 槽", 15,
+                    var emptyText = UIFactory.CreateText(empty, "EmptyText", Loc.T("ui.battle.empty_slot", "空 槽"), 15,
                         TextAnchor.MiddleCenter, new Color(1f, 1f, 1f, 0.28f));
                     UIFactory.Stretch(emptyText.rectTransform);
                     continue;
@@ -1017,8 +1018,8 @@ namespace Game.UI
 
             string desc = potion.Def.GetDescription(Ctx);
             ShowHint(needsTarget
-                ? $"「{potion.DisplayName}」{desc}　—　点击一个敌人使用"
-                : $"「{potion.DisplayName}」{desc}　—　再点一次使用");
+                ? Loc.T("ui.battle.potion_need_target", "「{0}」{1}　—　点击一个敌人使用", potion.DisplayName, desc)
+                : Loc.T("ui.battle.potion_confirm", "「{0}」{1}　—　再点一次使用", potion.DisplayName, desc));
         }
 
         private void OnPotionDiscarded(int index)
@@ -1028,7 +1029,7 @@ namespace Game.UI
 
             var potion = potions[index];
             if (_selectedPotion == potion) _selectedPotion = null;
-            if (_controller.DiscardPotion(potion)) ShowHint($"倒掉了「{potion.DisplayName}」。");
+            if (_controller.DiscardPotion(potion)) ShowHint(Loc.T("ui.battle.potion_discarded", "倒掉了「{0}」。", potion.DisplayName));
         }
 
         private void UsePotion(PotionInstance potion, BattleUnit target)
@@ -1060,11 +1061,11 @@ namespace Game.UI
 
         private static string PotionReasonText(PotionFailReason r) => r switch
         {
-            PotionFailReason.NeedTarget => "需要选择目标",
-            PotionFailReason.InvalidTarget => "目标无效",
-            PotionFailReason.NotPlayerTurn => "现在不是你的回合",
-            PotionFailReason.BattleEnded => "战斗已结束",
-            PotionFailReason.WaitingForSelection => "请先完成选牌",
+            PotionFailReason.NeedTarget => Loc.T("fail.need_target", "需要选择目标"),
+            PotionFailReason.InvalidTarget => Loc.T("fail.invalid_target", "目标无效"),
+            PotionFailReason.NotPlayerTurn => Loc.T("fail.not_your_turn", "现在不是你的回合"),
+            PotionFailReason.BattleEnded => Loc.T("fail.battle_ended", "战斗已结束"),
+            PotionFailReason.WaitingForSelection => Loc.T("fail.waiting_selection", "请先完成选牌"),
             _ => ""
         };
 
@@ -1169,25 +1170,25 @@ namespace Game.UI
 
         private static string PhaseText(BattlePhase p) => p switch
         {
-            BattlePhase.PlayerTurn => "你的回合",
-            BattlePhase.EnemyTurn => "敌人回合",
-            BattlePhase.TurnStart => "回合开始",
-            BattlePhase.TurnEnd => "回合结束",
-            BattlePhase.Victory => "胜利",
-            BattlePhase.Defeat => "失败",
+            BattlePhase.PlayerTurn => Loc.T("phase.player_turn", "你的回合"),
+            BattlePhase.EnemyTurn => Loc.T("phase.enemy_turn", "敌人回合"),
+            BattlePhase.TurnStart => Loc.T("phase.turn_start", "回合开始"),
+            BattlePhase.TurnEnd => Loc.T("phase.turn_end", "回合结束"),
+            BattlePhase.Victory => Loc.T("phase.victory", "胜利"),
+            BattlePhase.Defeat => Loc.T("phase.defeat", "失败"),
             _ => p.ToString()
         };
 
         private static string ReasonText(PlayFailReason r) => r switch
         {
-            PlayFailReason.NotEnoughEnergy => "能量不足",
-            PlayFailReason.NeedTarget => "需要选择目标",
-            PlayFailReason.InvalidTarget => "目标无效",
-            PlayFailReason.Unplayable => "这张牌无法打出",
-            PlayFailReason.EffectCannotApply => "当前无法生效",
-            PlayFailReason.NotPlayerTurn => "现在不是你的回合",
-            PlayFailReason.BattleEnded => "战斗已结束",
-            PlayFailReason.WaitingForSelection => "请先完成选牌",
+            PlayFailReason.NotEnoughEnergy => Loc.T("fail.not_enough_energy", "能量不足"),
+            PlayFailReason.NeedTarget => Loc.T("fail.need_target", "需要选择目标"),
+            PlayFailReason.InvalidTarget => Loc.T("fail.invalid_target", "目标无效"),
+            PlayFailReason.Unplayable => Loc.T("fail.unplayable", "这张牌无法打出"),
+            PlayFailReason.EffectCannotApply => Loc.T("fail.cannot_apply", "当前无法生效"),
+            PlayFailReason.NotPlayerTurn => Loc.T("fail.not_your_turn", "现在不是你的回合"),
+            PlayFailReason.BattleEnded => Loc.T("fail.battle_ended", "战斗已结束"),
+            PlayFailReason.WaitingForSelection => Loc.T("fail.waiting_selection", "请先完成选牌"),
             _ => ""
         };
     }

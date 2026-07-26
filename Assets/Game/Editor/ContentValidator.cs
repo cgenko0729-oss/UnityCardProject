@@ -66,6 +66,12 @@ namespace Game.Editor
             return result;
         }
 
+        /// <summary>
+        /// 给同包的其它 Editor 工具用的入口（本地化导出工具需要同一套目录回退，
+        /// 否则它在 batchmode 下会导出一张空表——同样是「假成功」）。
+        /// </summary>
+        public static List<T> LoadAllPublic<T>() where T : ScriptableObject => LoadAll<T>();
+
         private static string PathOf(UnityEngine.Object o) => AssetDatabase.GetAssetPath(o);
 
         [MenuItem("Tools/卡牌游戏/3. 校验内容与架构规则", priority = 4)]
@@ -118,6 +124,106 @@ namespace Game.Editor
             warnings += CheckRewardPool(sb);
             warnings += CheckDuplicateIds(sb);
             warnings += CheckKeywords(sb);
+
+            errors += CheckLocalization(sb, ref warnings);
+
+            return errors;
+        }
+
+        // ============================================================ 本地化
+
+        /// <summary>
+        /// 翻译表的完整性与正确性。
+        ///
+        /// 三类问题，严重程度差得很远：
+        /// <list type="bullet">
+        /// <item><b>占位符不一致 = 错误。</b> 译文把 <c>{0}</c> 弄丢、写成全角、或改成 <c>{2}</c>，
+        ///       <c>string.Format</c> 在那个语言下会抛 <see cref="FormatException"/>。
+        ///       中文下一切正常，所以不靠校验器就只能等玩家来报。</item>
+        /// <item><b>译文过期 = 警告。</b> 原文改了译文没改，key 还在值还在，不会报任何错。</item>
+        /// <item><b>缺翻译 / 孤儿 key = 警告。</b> 缺翻译会安静回退到中文（可接受）；
+        ///       孤儿 key 说明 key 改名或内容删了，留着只会让表越来越脏。</item>
+        /// </list>
+        /// </summary>
+        private static int CheckLocalization(StringBuilder sb, ref int warnings)
+        {
+            int errors = 0;
+
+            var tables = LoadAll<Game.Localization.LocaleTable>();
+            if (tables.Count == 0) return 0;   // 还没做任何翻译，不是问题
+
+            var sources = LocalizationKeys.CollectAll();
+            var sourceByKey = new Dictionary<string, LocSourceEntry>(sources.Count);
+            foreach (var s in sources) sourceByKey[s.Key] = s;
+
+            foreach (var table in tables)
+            {
+                if (table == null) continue;
+
+                if (string.IsNullOrEmpty(table.LanguageCode))
+                {
+                    sb.AppendLine($"[警告] 语言表 {PathOf(table)} 没有填 LanguageCode，运行时永远匹配不到。");
+                    warnings++;
+                    continue;
+                }
+
+                if (table.LanguageCode == Game.Localization.Loc.SourceLanguage)
+                {
+                    sb.AppendLine($"[警告] 语言表 {PathOf(table)} 的 LanguageCode 是源语言 " +
+                                  $"{Game.Localization.Loc.SourceLanguage}。源语言的文案写在代码与 SO 里，" +
+                                  "不该建表——建了也永远不会被用到。");
+                    warnings++;
+                    continue;
+                }
+
+                var keysInTable = new HashSet<string>();
+                int missing = 0, stale = 0;
+
+                foreach (var entry in table.Entries)
+                {
+                    if (string.IsNullOrEmpty(entry.Key)) continue;
+                    keysInTable.Add(entry.Key);
+
+                    if (!sourceByKey.TryGetValue(entry.Key, out var src))
+                    {
+                        sb.AppendLine($"[警告] 语言表 {table.LanguageCode} 里的 key「{entry.Key}」" +
+                                      "在工程里已经不存在了（key 改名或内容被删）。");
+                        warnings++;
+                        continue;
+                    }
+
+                    var want = LocalizationKeys.PlaceholdersOf(src.Source);
+                    var got = LocalizationKeys.PlaceholdersOf(entry.Value);
+                    if (!want.SetEquals(got))
+                    {
+                        sb.AppendLine($"[错误] 语言 {table.LanguageCode} 的 key「{entry.Key}」占位符与原文不符：" +
+                                      $"原文 {LocalizationKeys.Describe(want)}，" +
+                                      $"译文 {LocalizationKeys.Describe(got)}。" +
+                                      "运行时会抛 FormatException 或漏填数值。");
+                        errors++;
+                    }
+
+                    if (!string.IsNullOrEmpty(entry.SourceSnapshot) && entry.SourceSnapshot != src.Source)
+                        stale++;
+                }
+
+                foreach (var s in sources)
+                    if (!keysInTable.Contains(s.Key)) missing++;
+
+                if (missing > 0)
+                {
+                    sb.AppendLine($"[警告] 语言 {table.LanguageCode} 还有 {missing} / {sources.Count} 条没翻译" +
+                                  "（会安静地回退到简体中文）。");
+                    warnings++;
+                }
+
+                if (stale > 0)
+                {
+                    sb.AppendLine($"[警告] 语言 {table.LanguageCode} 有 {stale} 条译文已过期" +
+                                  "（简中原文改过、译文没跟着改）。导出 CSV 时它们会带 [STALE] 前缀。");
+                    warnings++;
+                }
+            }
 
             return errors;
         }

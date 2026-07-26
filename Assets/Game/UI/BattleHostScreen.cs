@@ -1,4 +1,5 @@
 using Game.Battle;
+using Game.Localization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -21,7 +22,7 @@ namespace Game.UI
             var controller = Manager.Battle;
             if (controller == null)
             {
-                UIFactory.CreateText(Root, "NoBattle", "没有进行中的战斗。", 28);
+                UIFactory.CreateText(Root, "NoBattle", Loc.T("ui.battlehost.none", "没有进行中的战斗。"), 28);
                 return;
             }
 
@@ -31,7 +32,7 @@ namespace Game.UI
             _battleScreen = battleRoot.gameObject.AddComponent<BattleScreen>();
             _battleScreen.Bind(controller, battleRoot);
 
-            _continueButton = UIFactory.CreateTextButton(Root, "Continue", "继　续", 32,
+            _continueButton = UIFactory.CreateTextButton(Root, "Continue", Loc.T("ui.battlehost.continue", "继　续"), 32,
                 new Color(0.32f, 0.42f, 0.30f), OnContinue);
             var rt = (RectTransform)_continueButton.transform;
             rt.anchorMin = new Vector2(0.5f, 0.5f);

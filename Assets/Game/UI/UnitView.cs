@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Battle;
 using Game.Enemies;
+using Game.Localization;
 using Game.Statuses;
 using Game.Units;
 using TMPro;
@@ -94,7 +95,7 @@ namespace Game.UI
             float pct = Unit.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)Unit.Hp / Unit.MaxHp);
             _hpFill.fillAmount = pct;
             _hpText.text = $"{Unit.Hp} / {Unit.MaxHp}";
-            _blockText.text = Unit.Block > 0 ? $"[ 护甲 {Unit.Block} ]" : "";
+            _blockText.text = Unit.Block > 0 ? Loc.T("ui.unit.block", "[ 护甲 {0} ]", Unit.Block) : "";
 
             RefreshStatusChips();
 
@@ -115,7 +116,7 @@ namespace Game.UI
             }
             _bg.color = c;
 
-            _nameText.text = Unit.IsAlive ? Unit.Name : Unit.Name + "（已倒下）";
+            _nameText.text = Unit.IsAlive ? Unit.DisplayName : Loc.T("ui.unit.dead", "{0}（已倒下）", Unit.DisplayName);
         }
 
         private static string FormatIntent(Intent intent)
@@ -125,12 +126,12 @@ namespace Game.UI
                 case IntentKind.Attack:
                     return intent.Times > 1 ? $"⚔ {intent.Value} x{intent.Times}" : $"⚔ {intent.Value}";
                 case IntentKind.AttackDefend:
-                    return $"⚔ {intent.Value} + 防御";
+                    return Loc.T("intent.attack_defend", "⚔ {0} + 防御", intent.Value);
                 case IntentKind.AttackDebuff:
-                    return $"⚔ {intent.Value} + 减益";
+                    return Loc.T("intent.attack_debuff", "⚔ {0} + 减益", intent.Value);
                 case IntentKind.Defend: return $"🛡 {intent.Value}";
-                case IntentKind.Buff: return "▲ 强化";
-                case IntentKind.Debuff: return "▼ 减益";
+                case IntentKind.Buff: return Loc.T("intent.buff", "▲ 强化");
+                case IntentKind.Debuff: return Loc.T("intent.debuff", "▼ 减益");
                 case IntentKind.Sleep: return "z z z";
                 case IntentKind.Special: return "？";
                 default: return "";

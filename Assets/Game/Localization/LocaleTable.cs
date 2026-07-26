@@ -36,6 +36,16 @@ namespace Game.Localization
 
             [TextArea(1, 4)]
             public string Value;
+
+            /// <summary>
+            /// 翻译这条时简中原文长什么样。
+            ///
+            /// ★ 这是「译文过期」唯一可能被发现的途径：改了一句中文之后，
+            ///   英文表里那条旧译文<b>不会报任何错</b>——key 还在，值还在，只是意思对不上了。
+            ///   校验器拿这份快照和当前原文比，不一样就报警告。
+            /// </summary>
+            [TextArea(1, 4)]
+            public string SourceSnapshot;
         }
 
         public List<Entry> Entries = new List<Entry>();

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Core;
+using Game.Localization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -55,14 +56,14 @@ namespace Game.UI
             if (_root.gameObject.activeSelf != visible) _root.gameObject.SetActive(visible);
             if (!visible || run == null) return;
 
-            _hpText.text = $"♥ {run.Hp} / {run.MaxHp}";
+            _hpText.text = Loc.T("ui.topbar.hp", "♥ {0} / {1}", run.Hp, run.MaxHp);
             _goldText.text = $"◆ {run.Gold}";
 
             int floor = run.Map != null && run.CurrentNodeId >= 0
                 ? run.Map.GetNode(run.CurrentNodeId).Row + 1
                 : 0;
             int total = run.Map != null ? run.Map.RowCount : 0;
-            _floorText.text = total > 0 ? $"第 {floor} / {total} 层" : "";
+            _floorText.text = total > 0 ? Loc.T("ui.topbar.floor", "第 {0} / {1} 层", floor, total) : "";
 
             RefreshRelics(run);
         }

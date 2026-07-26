@@ -57,10 +57,10 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// 字体该按哪个语言选。本地化接进来之前恒为简中；
-        /// <see cref="Game.Localization.Loc"/> 落地后由它驱动。
+        /// 字体该按哪个语言选。由 <see cref="GameApp"/> 在语言变化时写入。
+        /// ★ 写完必须调 <see cref="InvalidateFont"/>，否则已缓存的字体资产不会重建。
         /// </summary>
-        internal static string CurrentFontLanguage = "zh-Hans";
+        public static string CurrentFontLanguage = Game.Localization.Loc.SourceLanguage;
 
         /// <summary>语言变了要重建字体资产。切语言时由 Loc 调。</summary>
         public static void InvalidateFont()

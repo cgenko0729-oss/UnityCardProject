@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Cards;
 using Game.Core;
+using Game.Localization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,7 +23,7 @@ namespace Game.UI
 
         protected override void Build()
         {
-            var title = UIFactory.CreateText(Root, "Title", "商　店", 44,
+            var title = UIFactory.CreateText(Root, "Title", Loc.T("ui.shop.title", "商　店"), 44,
                 TextAnchor.MiddleCenter, new Color(1f, 0.92f, 0.7f));
             UIFactory.SetAnchored(title.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(0, -140), new Vector2(0, -76));
@@ -34,7 +35,7 @@ namespace Game.UI
             var stock = Stock;
             if (stock == null || stock.Items.Count == 0)
             {
-                UIFactory.CreateText(Root, "Empty", "店主今天没开门。", 26);
+                UIFactory.CreateText(Root, "Empty", Loc.T("ui.shop.closed", "店主今天没开门。"), 26);
             }
             else
             {
@@ -62,7 +63,7 @@ namespace Game.UI
             UIFactory.SetAnchored(_hint.rectTransform, new Vector2(0, 0), new Vector2(1, 0),
                 new Vector2(0, 108), new Vector2(0, 146));
 
-            var leave = UIFactory.CreateTextButton(Root, "Leave", "离　开", 30,
+            var leave = UIFactory.CreateTextButton(Root, "Leave", Loc.T("ui.shop.leave", "离　开"), 30,
                 new Color(0.30f, 0.36f, 0.42f), () => Manager.ReturnToMap());
             var rt = (RectTransform)leave.transform;
             rt.anchorMin = new Vector2(0.5f, 0f);
@@ -91,7 +92,7 @@ namespace Game.UI
 
             if (Run.Gold < item.Price)
             {
-                ShowHint($"金币不足，还差 {item.Price - Run.Gold}。");
+                ShowHint(Loc.T("ui.shop.not_enough_gold", "金币不足，还差 {0}。", item.Price - Run.Gold));
                 return;
             }
 
@@ -100,7 +101,7 @@ namespace Game.UI
             // ★ 槽位检查必须在扣钱之前：先扣钱再发现装不下，玩家等于白付钱。
             if (item.Potion != null && !Run.HasPotionSpace)
             {
-                ShowHint("药水槽已满，先喝掉或倒掉一瓶再来。");
+                ShowHint(Loc.T("ui.shop.potion_full", "药水槽已满，先喝掉或倒掉一瓶再来。"));
                 return;
             }
 
@@ -110,17 +111,17 @@ namespace Game.UI
             if (item.Card != null)
             {
                 Run.AddCard(item.Card);
-                ShowHint($"买下了「{item.Card.DisplayName}」。");
+                ShowHint(Loc.T("ui.shop.bought_card", "买下了「{0}」。", item.Card.LocalizedName));
             }
             else if (item.Relic != null)
             {
                 Run.AddRelic(item.Relic);
-                ShowHint($"买下了遗物「{item.Relic.DisplayName}」。");
+                ShowHint(Loc.T("ui.shop.bought_relic", "买下了遗物「{0}」。", item.Relic.LocalizedName));
             }
             else if (item.Potion != null)
             {
                 Run.AddPotion(item.Potion);
-                ShowHint($"买下了药水「{item.Potion.DisplayName}」。");
+                ShowHint(Loc.T("ui.shop.bought_potion", "买下了药水「{0}」。", item.Potion.LocalizedName));
             }
 
             RefreshRows();
@@ -130,11 +131,11 @@ namespace Game.UI
         {
             if (Run.Deck.Count <= 1)
             {
-                ShowHint("牌库里的牌太少了，不能再移除。");
+                ShowHint(Loc.T("ui.shop.deck_too_small", "牌库里的牌太少了，不能再移除。"));
                 return;
             }
 
-            App.ShowCardPicker("选择要移除的卡", Run.Deck, null,
+            App.ShowCardPicker(Loc.T("ui.shop.pick_removal", "选择要移除的卡"), Run.Deck, null,
                 pickCount: 1, cancellable: true, onConfirm: picks =>
                 {
                     if (picks.Count == 0) return;   // 取消不扣钱
@@ -146,7 +147,7 @@ namespace Game.UI
                     Run.CardRemovalsPurchased++;
                     item.Sold = true;
 
-                    ShowHint($"移除了「{card.DisplayName}」。");
+                    ShowHint(Loc.T("ui.shop.removed", "移除了「{0}」。", card.DisplayName));
                     RefreshRows();
                 });
         }
@@ -170,18 +171,18 @@ namespace Game.UI
                 var label = UIFactory.LabelOf(btn);
                 if (label == null) continue;
 
-                if (item.Sold) label.text = $"{item.DisplayName}　—　已售出";
-                else if (full) label.text = $"{Kind(item)}　{item.DisplayName}　—　◆ {item.Price}　（药水槽已满）";
+                if (item.Sold) label.text = Loc.T("ui.shop.row_sold", "{0}　—　已售出", item.DisplayName);
+                else if (full) label.text = Loc.T("ui.shop.row_potion_full", "{0}　{1}　—　◆ {2}　（药水槽已满）", Kind(item), item.DisplayName, item.Price);
                 else label.text = $"{Kind(item)}　{item.DisplayName}　—　◆ {item.Price}";
             }
         }
 
         private static string Kind(ShopItem item)
         {
-            if (item.IsCardRemoval) return "[服务]";
-            if (item.Relic != null) return "[遗物]";
-            if (item.Potion != null) return "[药水]";
-            return "[卡牌]";
+            if (item.IsCardRemoval) return Loc.T("ui.shop.kind_service", "[服务]");
+            if (item.Relic != null) return Loc.T("ui.shop.kind_relic", "[遗物]");
+            if (item.Potion != null) return Loc.T("ui.shop.kind_potion", "[药水]");
+            return Loc.T("ui.shop.kind_card", "[卡牌]");
         }
 
         private void LateUpdate()
