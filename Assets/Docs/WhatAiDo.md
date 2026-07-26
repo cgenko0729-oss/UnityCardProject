@@ -61,9 +61,9 @@
 | 阶段 3 状态与敌人 AI | ✅ 完成并通过测试 | 8 个 Hook 接口、6 个状态、权重/条件/连续限制/多阶段 AI、意图预览 |
 | 阶段 4 地图与奖励 | ✅ 完成并通过测试 | 12 个 Hook、地图、RunManager、RunEffect、遗物、奖励/商店/事件/休息、8 个界面 |
 | 阶段 5 存档与内容 | 🔶 部分完成 | ✅ SaveSystem / MetaSave；⬜ 自动对战模拟器 / 内容量产 / Fuzz |
-| 阶段 6 动画音效打磨 | 🔶 部分完成 | ✅ 本地化 / ✅ TextMeshPro；⬜ DOTween / 音效 |
+| 阶段 6 动画音效打磨 | 🔶 部分完成 | ✅ 本地化 / ✅ TextMeshPro / ✅ 打击反馈 / ✅ 逐张发牌；⬜ 音效 |
 
-**当前代码规模**：`Assets/Game/` 下 124 个 .cs 文件；测试 12 个文件 198 个用例。
+**当前代码规模**：`Assets/Game/` 下 125 个 .cs 文件；测试 12 个文件 198 个用例。
 **内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水、5 个关键字。
 **本地化规模**：`Locale_en.asset` 里 514 条译文，简体中文（源语言）+ 英文。
 （第七次会话写的「495 条」之后没人同步过——第九 / 十 / 十二次会话各加了一批。
@@ -116,6 +116,7 @@ Assets/
 │   │                BattleHostScreen, RewardScreen, ShopScreen, EventScreen,
 │   │                RestScreen, MainMenuScreen, GameOverScreen, CardPickerScreen,
 │   │                CardListView（只读牌堆 / 卡组浏览）           ← 第十二次会话
+│   │                PileFlyFx（洗牌时一叠卡背飞回抽牌堆）        ← 第十三次会话
 │   └── Editor/      Game.Editor.asmdef, SampleContentGenerator(+Relics/+Events),
 │                    BattleSceneBuilder, MainSceneBuilder, ContentValidator
 ├── GameData/        （由菜单生成，不手写）
@@ -421,6 +422,51 @@ Assets/
     这是铁律 31 的另一面：全局静态开关不止「忘了放开」会坏，
     **「被别人每帧覆盖」也会坏，而且更难看出来**——因为两边的代码单独看都是对的。
     新增压制方必须把自己的诉求 OR 进那一处赋值（见 `CardListView.SuppressesTooltip`）。
+
+---
+
+## 六之十、2026-07-26 第十三次会话新增的铁律（逐张发牌）
+
+55. **手牌视图曾经是全工程唯一一处「表现不跟事件队列走」的地方。**
+    血条、护甲、飘字、震屏全都由 `BattlePresenter` 从 `BattleContext.Events` 里一条条取出来播
+    （见 `UnitView._shownHp`），唯独 `BattleScreen.RefreshHandViews` 直接读 `Deck.Hand`。
+    而战斗逻辑是同步的——`BeginTurn` 里 `Deck.Draw(5)` 是个纯 for 循环，返回时 5 张牌已经全在手上。
+    **凡是「表现直接读逻辑状态」的地方，都会在逻辑同步完成的那一帧把整批变化一次性吐出来**，
+    再精致的单体动画也救不回来。要分批就必须接回队列。
+
+56. **「这条事件播过了没有」用扫队列回答，不要维护一个「已经播过」的集合。**
+    集合是跨帧状态，于是必须自己回答三个问题：换战斗时谁清、读档时谁清、战斗结束时谁清；
+    而且任何一条没发出来的事件都会让那张牌**永远不出现，且不报任何错**。
+    扫队列没有状态：队列播空 → 集合天然为空 → 手上所有牌必然可见，兜底是白送的。
+    `Ctx.Events` 是具体的 `Queue<BattleEvent>`，`foreach` 用 struct 枚举器，零 GC。
+    这条是铁律 31 / 54 的正面版本：**能不留状态就别留**。
+
+57. **打出的牌同时命中「飞向目标」和「飞向弃牌堆」两条路径，必须让前者赢。**
+    `FinishPlay` → `SendCardToDestination` → `Deck.Discard`，所以一张打出去的牌
+    **既发 `CardPlayed` 也发 `CardDiscarded`**。被弃牌动画抢走的话，敌人闪白、被击退、
+    飘出数字，而画面上没有任何东西指向它——`CardFlyOut` 整个类就是为了补上这句因果。
+
+58. **一张牌的归宿从「它现在真的在哪一堆」读，不从事件类型猜。**
+    `CardExhausted` 与 `CardDiscarded` 在队列里长得一样（都只带 Uid），
+    而一张牌任何时刻只属于一个牌堆，直接问 `Deck.ExhaustPile.Contains(card)` 是唯一不会答错的问法。
+
+59. **「快进」必须是加速，不能是跳过。**
+    这条是 `MaxBacklogRate` 那段注释的延伸：五段攻击、全场中毒结算这些**最该有打击感**的时刻，
+    恰恰是队列最长的时刻，一「跳过」就等于把它们全部删掉。
+    `RequestFastForward` 只是把 `PlaybackRate` 临时乘 8——5 张牌 0.45 秒变 0.056 秒 ≈ 3 帧，
+    观感上就是「立刻发完」，但每一条仍然播过。
+    ⚠️ 复位必须写在 `Update` 里推进之前的「队列空了」分支：忘了的话
+    **点过一次之后整场战斗都在 8 倍速**，而且不报任何错。
+
+60. **`Image.DOFade` / `DOAnchorPos` 这些扩展在 `DOTweenModuleUI.cs` 里，`Game.UI` 引用不到。**
+    那些模块脚本没有 asmdef、编进 `Assembly-CSharp`，而 `Game.UI` 是 asmdef 程序集。
+    核心 `DOTween.dll` 里的 `DOTween.To` / `DOScale` / `DOPunchScale` / `DOLocalRotate` / `DOVirtual` 才够得着。
+    `UnitView.PlayHit` 两年前就踩过一次，这次 `PileFlyFx` 又踩了一次——**写 tween 前先看一眼它在哪个文件里**。
+
+61. **被 `SetPileButton` 每帧无条件重写的东西，不要在别处 tween 它。**
+    牌堆按钮的「收到一张牌」反馈只能动 `scale`，不能动颜色：底色被
+    `RefreshPileButtons` → `SetPileButton` 每帧写一次（表现播放期间要置灰），
+    在别处 tween 颜色活不过一帧。这是铁律 54 的同一形状，只是换了个开关。
 
 ---
 
@@ -1135,3 +1181,85 @@ Assets/
 - **筛选 / 排序控件没做**（使用者明确不要）。卡组超过 30 张后再考虑，见 C12。
 - 放大卡面是 `localScale = 2`，**已配插画的卡会有轻微模糊**（取决于源图分辨率）。
   57 张卡目前都没配图，所以现在看不见；将来配图后可以把 `ArtHeight` 也按倍数放大来缓解。
+
+### 2026-07-26 — 第十三次会话：逐张发牌（抽 / 弃 / 洗的表现分批）
+
+对应 `Docs/Ideas-Backlog.md` 的 **C13**（原 C 表末尾「抽牌动画 / 洗牌动画」两条）。
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 驱动方式 | **A1 扫事件队列**（否决了「presenter 播到时通知我一声」的有状态写法，以及纯 UI 错峰） |
+| 发牌期间输入 | **锁住，但点一下立刻发完**（否决了「不计入 InputLocked」与「锁完不给跳过」） |
+| `TurnStarted` 的位置 | **不挪，`Game.Runtime` 一行不碰**（代价见下面的已知取舍） |
+| 范围 | L0 逐张发牌 + 出生点校准 + 落位 punch + **弃牌 / 洗牌对称动画**；不做「抽牌堆计数延迟跳」 |
+| 弃牌 / 消耗的飞行终点 | 三颗牌堆按钮的真实位置（否决了把弃牌堆按钮挪到右下——那要重算 `HandWidth`，铁律 24） |
+
+**诊断：缺的不是动画，是节拍器**
+
+飞入动画两年前就写好了——`CardView.Create` 之后立刻 `SnapTo(SpawnSlot)`，再由
+`CardView.Update` 指数插值飞到扇形位。问题是 5 张牌在**同一帧**诞生（铁律 55）。
+而节拍器也早就有：`DeckController.DrawOne` 每抽一张就 Post 一条 `CardDrawn`（带 `card.Uid`），
+只是 `BattlePresenter.Play` 没有对应的 case、`DurationOf` 也返回 0，这条事件一直被静默丢弃。
+
+**做了什么（分支 `feature/draw-animation`）**
+
+1. **`BattlePresenter`**：`CardDrawn` / `CardDiscarded` / `CardExhausted` / `DeckShuffled`
+   四条事件从 0 时长改成有时长（0.09 / 0.05 / 0.05 / 0.35）；
+   新增 `RequestFastForward`（临时 8 倍速，**加速不是跳过**，铁律 59）。
+   刻意**不**给 `CardDrawn` 写日志——每回合 5 行「抽到 XX」会把只有 12 行的日志窗整个冲掉。
+2. **`BattleScreen`**：`ScanPendingCardEvents` 每帧扫队列得出「还没播到的进 / 出」（铁律 56）；
+   `RefreshHandViews` 改用**可见手牌**；离手的牌先钉在原地进 `_leaving`，
+   等自己那条事件被播到才 `CardFlyOut` 飞向对应牌堆。
+3. **出生点校准**：`SpawnSlot` 从写死的 `(-720, -20)` 改成抽牌堆按钮的真实位置
+   （换算过来约 x = −860，**差了 140 像素**）。牌少时没人看得出，一旦一张张发，
+   玩家的视线会跟着每张牌从头看到尾，起点对不对就很显眼。
+4. **落位 punch**：走 `CardView` 自己的附加系数，不用 DOTween（铁律 23）；
+   由 `CardView` 自己判定「飞到了没有」——飞行时长取决于 `FollowSpeed` 与距离，外面估不准。
+5. **`PileFlyFx`（新）**：洗牌时 5 块卡背色块走二次贝塞尔从弃牌堆飞回抽牌堆。
+   不用真的 `CardInstance`：洗 30 张牌就建 30 个完整卡面纯属浪费，而那个尺寸下玩家什么也读不到。
+6. **牌堆按钮反馈**：收 / 发牌时鼓一下，补偿三颗按钮并排挤在左下角（彼此只隔 128px）、
+   飞行终点在画面上几乎是同一个角落这件事。
+
+**实施中发现并处理的 4 个真实问题**
+
+| # | 问题 | 处理 |
+|---|---|---|
+| 1 | 打出的牌**同时**发 `CardPlayed` 和 `CardDiscarded`，两条飞行路径都认领得了它 | `_flyOutUid` 优先，立为铁律 57 |
+| 2 | 签名比对若仍按 `Deck.Hand`，presenter 每播掉一条 `CardDrawn` 手牌本身并没变、签名不变，整帧被 early-out 跳过 → **牌永远不出现** | 签名改按可见手牌 |
+| 3 | `Image.DOFade` 在 `DOTweenModuleUI.cs` 里，`Game.UI` 这个 asmdef 引用不到（`UnitView.PlayHit` 两年前踩过同一个坑） | 改 `DOTween.To`，立为铁律 60 |
+| 4 | 落位弹跳若直接乘在 `_rt.localScale` 上，会把上一帧的弹跳系数喂回插值，弹完要拖好几帧才回得去 | 另存一份不含弹跳的 `_scale` 当插值源 |
+
+另外三处是写的时候就避开的：归宿要问牌堆不要猜事件类型（铁律 58）、
+快进标记忘了复位会让整场战斗停在 8 倍速（铁律 59）、
+牌堆按钮的底色被每帧重写所以只能动 scale（铁律 61）。
+
+**验证**
+
+- 四个程序集 **0 error 0 warning**（Unity 编辑器占锁，用 VS2022 MSBuild 编译 Unity 生成的 csproj）
+- **`Game.Runtime` 一行未改，`Assets/Tests/` 一行未改** → EditMode 198 条的断言对象一个未动。
+  本次改动全在 `Game.UI`，而测试只依赖 `Game.Runtime`（同第十一、十二次会话的判断）。
+- `Assets/GameData/` 一个字节没动，**零新增本地化 key**。
+
+**已知取舍 / 尚未验证**
+
+- ⚠️ **尚未在 Play 模式下点过。** 首次试玩重点看八处：
+  ① 回合开始 5 张逐张出现，已在手的牌向两侧滑开腾位；
+  ② 发牌途中点一下（或按空格 / E）立刻发完，且**之后的回合恢复正常速度**（铁律 59 那条）；
+  ③ 「抽 3 张」这类卡牌也逐张——这是白赚的，接了队列就自动有；
+  ④ 打出的牌仍飞向**目标**而不是弃牌堆（铁律 57）；
+  ⑤ 出牌后多出的 0.05 秒黏不黏（`DurCardLeave`，嫌黏就调小它）；
+  ⑥ 回合结束手牌逐张飞向左下弃牌堆，虚无牌飞向消耗堆；
+  ⑦ 洗牌时看得见一叠卡背飞回去；
+  ⑧ 战斗打到一半切界面 / 读档 / 打完点「继续」，没有牌卡在看不见或飞不走的状态。
+- **横幅在发牌之后弹**：使用者选了不碰 `Game.Runtime`，而 `BeginTurn` 里
+  `Post(TurnStarted)` 写在 `Deck.Draw(draw)` **之后**，所以顺序是「牌发完 → 才弹『第 N 回合』」。
+  改回来只是把那一行上移，随时可议。
+- **发牌期间手牌是灰的**：`InputLocked` = 事件队列非空，而 `TurnStarted` 是最后一条，
+  于是发牌那 0.45 秒加横幅那 0.25 秒里手牌都是不可打出的灰色，之后才亮起来。
+  逻辑上诚实（那段时间确实点不了），但如果觉得难看，与上一条是同一个开关。
+- **抽牌堆计数不延迟**（使用者明确不要 L1-3）：牌还在飞，按钮上的数字已经是减完的。
+  要做的话照 `UnitView._shownHp` 那个「表现值 vs 逻辑值」的写法办。
+- **`PileFlyFx.cs.meta` 是手写的**（Unity 占着工程锁，没法让它自己生成）。
+  GUID 是新生成的、格式与既有 meta 逐字节一致；Unity 首次导入若有异议，删掉让它重建即可。

@@ -519,6 +519,22 @@ namespace Game.UI
             //   玩家会在看着弃牌堆的时候把自己的回合结束掉。
             if (_cardList != null) return;
 
+            // ---- 催表现快点播完
+            //
+            // ★ 优先级写死在这三段的先后顺序里：牌堆面板 > 取消（右键 / Esc）> 快进。
+            //   快进必须排最后，否则玩家想按 Esc 取消选中的牌时会先被当成「催一下」。
+            //
+            // ★ 只在 InputLocked 时响应：没积压的时候点屏幕是在出牌 / 选目标，
+            //   那些点击由 EventSystem 派发给具体的 Graphic，与这里无关。
+            //   这里之所以要自己读输入而不是挂个按钮，是因为「点屏幕任何地方都算」——
+            //   包括点在背景、日志、空白处，那些位置没有任何可点的 Graphic。
+            if (InputLocked && _presenter != null
+                && (InputCompat.LeftMouseDown || InputCompat.SpaceDown || InputCompat.KeyDown(KeyCode.E)))
+            {
+                _presenter.RequestFastForward();
+                return;
+            }
+
             if (InputCompat.SpaceDown || InputCompat.KeyDown(KeyCode.E))
             {
                 // ★ 正在选目标时，空格先取消选择而不是直接结束回合，
@@ -551,7 +567,15 @@ namespace Game.UI
                 _controller.RefreshIntents();
             }
 
+            // ★ 顺序有讲究，三步都不能换：
+            //   ① 先扫队列，得出「哪些牌还没发出来 / 还没走掉」；
+            //   ② RefreshHandViews 据此决定建谁、收谁；
+            //   ③ UpdateLeavingCards 放飞那些「事件刚被播到」的离场牌。
+            //   ③ 必须在 ② 之后：这一帧刚被 ② 塞进 _leaving 的牌，
+            //   如果它那条事件同帧就已经播完（0 时长事件连播），③ 会当场把它放走，不必等下一帧。
+            ScanPendingCardEvents();
             RefreshHandViews();
+            UpdateLeavingCards();
 
             // ★ 顺序有讲究：先算拖拽状态（它会写 _dragCardSlot / _aimTarget），
             //   LayoutHand 才排得出被拖那张牌的位置。
@@ -587,13 +611,121 @@ namespace Game.UI
         /// <summary>鼠标正悬停的牌。</summary>
         private CardView _hoveredCard;
 
-        /// <summary>新建手牌视图的起点：抽牌堆信息所在的左下角，牌从那里飞进扇形。</summary>
-        private static readonly Vector2 SpawnSlot = new Vector2(-720f, -20f);
         private const float SpawnRotation = -28f;
         private const float SpawnScale = 0.55f;
 
+        /// <summary>落位弹跳的幅度（0.10 = 到位那一下鼓到 110%）。</summary>
+        private const float DealPunch = 0.10f;
+
         /// <summary>
-        /// 手牌视图与 <c>Deck.Hand</c> 对齐。
+        /// 新建手牌视图的起点：抽牌堆按钮的**真实位置**，换算成 `_handArea` 的本地坐标。
+        ///
+        /// ★ 原本这里是写死的 <c>(-720, -20)</c>，而抽牌堆按钮在左下 x 40..162
+        ///   （换算过来约 x = -860）——差了 140 像素，牌是从抽牌堆**旁边**冒出来的。
+        ///   牌少的时候没人看得出，一旦改成一张一张发，玩家的视线会跟着每一张牌从头看到尾，
+        ///   起点对不对就变得很显眼了。
+        ///
+        /// ★ 每次现算而不是缓存：`Bind` 那一帧 Canvas 可能还没完成第一次布局，
+        ///   此刻算出来的值是错的，而缓存会把这个错误一直留到战斗结束。
+        ///   代价只是每张新牌两次矩阵变换。
+        /// </summary>
+        private Vector2 SpawnSlot => _drawPileButton != null
+            ? CenterIn(_handArea, (RectTransform)_drawPileButton.transform)
+            : new Vector2(-720f, -20f);
+
+        /// <summary>
+        /// 把 <paramref name="source"/> 的矩形中心换算成 <paramref name="target"/> 的本地坐标。
+        /// 两个 Canvas 都是 Overlay，所以相机传 null。
+        /// </summary>
+        private static Vector2 CenterIn(RectTransform target, RectTransform source)
+        {
+            if (target == null || source == null) return Vector2.zero;
+            Vector3 world = source.TransformPoint(source.rect.center);
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, world);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(target, screen, null, out var local);
+            return local;
+        }
+
+        // ============================================================ 逐张发牌 / 逐张离场
+        //
+        // ★ 这一段解决的是全工程唯一一处「表现不跟事件队列走」的地方。
+        //
+        //   血条、护甲、飘字、震屏全都由 BattlePresenter 从 BattleContext.Events 里
+        //   一条一条取出来播（见 UnitView._shownHp）；唯独手牌视图是**直接读逻辑状态**的
+        //   ——LateUpdate 拿 Deck.Hand 的 Uid 签名比对，一变就把缺的视图全部补齐。
+        //   而战斗逻辑是同步的：BeginTurn 里 Deck.Draw(5) 是个纯 for 循环，返回时 5 张牌
+        //   已经全在 Hand 里了。于是 5 张牌在同一帧诞生，5 条一模一样的飞入动画叠在一起，
+        //   看起来就是「啪」一下多了一把牌。
+        //
+        //   补法是给它一个节拍器，而节拍器早就有了：DeckController.DrawOne 每抽一张就
+        //   Post 一条 CardDrawn（带 card.Uid），只是 BattlePresenter 从来没接过它、
+        //   DurationOf 也给的 0。现在给了时长，这里只要多问一句：
+        //   **「这张牌的 CardDrawn 播过了吗？没播过就先别画它。」**
+
+        /// <summary>队列里还没被播到的 CardDrawn 的 Uid：逻辑上已在手，表现上还没发出来。</summary>
+        private readonly HashSet<int> _pendingDraw = new HashSet<int>();
+
+        /// <summary>队列里还没被播到的 CardDiscarded / CardExhausted 的 Uid。</summary>
+        private readonly HashSet<int> _pendingLeave = new HashSet<int>();
+
+        /// <summary>
+        /// 一张正在等着离场的牌，以及它该飞去哪。
+        /// ★ 刻意做成一个结构体而不是两个按下标对应的 List：那正是铁律 33 那条错位的形状，
+        ///   而这里的增删发生在两个不同的方法里，更容易对不齐。
+        /// </summary>
+        private struct LeavingCard
+        {
+            public CardView View;
+            public CardPile To;
+        }
+
+        /// <summary>已经离手、正等着自己那条事件被播到才起飞的视图。</summary>
+        private readonly List<LeavingCard> _leaving = new List<LeavingCard>();
+
+        /// <summary>过滤掉「还没发出来」的那些牌之后的手牌。</summary>
+        private readonly List<CardInstance> _visibleHand = new List<CardInstance>(12);
+
+        /// <summary>
+        /// 扫一遍表现事件队列，记下哪些牌的「进」「出」还没被播到。
+        ///
+        /// ★ 用**扫队列**而不是「presenter 播到时通知我一声、我记进一个集合」：
+        ///   后者要自己维护跨帧状态，于是必须自己回答三个问题——换战斗时谁清、读档时谁清、
+        ///   战斗结束时谁清；而且任何一条没发出来的事件（别的路径进手牌、逻辑层将来改写）
+        ///   都会让那张牌**永远不出现，且不报任何错**。
+        ///   扫队列没有状态：队列播空 → 集合天然为空 → 手上所有牌必然可见。
+        ///   `AddCard(CardPile.Hand)` 发的是 CardAdded、固有牌在 Init 时就进了抽牌堆、
+        ///   保留牌跨回合根本没离手——这些从来不进集合，行为与改动前逐帧完全相同。
+        ///
+        /// ★ 零 GC：Ctx.Events 声明成具体的 Queue&lt;BattleEvent&gt;，
+        ///   foreach 用的是它的 struct 枚举器，不装箱。队列常态不到 20 条。
+        /// </summary>
+        private void ScanPendingCardEvents()
+        {
+            _pendingDraw.Clear();
+            _pendingLeave.Clear();
+
+            // presenter 不在（或被关掉）时事件永远不会被消费，此时一条都不该挡——
+            // 否则手牌会整把消失。这与 InputLocked 里「presenter 不在就不上锁」是同一条兜底。
+            if (_presenter == null || !_presenter.isActiveAndEnabled) return;
+
+            foreach (var e in Ctx.Events)
+            {
+                switch (e.Type)
+                {
+                    case BattleEventType.CardDrawn:
+                        _pendingDraw.Add(e.TargetUid);
+                        break;
+
+                    case BattleEventType.CardDiscarded:
+                    case BattleEventType.CardExhausted:
+                        _pendingLeave.Add(e.TargetUid);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 手牌视图与 <c>Deck.Hand</c> 对齐（准确说是与**可见手牌**对齐，见 <see cref="ScanPendingCardEvents"/>）。
         ///
         /// ★ 增量复用而不是全量重建：原来手牌一变就 Destroy 全部 CardView 再重建，
         ///   于是打出一张牌之后其余牌是「瞬移」到新的扇形位置的——
@@ -604,16 +736,28 @@ namespace Game.UI
         {
             var hand = Ctx.Deck.Hand;
 
-            bool changed = hand.Count != _handSignature.Count;
+            // ---- 可见手牌 = 手牌 − 还没「发」出来的那些
+            _visibleHand.Clear();
+            for (int i = 0; i < hand.Count; i++)
+            {
+                var c = hand[i];
+                if (_pendingDraw.Count > 0 && _pendingDraw.Contains(c.Uid)) continue;
+                _visibleHand.Add(c);
+            }
+
+            // ★ 签名必须按**可见手牌**比对。按 hand 比对的话，presenter 每播掉一条 CardDrawn
+            //   手牌本身并没有变化，签名也就不变，整帧被 early-out 跳过——
+            //   牌会一直不出现，直到下一次真的有牌进出手牌为止。
+            bool changed = _visibleHand.Count != _handSignature.Count;
             if (!changed)
             {
-                for (int i = 0; i < hand.Count; i++)
-                    if (hand[i].Uid != _handSignature[i]) { changed = true; break; }
+                for (int i = 0; i < _visibleHand.Count; i++)
+                    if (_visibleHand[i].Uid != _handSignature[i]) { changed = true; break; }
             }
             if (!changed) return;
 
             _liveUids.Clear();
-            for (int i = 0; i < hand.Count; i++) _liveUids.Add(hand[i].Uid);
+            for (int i = 0; i < _visibleHand.Count; i++) _liveUids.Add(_visibleHand[i].Uid);
 
             // ---- 回收已经离手的牌
             for (int i = 0; i < _cardViews.Count; i++)
@@ -622,17 +766,25 @@ namespace Game.UI
                 if (v == null) continue;
                 if (v.Card != null && _liveUids.Contains(v.Card.Uid)) continue;
 
+                // ★ 「刚被打出去」优先于「被弃掉」。
+                //   打出一张牌的收尾会走 FinishPlay → SendCardToDestination → Deck.Discard，
+                //   所以它**同时**发了 CardPlayed 和 CardDiscarded，两条路径都认领得了这张牌。
+                //   必须让飞向目标那条赢：那是「谁干的」这句因果的唯一表达（见 CardFlyOut 的类注释），
+                //   被弃牌动画抢走的话，敌人闪白、被击退、飘出数字，而画面上没有任何东西指向它。
                 bool flies = v.Card != null && v.Card.Uid == _flyOutUid;
 
                 if (v.Card != null) _viewByUid.Remove(v.Card.Uid);
                 ForgetCardView(v);
 
-                // ★ 只有「刚被打出去」的那一张飞；被弃掉 / 被消耗 / 战斗结束清手牌的照旧直接销毁。
-                //   RefreshHandViews 只看得到「手牌变了」，看不到原因——原因由 PlaySelected 记在这里。
                 if (flies)
                 {
                     _flyOutUid = -1;
                     CardFlyOut.Play(v, PopupLayer, _flyOutTo);
+                }
+                else if (v.Card != null && _pendingLeave.Contains(v.Card.Uid))
+                {
+                    // 它自己那条 CardDiscarded / CardExhausted 还没播到 → 先钉在原地等着
+                    BeginLeaving(v);
                 }
                 else
                 {
@@ -642,13 +794,18 @@ namespace Game.UI
 
             // ---- 按手牌顺序重排，缺的现建
             _viewBuffer.Clear();
-            for (int i = 0; i < hand.Count; i++)
+            for (int i = 0; i < _visibleHand.Count; i++)
             {
-                var card = hand[i];
+                var card = _visibleHand[i];
                 if (!_viewByUid.TryGetValue(card.Uid, out var v) || v == null)
                 {
                     v = CardView.Create(_handArea, this, card);
                     v.SnapTo(SpawnSlot, SpawnRotation, SpawnScale);
+
+                    // 到位再弹，不是现在弹——现在这张牌还趴在屏幕左下的抽牌堆上
+                    v.ArmArrivalPunch(DealPunch * FeedbackSettings.HitMotionScale);
+                    FlashPileButton(CardPile.Draw);
+
                     _viewByUid[card.Uid] = v;
                 }
                 _viewBuffer.Add(v);
@@ -658,9 +815,76 @@ namespace Game.UI
             _cardViews.AddRange(_viewBuffer);
 
             _handSignature.Clear();
-            for (int i = 0; i < hand.Count; i++) _handSignature.Add(hand[i].Uid);
+            for (int i = 0; i < _visibleHand.Count; i++) _handSignature.Add(_visibleHand[i].Uid);
 
             _orderDirty = true;
+        }
+
+        /// <summary>
+        /// 一张牌离手了，但它的「弃掉 / 消耗」还没轮到播。先把它从手牌逻辑里摘干净、钉在原地。
+        /// </summary>
+        private void BeginLeaving(CardView v)
+        {
+            // ★ 必须当场断掉射线：它已经不在 _cardViews 里，LayoutHand / RefreshCards 都不会再管它，
+            //   但它仍然是屏幕上一张长得一模一样的牌。玩家点上去会走进 OnCardClicked，
+            //   拿着一张已经不在手里的 CardInstance 去问 CanPlayCard——不会崩，但会弹一句
+            //   莫名其妙的失败提示；悬停还会给它弹 tooltip。
+            var group = v.gameObject.GetComponent<CanvasGroup>();
+            if (group == null) group = v.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+
+            // ★ 归宿从**牌现在真的在哪一堆**读，不从事件类型猜：
+            //   CardExhausted 与 CardDiscarded 在队列里长得一样（都只带 Uid），
+            //   而一张牌任何时刻只属于一个牌堆，直接问牌堆是唯一不会答错的问法。
+            _leaving.Add(new LeavingCard
+            {
+                View = v,
+                To = Ctx.Deck.ExhaustPile.Contains(v.Card) ? CardPile.Exhaust : CardPile.Discard
+            });
+        }
+
+        /// <summary>
+        /// 放飞那些「事件刚被播到」的离场牌。
+        ///
+        /// ★ 判据是「它的 Uid 从 <see cref="_pendingLeave"/> 里消失了」= presenter 本帧刚播过那一条。
+        ///   与发牌那半边是同一个套路，方向相反。
+        /// </summary>
+        private void UpdateLeavingCards()
+        {
+            for (int i = _leaving.Count - 1; i >= 0; i--)
+            {
+                var item = _leaving[i];
+                var v = item.View;
+                if (v == null) { _leaving.RemoveAt(i); continue; }
+
+                // ★ 兜底：队列播空 / 战斗结束时无条件放飞。
+                //   战斗结束会把没播完的事件连同整个 Ctx 一起丢掉，
+                //   没有这一句的话这些牌会永远钉在屏幕上，盖在结算面板底下。
+                bool due = Ctx.Events.Count == 0
+                           || Ctx.BattleEnded
+                           || v.Card == null
+                           || !_pendingLeave.Contains(v.Card.Uid);
+
+                if (!due) continue;
+
+                _leaving.RemoveAt(i);
+
+                FlashPileButton(item.To);
+                CardFlyOut.Play(v, PopupLayer, PileAnchor(item.To));
+            }
+        }
+
+        /// <summary>某个牌堆按钮的位置，换算成 <see cref="PopupLayer"/> 的本地坐标（飞行终点用）。</summary>
+        private Vector2 PileAnchor(CardPile pile)
+        {
+            var btn = pile == CardPile.Exhaust ? _exhaustPileButton
+                    : pile == CardPile.Draw ? _drawPileButton
+                    : _discardPileButton;
+
+            return btn != null
+                ? CenterIn(PopupLayer, (RectTransform)btn.transform)
+                : Vector2.zero;
         }
 
         /// <summary>某张牌的视图即将消失：把所有指向它的引用清掉。</summary>
@@ -677,6 +901,16 @@ namespace Game.UI
         {
             for (int i = 0; i < _cardViews.Count; i++)
                 if (_cardViews[i] != null) Destroy(_cardViews[i].gameObject);
+
+            // ★ 离场队列也要一起清。它装的是「已经离手、正等着自己那条事件被播到」的牌，
+            //   换战斗时那些事件属于上一场、永远不会再来，留着就是一把钉在新战斗界面上的旧牌。
+            for (int i = 0; i < _leaving.Count; i++)
+                if (_leaving[i].View != null) Destroy(_leaving[i].View.gameObject);
+            _leaving.Clear();
+
+            _pendingDraw.Clear();
+            _pendingLeave.Clear();
+            _visibleHand.Clear();
 
             _cardViews.Clear();
             _viewByUid.Clear();
@@ -872,6 +1106,51 @@ namespace Game.UI
             UIFactory.SetInteractable(btn, on, PileButtonColor);
         }
 
+        // ============================================================ 牌堆反馈
+
+        /// <summary>牌堆按钮被「碰到」时鼓一下的幅度与时长。</summary>
+        private const float PileFlashPunch = 0.22f;
+        private const float PileFlashTime = 0.22f;
+
+        /// <summary>
+        /// 某个牌堆刚吞进 / 吐出一张牌，让它的按钮弹一下。
+        ///
+        /// ★ 这是三颗按钮并排挤在左下角的补偿。抽牌堆 x 40..162、弃牌堆 168..290、
+        ///   消耗堆 296..418，彼此只隔 128 像素——牌飞过去的终点在画面上几乎是同一个角落，
+        ///   光看轨迹分不出这张牌到底进了哪一堆。让接收方自己动一下，指向才算说清楚。
+        ///
+        /// ★ 只动 scale 不动颜色：按钮底色被 <see cref="SetPileButton"/> 每帧无条件重写
+        ///   （表现播放期间要置灰），在这里 tween 颜色活不过一帧——同铁律 54 那条，
+        ///   两边的代码单独看都是对的。
+        /// </summary>
+        private void FlashPileButton(CardPile pile)
+        {
+            if (FeedbackSettings.HitMotionScale <= 0.001f) return;
+
+            var btn = pile == CardPile.Exhaust ? _exhaustPileButton
+                    : pile == CardPile.Discard ? _discardPileButton
+                    : _drawPileButton;
+            if (btn == null) return;
+
+            var rt = (RectTransform)btn.transform;
+            DOTween.Kill(rt);
+            rt.localScale = Vector3.one;
+            rt.DOPunchScale(Vector3.one * (PileFlashPunch * FeedbackSettings.HitMotionScale),
+                            PileFlashTime, 5, 0.7f).SetTarget(rt);
+        }
+
+        /// <summary>
+        /// 洗牌：一叠牌从弃牌堆飞回抽牌堆。由 <see cref="BattlePresenter"/> 播到
+        /// <see cref="BattleEventType.DeckShuffled"/> 时调。
+        /// </summary>
+        public void PlayShuffleFx()
+        {
+            if (PopupLayer == null) return;
+
+            PileFlyFx.Play(PopupLayer, PileAnchor(CardPile.Discard), PileAnchor(CardPile.Draw));
+            FlashPileButton(CardPile.Draw);
+        }
+
         // ============================================================ 拖拽出牌
 
         /// <summary>
@@ -1038,6 +1317,16 @@ namespace Game.UI
             TimeFeedback.RestoreIfActive();
             if (_shake != null) _shake.StopNow();
             if (_energyPanel != null) DOTween.Kill(_energyPanel);
+
+            // 三颗牌堆按钮的弹跳 tween 同理：对象要被销毁了，tween 还活在 DOTween 的全局队列里
+            KillPileTween(_drawPileButton);
+            KillPileTween(_discardPileButton);
+            KillPileTween(_exhaustPileButton);
+        }
+
+        private static void KillPileTween(Button btn)
+        {
+            if (btn != null) DOTween.Kill(btn.transform);
         }
 
         private void EndDrag()
