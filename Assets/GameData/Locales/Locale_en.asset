@@ -456,9 +456,6 @@ MonoBehaviour:
   - Key: ui.battle.pick_target
     Value: "Choose a target"
     SourceSnapshot: "\u9009\u62E9\u4E00\u4E2A\u76EE\u6807"
-  - Key: ui.battle.piles
-    Value: "Draw {0}    Discard {1}    Exhaust {2}"
-    SourceSnapshot: "\u62BD\u724C\u5806 {0}    \u5F03\u724C\u5806 {1}    \u6D88\u8017\u5806 {2}"
   - Key: ui.battle.play_line
     Value: "R E L E A S E   T O   P L A Y"
     SourceSnapshot: "\u677E \u624B \u51FA \u724C"
@@ -1527,3 +1524,33 @@ MonoBehaviour:
   - Key: event.whispering_idol.option.2.result
     Value: "The voice grows distant."
     SourceSnapshot: "\u58F0\u97F3\u6E10\u6E10\u8FDC\u4E86\u3002"
+  - Key: ui.battle.pile.draw
+    Value: "Draw {0}"
+    SourceSnapshot: "\u62BD\u724C\u5806 {0}"
+  - Key: ui.battle.pile.discard
+    Value: "Discard {0}"
+    SourceSnapshot: "\u5F03\u724C\u5806 {0}"
+  - Key: ui.battle.pile.exhaust
+    Value: "Exhaust {0}"
+    SourceSnapshot: "\u6D88\u8017\u5806 {0}"
+  - Key: ui.cardlist.title.draw
+    Value: "Draw Pile ({0})"
+    SourceSnapshot: "\u62BD\u724C\u5806\uFF08{0}\uFF09"
+  - Key: ui.cardlist.title.discard
+    Value: "Discard Pile ({0})"
+    SourceSnapshot: "\u5F03\u724C\u5806\uFF08{0}\uFF09"
+  - Key: ui.cardlist.title.exhaust
+    Value: "Exhaust Pile ({0})"
+    SourceSnapshot: "\u6D88\u8017\u5806\uFF08{0}\uFF09"
+  - Key: ui.cardlist.title.deck
+    Value: "Your Deck ({0})"
+    SourceSnapshot: "\u5361\u7EC4\uFF08{0}\uFF09"
+  - Key: ui.cardlist.empty
+    Value: "Nothing here yet."
+    SourceSnapshot: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u724C\u3002"
+  - Key: ui.cardlist.close
+    Value: "Close"
+    SourceSnapshot: "\u5173\u95ED"
+  - Key: ui.topbar.deck
+    Value: "Deck {0}"
+    SourceSnapshot: "\u5361\u7EC4 {0}"

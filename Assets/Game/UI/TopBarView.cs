@@ -20,6 +20,14 @@ namespace Game.UI
         private TMP_Text _goldText;
         private TMP_Text _floorText;
         private RectTransform _relicRow;
+        private Button _deckButton;
+
+        /// <summary>
+        /// 「卡组」按钮的底色。
+        /// ★ 用文字按钮而不是图标：<c>GameDatabase</c> 里没有 UI 图标字段，
+        ///   为一颗按钮新造一个 SO 不划算。将来要接图标就换这一处，与铁律 47「有图才换」同形。
+        /// </summary>
+        private static readonly Color DeckButtonColor = new Color(0.26f, 0.30f, 0.38f);
 
         private readonly List<string> _shownRelics = new List<string>();
 
@@ -74,24 +82,50 @@ namespace Game.UI
             UIFactory.SetAnchored(view._goldText.rectTransform, new Vector2(0, 0), new Vector2(0, 1),
                 new Vector2(230, 0), new Vector2(390, 0));
 
+            // ---- 右端：卡组按钮 → 层数 → （左边是遗物栏）
+            //
+            // ★ 右侧现在挤了三样东西，几何是**互相咬住**的：卡组按钮占最右 112px，
+            //   层数文字紧挨着它，遗物栏的右边界又必须停在层数文字左边。
+            //   动任何一个都要同时改另外两个，否则英文下会叠字（英文比中文长 1.6–2 倍）。
+            view._deckButton = UIFactory.CreateTextButton(rt, "DeckButton", "", 20,
+                DeckButtonColor, view.OnDeckClicked);
+            UIFactory.SetAnchored((RectTransform)view._deckButton.transform, new Vector2(1, 0), new Vector2(1, 1),
+                new Vector2(-136, 8), new Vector2(-24, -8));
+            UIFactory.EnableAutoSize(UIFactory.LabelOf(view._deckButton), 13f, 20f);
+
             view._floorText = UIFactory.CreateText(rt, "Floor", "", 22, TextAnchor.MiddleRight,
                 new Color(0.8f, 0.85f, 0.95f));
             UIFactory.SetAnchored(view._floorText.rectTransform, new Vector2(1, 0), new Vector2(1, 1),
-                new Vector2(-260, 0), new Vector2(-24, 0));
+                new Vector2(-380, 0), new Vector2(-144, 0));
 
+            // ★ 可用宽度比接卡组按钮之前少了 120px。遗物多到挤不下时会被
+            //   HorizontalLayoutGroup 挤出右边界——那是**接这颗按钮之前就存在**的问题
+            //   （遗物栏没有换行也没有滚动），这里只是让它早 120px 发生。本次不解决。
             view._relicRow = UIFactory.CreateHorizontalGroup(rt, "Relics", 6f);
             UIFactory.SetAnchored(view._relicRow, new Vector2(0, 0), new Vector2(1, 1),
-                new Vector2(400, 6), new Vector2(-270, -6));
+                new Vector2(400, 6), new Vector2(-390, -6));
 
             // ★ 切语言时顶栏会被销毁重建（GameApp.OnLanguageChanged），所以这里是赋值而不是「只赋一次」。
             _current = view;
             return view;
         }
 
-        public void Refresh(RunContext run, bool visible)
+        public void Refresh(RunContext run, bool visible, bool showDeckButton)
         {
             if (_root.gameObject.activeSelf != visible) _root.gameObject.SetActive(visible);
             if (!visible || run == null) return;
+
+            if (_deckButton != null)
+            {
+                if (_deckButton.gameObject.activeSelf != showDeckButton)
+                    _deckButton.gameObject.SetActive(showDeckButton);
+
+                if (showDeckButton)
+                {
+                    var label = UIFactory.LabelOf(_deckButton);
+                    if (label != null) label.text = Loc.T("ui.topbar.deck", "卡组 {0}", run.Deck.Count);
+                }
+            }
 
             _hpText.text = Loc.T("ui.topbar.hp", "♥ {0} / {1}", run.Hp, run.MaxHp);
             _goldText.text = $"◆ {run.Gold}";
@@ -205,6 +239,11 @@ namespace Game.UI
 
             if (FeedbackSettings.HitMotionScale > 0.001f)
                 seq.Join(chip.DOPunchScale(Vector3.one * 0.4f, 0.4f, 6, 0.6f));
+        }
+
+        private void OnDeckClicked()
+        {
+            if (_app != null) _app.ShowDeckView();
         }
 
         private static string ShortLabel(string name)

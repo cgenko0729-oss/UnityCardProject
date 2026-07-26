@@ -40,11 +40,15 @@ namespace Game.UI
 
         private TMP_Text _turnText;
         private TMP_Text _energyText;
-        private TMP_Text _pileText;
         private TMP_Text _logText;
         private TMP_Text _hintText;
         private TMP_Text _resultText;
         private Button _endTurnButton;
+
+        // 三个牌堆的查看按钮。label 每帧带上张数，见 RefreshHud。
+        private Button _drawPileButton;
+        private Button _discardPileButton;
+        private Button _exhaustPileButton;
 
         private readonly List<UnitView> _unitViews = new List<UnitView>();
         private readonly List<CardView> _cardViews = new List<CardView>();
@@ -202,10 +206,12 @@ namespace Game.UI
             UIFactory.SetAnchored(_potionBar, new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(24, top - 258), new Vector2(320, top - 100));
 
-            // ---- 牌堆信息
-            _pileText = UIFactory.CreateText(root, "Piles", "", 20, TextAnchor.LowerLeft);
-            UIFactory.SetAnchored(_pileText.rectTransform, new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(40, 20), new Vector2(420, 110));
+            // ---- 牌堆信息（三颗可点按钮）
+            //
+            // ★ 位置沿用原来那行纯文字的区域（左下 40..420 × 20..110），兄弟顺序也没变——
+            //   它夹在能量球与 _handArea 之间，而 _handArea 的宽度是按遮挡关系推算出来的（铁律 24）。
+            //   把这块往右挪或加宽，就要重算 HandWidth。
+            BuildPileButtons(root);
 
             // ---- 结束回合按钮
             _endTurnButton = UIFactory.CreateButton(root, "EndTurn", Loc.T("ui.battle.end_turn", "结束回合"), 26, new Color(0.55f, 0.25f, 0.25f));
@@ -261,6 +267,86 @@ namespace Game.UI
             _resultText = UIFactory.CreateText(_resultPanel, "ResultText", "", 64);
             UIFactory.Stretch(_resultText.rectTransform);
             _resultPanel.gameObject.SetActive(false);
+        }
+
+        // ============================================================ 牌堆浏览
+
+        /// <summary>三个牌堆各一颗按钮。数字每帧由 <see cref="RefreshHud"/> 写进 label。</summary>
+        private void BuildPileButtons(RectTransform root)
+        {
+            const float x0 = 40f, y0 = 20f, w = 122f, h = 46f, gap = 6f;
+
+            _drawPileButton = MakePileButton(root, "PileDraw", x0, y0, w, h, CardPile.Draw);
+            _discardPileButton = MakePileButton(root, "PileDiscard", x0 + (w + gap), y0, w, h, CardPile.Discard);
+            _exhaustPileButton = MakePileButton(root, "PileExhaust", x0 + (w + gap) * 2f, y0, w, h, CardPile.Exhaust);
+        }
+
+        private Button MakePileButton(RectTransform root, string name, float x, float y,
+                                      float w, float h, CardPile pile)
+        {
+            var btn = UIFactory.CreateTextButton(root, name, "", 18, PileButtonColor, () => OpenPileView(pile));
+            UIFactory.SetAnchored((RectTransform)btn.transform, new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(x, y), new Vector2(x + w, y + h));
+
+            // 按钮宽度写死 122，而英文比中文长 1.6–2 倍（「消耗堆 12」→「Exhaust 12」）
+            // 且张数可能是两位数 → 让文字自己缩，别指望 122 永远够
+            UIFactory.EnableAutoSize(UIFactory.LabelOf(btn), 12f, 18f);
+            return btn;
+        }
+
+        private static readonly Color PileButtonColor = new Color(0.22f, 0.25f, 0.32f);
+
+        /// <summary>当前开着的牌堆浏览面板。null = 没开。</summary>
+        private CardListView _cardList;
+
+        /// <summary>
+        /// 打开某个牌堆。
+        ///
+        /// ★ 面板建在 <see cref="_modalLayer"/>（本界面自己的层），**不是** <c>GameApp.OverlayLayer</c>：
+        ///   单场战斗调试场景 <c>Battle.unity</c> 里没有 <see cref="GameApp"/>，
+        ///   用那一层的话调试场景一点就 NullReference。
+        /// </summary>
+        private void OpenPileView(CardPile pile)
+        {
+            if (Ctx == null || Ctx.BattleEnded || InputLocked) return;
+            if (_cardList != null) return;
+
+            var deck = Ctx.Deck;
+            List<CardInstance> cards;
+            string title;
+            CardListOrder order;
+
+            switch (pile)
+            {
+                case CardPile.Draw:
+                    cards = deck.DrawPile;
+                    title = Loc.T("ui.cardlist.title.draw", "抽牌堆（{0}）", deck.DrawPile.Count);
+                    // ★ 抽牌堆必须排序：按真实顺序显示等于直接告诉玩家下几张抽什么（铁律 53）
+                    order = CardListOrder.Sorted;
+                    break;
+
+                case CardPile.Discard:
+                    cards = deck.DiscardPile;
+                    title = Loc.T("ui.cardlist.title.discard", "弃牌堆（{0}）", deck.DiscardPile.Count);
+                    order = CardListOrder.AsIs;
+                    break;
+
+                default:
+                    cards = deck.ExhaustPile;
+                    title = Loc.T("ui.cardlist.title.exhaust", "消耗堆（{0}）", deck.ExhaustPile.Count);
+                    order = CardListOrder.AsIs;
+                    break;
+            }
+
+            // ★ cards 直接传引用，由 CardListView 自己复制一份再排序——绝不能在这里就地排（铁律 52）
+            _cardList = CardListView.Open(_modalLayer, title, cards, Database, order,
+                                          onClosed: () => _cardList = null);
+        }
+
+        private void CloseCardList()
+        {
+            if (_cardList != null) _cardList.Close();
+            _cardList = null;
         }
 
         private void BuildUnitViews()
@@ -416,12 +502,22 @@ namespace Game.UI
 
         private void Update()
         {
+            // ★ 牌堆浏览面板优先吃掉 Esc / 右键，而且必须**在 CancelTargeting 之前**问它。
+            //   写成「面板自己在 Update 里轮询」会踩时序：两个 MonoBehaviour 的 Update
+            //   先后顺序不确定，本方法有可能同一帧先跑，Esc 被 CancelTargeting 先吃掉，
+            //   于是面板「有时候关得掉、有时候关不掉」。见 CardListView.ConsumeCancelInput。
+            if (_cardList != null && _cardList.ConsumeCancelInput()) return;
+
             // 取消选择永远允许——即使在播动画，玩家也该能反悔
             if (InputCompat.RightMouseDown || InputCompat.EscapeDown)
             {
                 CancelTargeting();
                 return;
             }
+
+            // ★ 面板开着时必须挡住键盘。遮罩只吃**射线**，空格 / E 照样能打到这里，
+            //   玩家会在看着弃牌堆的时候把自己的回合结束掉。
+            if (_cardList != null) return;
 
             if (InputCompat.SpaceDown || InputCompat.KeyDown(KeyCode.E))
             {
@@ -461,8 +557,14 @@ namespace Game.UI
             //   LayoutHand 才排得出被拖那张牌的位置。
             UpdateDragVisuals();
 
-            // 正举着一张牌找目标时不该有提示框跳出来碍事
-            TooltipView.Suppressed = _dragMode != DragMode.None;
+            // 正举着一张牌找目标时不该有提示框跳出来碍事。
+            //
+            // ★ 这是一次**无条件赋值**，所以任何别处压下的 Suppressed 都会被它每帧冲掉。
+            //   牌堆浏览面板弹出放大卡面时也要压住 tooltip，因此必须在这里 OR 进来——
+            //   否则大卡开着，底下网格的 tooltip 照样从大卡背后冒出来（铁律 31 的另一面：
+            //   全局静态开关不止「忘了放开」会坏，「被别人每帧覆盖」也会坏，而且更难看出来）。
+            TooltipView.Suppressed = _dragMode != DragMode.None
+                                     || (_cardList != null && _cardList.SuppressesTooltip);
 
             LayoutHand();
             RefreshCards();
@@ -718,7 +820,7 @@ namespace Game.UI
 
             _energyText.text = $"{Ctx.Energy}/{Ctx.EnergyPerTurn}";
             PulseEnergyOnSpend(Ctx.Energy);
-            _pileText.text = Loc.T("ui.battle.piles", "抽牌堆 {0}    弃牌堆 {1}    消耗堆 {2}", Ctx.Deck.DrawPile.Count, Ctx.Deck.DiscardPile.Count, Ctx.Deck.ExhaustPile.Count);
+            RefreshPileButtons();
 
             if (_presenter != null)
             {
@@ -737,6 +839,37 @@ namespace Game.UI
                 _resultText.text = Ctx.Victory ? Loc.T("ui.battle.victory", "战 斗 胜 利") : Loc.T("ui.battle.defeat", "战 斗 失 败");
                 _resultText.color = Ctx.Victory ? new Color(1f, 0.9f, 0.4f) : new Color(1f, 0.4f, 0.4f);
             }
+        }
+
+        /// <summary>
+        /// 三颗牌堆按钮的文字与可用性。
+        ///
+        /// ★ 表现事件还在播时置灰（<see cref="InputLocked"/>）：战斗逻辑是同步的，
+        ///   玩家点「结束回合」那一瞬间敌人回合已经跑完、下一个自己的回合也开始了，
+        ///   而画面还在按 0.12 秒一条地播。此刻打开弃牌堆看到的是**逻辑上的现在**，
+        ///   与玩家眼前的画面对不上。与手牌变灰 / 结束回合置灰是同一条纪律。
+        /// </summary>
+        private void RefreshPileButtons()
+        {
+            var deck = Ctx.Deck;
+            bool on = !InputLocked && !Ctx.BattleEnded;
+
+            SetPileButton(_drawPileButton, Loc.T("ui.battle.pile.draw", "抽牌堆 {0}", deck.DrawPile.Count), on);
+            SetPileButton(_discardPileButton, Loc.T("ui.battle.pile.discard", "弃牌堆 {0}", deck.DiscardPile.Count), on);
+            SetPileButton(_exhaustPileButton, Loc.T("ui.battle.pile.exhaust", "消耗堆 {0}", deck.ExhaustPile.Count), on);
+
+            // ★ 兜底：战斗结束时把还开着的面板收掉，否则它会浮在结算面板上。
+            //   正常流程走不到这里（面板开着时玩家点不了任何能推进战斗的东西），
+            //   但第三次会话的界面泄漏就是「以为走不到」的那一类，留一行不亏。
+            if (Ctx.BattleEnded && _cardList != null) CloseCardList();
+        }
+
+        private void SetPileButton(Button btn, string label, bool on)
+        {
+            if (btn == null) return;
+            var text = UIFactory.LabelOf(btn);
+            if (text != null) text.text = label;
+            UIFactory.SetInteractable(btn, on, PileButtonColor);
         }
 
         // ============================================================ 拖拽出牌

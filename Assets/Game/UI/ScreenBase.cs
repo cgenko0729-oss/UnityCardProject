@@ -41,5 +41,14 @@ namespace Game.UI
 
         /// <summary>是否显示顶部状态栏（生命 / 金币 / 遗物）。主菜单不显示。</summary>
         public virtual bool ShowTopBar => true;
+
+        /// <summary>
+        /// 顶栏上是否显示「查看卡组」按钮。
+        ///
+        /// ★ 由界面自己声明，而不是让 <see cref="TopBarView"/> 去读 <c>Run.Phase</c>：
+        ///   加新界面时不会漏（漏了只是少一颗按钮，没人会发现），
+        ///   而且与既有的 <see cref="ShowTopBar"/> 是同一套写法。
+        /// </summary>
+        public virtual bool ShowDeckButton => true;
     }
 }
