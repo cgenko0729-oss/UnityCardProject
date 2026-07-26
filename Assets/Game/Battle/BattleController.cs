@@ -56,6 +56,11 @@ namespace Game.Battle
                 Rng = run.Rng,
                 Run = run,
                 EnergyPerTurn = run.EnergyPerTurn,
+
+                // 第一个回合开始之前就可能被读到（界面绑定得比 BeginTurn 早），
+                // 先给个不带加成的合理值，BeginTurn 里会立刻覆盖成真值
+                EnergyThisTurn = run.EnergyPerTurn,
+
                 Deck = new DeckController(),
             };
 
@@ -142,11 +147,17 @@ namespace Game.Battle
 
             Ctx.Player.DecayBlock(Ctx);
 
+            // ★ 起点每回合都从 Ctx.EnergyPerTurn 重新取，加成不回写进它——
+            //   回写的话「每回合 +1 能量」会变成 3 → 4 → 5 …… 逐回合复利。
             int energy = Ctx.EnergyPerTurn;
             using (var res = Ctx.Collect<IResourceHook>())
             {
                 for (int i = 0; i < res.Count; i++) res[i].Impl.ModifyTurnEnergy(Ctx, res[i].Src, ref energy);
             }
+
+            // 加成后的结果留给表现层当能量球的分母用。见 BattleContext.EnergyThisTurn。
+            Ctx.EnergyThisTurn = energy;
+
             Ctx.Energy = 0;
             Ctx.GainEnergy(energy);
 

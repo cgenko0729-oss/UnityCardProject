@@ -117,6 +117,10 @@ namespace Game.Tests
             Relics["lantern"] = MakeRelic("lantern", "提灯", RelicRarity.Uncommon,
                 new RelicImpl.TurnResourceBehaviour { ExtraEnergy = 1, FirstTurnOnly = true });
 
+            // 与提灯只差 FirstTurnOnly 一位，两者一起测才能证明那一位真的起作用
+            Relics["black_star"] = MakeRelic("black_star", "黑星", RelicRarity.Rare,
+                new RelicImpl.TurnResourceBehaviour { ExtraEnergy = 1, FirstTurnOnly = false });
+
             Relics["pen_nib"] = MakeRelic("pen_nib", "笔尖", RelicRarity.Uncommon,
                 new RelicImpl.FirstCardCostReductionBehaviour { CardType = CardType.Attack, Reduction = 1 });
 

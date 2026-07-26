@@ -64,7 +64,28 @@ namespace Game.Battle
         public BattlePhase Phase = BattlePhase.None;
         public int TurnNumber;
         public int Energy;
+
+        /// <summary>
+        /// 每回合的**基础**能量，来自 <see cref="RunContext.EnergyPerTurn"/>。
+        /// ★ 遗物 / 状态的加成不写进这里——它每回合都要被重新拿去当计算的起点，
+        ///   把加成累加进来会逐回合复利（3 → 4 → 5 …）。加成后的结果见 <see cref="EnergyThisTurn"/>。
+        /// </summary>
         public int EnergyPerTurn = 3;
+
+        /// <summary>
+        /// 本回合实际恢复到的能量 = <see cref="EnergyPerTurn"/> + 所有 <see cref="IResourceHook"/> 的修正。
+        ///
+        /// ★ 存下来而不是让 UI 自己去算：算它必须跑一遍 <c>ModifyTurnEnergy</c>，
+        ///   而那条路上的实现会 <see cref="PostRelicTriggered"/>（「黑星生效」）。
+        ///   UI 每帧调一次的话，事件队列会被灌爆、<see cref="StateVersion"/> 每帧递增，
+        ///   敌人意图数值陷入无休止的重算——正是铁律 4 说的那件事。
+        ///   逻辑层在 <c>BeginTurn</c> 里本来就算过一次，记下来即可。
+        ///
+        /// ★ 它是能量球分母的唯一正确来源。用 <see cref="EnergyPerTurn"/> 当分母的话，
+        ///   带「黑星」（每回合 +1 能量）的玩家每回合都看到「4/3」，
+        ///   看起来像是自己拿到了超出上限的能量、系统出了 bug——而实际上一切正常。
+        /// </summary>
+        public int EnergyThisTurn = 3;
         public int CardsPlayedThisTurn;
         public CardType LastCardTypePlayed;
         public bool BattleEnded;
