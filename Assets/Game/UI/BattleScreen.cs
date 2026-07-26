@@ -27,6 +27,8 @@ namespace Game.UI
 
         private BattlePresenter _presenter;
 
+        private RectTransform _battlefield;
+        private ScreenShake _shake;
         private RectTransform _enemyRow;
         private RectTransform _playerSlot;
         private RectTransform _handArea;
@@ -158,13 +160,25 @@ namespace Game.UI
             _turnText = UIFactory.CreateText(topBar, "Turn", "", 26);
             UIFactory.Stretch(_turnText.rectTransform);
 
+            // ---- 战场层（敌人区 + 玩家区）
+            //
+            // ★ 单独一层是为了震屏：震它就等于震「被打的东西」，而 HUD、手牌、日志不动。
+            //   全屏震会有两个实际问题：手牌区的拖拽判定要把屏幕坐标换算成 _handArea 的
+            //   本地坐标（推导见上面 HandWidth 的注释），手牌一动判定就带着抖动的偏移；
+            //   而且抖手牌非常晕。见 ScreenShake 的类注释。
+            //
+            // ★ 建在这个位置（原来 EnemyRow 的位置）是为了保持兄弟顺序 = 遮挡顺序不变。
+            _battlefield = UIFactory.CreateEmpty(root, "Battlefield");
+            UIFactory.Stretch(_battlefield);
+            _shake = _battlefield.gameObject.AddComponent<ScreenShake>();
+
             // ---- 敌人区
-            _enemyRow = UIFactory.CreateEmpty(root, "EnemyRow");
+            _enemyRow = UIFactory.CreateEmpty(_battlefield, "EnemyRow");
             UIFactory.SetAnchored(_enemyRow, new Vector2(0.5f, 1), new Vector2(0.5f, 1),
                 new Vector2(-700, top - 330), new Vector2(700, top - 80));
 
             // ---- 玩家区
-            _playerSlot = UIFactory.CreateEmpty(root, "PlayerSlot");
+            _playerSlot = UIFactory.CreateEmpty(_battlefield, "PlayerSlot");
             UIFactory.SetAnchored(_playerSlot, new Vector2(0, 0.5f), new Vector2(0, 0.5f),
                 new Vector2(60, -100), new Vector2(320, 100));
 
@@ -796,10 +810,24 @@ namespace Game.UI
         }
 
         /// <summary>
-        /// ★ 压制标记是**全局静态**的。战斗界面在拖拽途中被销毁（战斗结束切界面）时，
-        ///   若不在这里放开，整个游戏的 tooltip 都会永久哑掉——而且完全没有报错。
+        /// 本界面消失时，把它开过的**全局开关**统统还回去。
+        ///
+        /// ★ 压制标记是全局静态的。战斗界面在拖拽途中被销毁（战斗结束切界面）时，
+        ///   若不在这里放开，整个游戏的 tooltip 都会永久哑掉——而且完全没有报错（铁律 31）。
+        ///
+        /// ★ 时间缩放同理，而且后果更大（铁律 41）。最典型的一幕：
+        ///   致命一击杀死最后一个敌人 → 进入慢放 → 战斗结束 → 玩家点「继续」→ 本界面被 Destroy。
+        ///   <see cref="TimeFeedback"/> 自己有 unscaled 的倒计时兜底，所以少了这一句也不会
+        ///   永久卡在慢放；但界面都没了还继续慢放毫无意义，地图界面会莫名其妙地黏半秒。
+        ///   用 <see cref="TimeFeedback.RestoreIfActive"/> 而不是 <c>Instance.Restore()</c>：
+        ///   后者会在退出时把单例**创建**出来，只为了复原一个根本没被改过的 timeScale。
         /// </summary>
-        private void OnDisable() => TooltipView.Suppressed = false;
+        private void OnDisable()
+        {
+            TooltipView.Suppressed = false;
+            TimeFeedback.RestoreIfActive();
+            if (_shake != null) _shake.StopNow();
+        }
 
         private void EndDrag()
         {
@@ -1128,6 +1156,12 @@ namespace Game.UI
         {
             Ctx.GetAliveEnemies(_enemyBuffer);
             return _enemyBuffer.Count > 0 ? _enemyBuffer[0] : null;
+        }
+
+        /// <summary>震一下战场。由 <see cref="BattlePresenter"/> 按伤害大小调用。</summary>
+        public void Shake(float amplitude, float duration)
+        {
+            if (_shake != null) _shake.Shake(amplitude, duration);
         }
 
         public UnitView FindUnitView(int uid)
