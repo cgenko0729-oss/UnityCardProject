@@ -1052,7 +1052,10 @@ namespace Game.UI
         {
             _turnText.text = Loc.T("ui.battle.turn_header", "第 {0} 回合    —    {1}", Ctx.TurnNumber, PhaseText(Ctx.Phase));
 
-            _energyText.text = $"{Ctx.Energy}/{Ctx.EnergyPerTurn}";
+            // ★ 分母是 EnergyThisTurn（含遗物加成）而不是 EnergyPerTurn（基础值）：
+            //   带「黑星」的玩家每回合都会看到「4/3」，读起来像是自己拿到了超出上限的能量、
+            //   系统出了 bug——而实际上一切正常，只是分母答的不是同一个问题。
+            _energyText.text = $"{Ctx.Energy}/{Ctx.EnergyThisTurn}";
             PulseEnergyOnSpend(Ctx.Energy);
             RefreshPileButtons();
 

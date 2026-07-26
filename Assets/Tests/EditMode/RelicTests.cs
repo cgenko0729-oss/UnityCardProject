@@ -77,6 +77,57 @@ namespace Game.Tests
             Assert.AreEqual(3, Ctx.Energy, "第二回合应该恢复成 3 点");
         }
 
+        /// <summary>
+        /// 「每回合额外 1 点能量」必须是每回合**加一次**，不是逐回合复利。
+        ///
+        /// ★ 这条防的是一个很容易写出来、而且看起来很自然的改法：
+        ///   把 <c>ModifyTurnEnergy</c> 的结果回写进 <c>Ctx.EnergyPerTurn</c>。
+        ///   那样第一回合看起来完全正确（4 点），要到第三回合才看得出不对（3→4→5→6），
+        ///   而玩家多半只会觉得「这遗物好像有点强」。
+        /// </summary>
+        [Test]
+        public void BlackStar_AddsOneEnergyEveryTurn_WithoutCompounding()
+        {
+            StartWithRelics("dummy", "black_star");
+
+            for (int turn = 1; turn <= 4; turn++)
+            {
+                Assert.AreEqual(4, Ctx.Energy, $"第 {turn} 回合应该恒为 3 + 1 = 4 点能量");
+                Assert.AreEqual(3, Ctx.EnergyPerTurn,
+                    $"第 {turn} 回合：基础值必须保持 3，加成绝不能回写进 EnergyPerTurn（否则逐回合复利）");
+                Ctrl.EndTurn();
+            }
+        }
+
+        /// <summary>
+        /// 能量球的分母（<see cref="BattleContext.EnergyThisTurn"/>）必须等于本回合真的拿到的能量。
+        ///
+        /// ★ 分母原本直接用 <c>EnergyPerTurn</c>，于是带「黑星」的玩家每回合都看到「4/3」，
+        ///   读起来像是自己拿到了超出上限的能量、系统坏了——而实际上一切正常，
+        ///   只是分子分母回答的不是同一个问题。这条把两者钉在一起。
+        /// </summary>
+        [Test]
+        public void EnergyThisTurn_MatchesWhatThePlayerActuallyGot()
+        {
+            StartWithRelics("dummy", "black_star");
+
+            for (int turn = 1; turn <= 3; turn++)
+            {
+                Assert.AreEqual(Ctx.Energy, Ctx.EnergyThisTurn,
+                    $"第 {turn} 回合：能量球的分母与回合开始时真的拿到的能量对不上");
+                Ctrl.EndTurn();
+            }
+        }
+
+        /// <summary>没有任何遗物时，分母就该是基础值——加了字段不能让普通局的显示变样。</summary>
+        [Test]
+        public void EnergyThisTurn_EqualsBaseWhenNothingModifiesIt()
+        {
+            StartWithRelics("dummy");
+            Assert.AreEqual(3, Ctx.EnergyThisTurn);
+            Assert.AreEqual(Ctx.EnergyPerTurn, Ctx.EnergyThisTurn);
+        }
+
         [Test]
         public void TwoResourceRelics_Stack()
         {
