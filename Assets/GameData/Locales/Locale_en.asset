@@ -558,12 +558,27 @@ MonoBehaviour:
   - Key: ui.map.unreachable
     Value: "You cannot reach that node right now."
     SourceSnapshot: "\u8FD9\u4E2A\u8282\u70B9\u73B0\u5728\u8D70\u4E0D\u5230\u3002"
+  - Key: ui.menu.abandon
+    Value: "Abandon Run"
+    SourceSnapshot: "\u653E\u5F03\u672C\u5C40"
+  - Key: ui.menu.abandon_confirm
+    Value: "Sure? Click again"
+    SourceSnapshot: "\u786E\u5B9A\u653E\u5F03\uFF1F\u518D\u70B9\u4E00\u6B21"
+  - Key: ui.menu.continue
+    Value: "Continue"
+    SourceSnapshot: "\u7EE7\u7EED\u6E38\u620F"
+  - Key: ui.menu.continue_failed
+    Value: "Save cannot be read"
+    SourceSnapshot: "\u5B58\u6863\u8BFB\u4E0D\u51FA\u6765"
   - Key: ui.menu.hint
     Value: "Click a lit node on the map to enter / In battle: click a card, pick a target, Space ends your turn"
     SourceSnapshot: "\u5730\u56FE\u4E0A\u70B9\u4EAE\u7684\u8282\u70B9\u53EF\u4EE5\u8FDB\u5165 \uFF0F \u6218\u6597\u4E2D\uFF1A\u70B9\u724C\u9009\u76EE\u6807\uFF0C\u7A7A\u683C\u7ED3\u675F\u56DE\u5408"
   - Key: ui.menu.new_run
     Value: "New Run"
     SourceSnapshot: "\u5F00\u59CB\u65B0\u6E38\u620F"
+  - Key: ui.menu.new_run_confirm
+    Value: "Overwrites save - click again"
+    SourceSnapshot: "\u4F1A\u8986\u76D6\u5B58\u6863\uFF0C\u518D\u70B9\u4E00\u6B21"
   - Key: ui.menu.quit
     Value: "Quit"
     SourceSnapshot: "\u9000\u51FA"
