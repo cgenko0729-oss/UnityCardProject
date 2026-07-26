@@ -24,6 +24,18 @@ namespace Game.Core
         public List<KeywordDefinition> Keywords = new List<KeywordDefinition>();
 
         /// <summary>
+        /// 地图节点的图标。
+        ///
+        /// ★ 为什么挂在数据库上而不是像别的美术那样挂在 Definition 里：
+        ///   节点类型是个**枚举**（<c>MapNodeType</c>），根本没有对应的 ScriptableObject。
+        ///   为 7 个固定类型各造一个 SO 只会多出 7 个几乎空白的资产和一套要维护的 Id，
+        ///   而它们本来就是一组一起换的东西。
+        ///
+        /// <para>留空的类型继续用现在的符号（⚔ ☠ ♨ …）。</para>
+        /// </summary>
+        public List<MapNodeIcon> MapIcons = new List<MapNodeIcon>();
+
+        /// <summary>
         /// 翻译表，一种语言一张。
         /// ★ 简体中文<b>不在</b>这里——它是源语言，文案就写在代码与各 Definition 里。
         /// </summary>
@@ -105,6 +117,14 @@ namespace Game.Core
             return null;
         }
 
+        /// <summary>取某类地图节点的图标。没配就返回 null，调用方退回符号文字。</summary>
+        public Sprite GetMapIcon(Game.Map.MapNodeType type)
+        {
+            for (int i = 0; i < MapIcons.Count; i++)
+                if (MapIcons[i].Type == type && MapIcons[i].Icon != null) return MapIcons[i].Icon;
+            return null;
+        }
+
         /// <summary>按单个关键字位取定义。传组合值恒返回 null。</summary>
         public KeywordDefinition GetKeyword(CardKeyword keyword)
         {
@@ -176,5 +196,13 @@ namespace Game.Core
 
         /// <summary>资产被外部工具改动后调用，强制重建索引。</summary>
         public void Invalidate() => _cards = null;
+    }
+
+    /// <summary>一种地图节点类型对应的图标。见 <see cref="GameDatabase.MapIcons"/>。</summary>
+    [System.Serializable]
+    public struct MapNodeIcon
+    {
+        public Game.Map.MapNodeType Type;
+        public Sprite Icon;
     }
 }

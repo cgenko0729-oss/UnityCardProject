@@ -14,7 +14,13 @@ namespace Game.UI
 
         private MapScreen _screen;
         private Image _bg;
+
+        /// <summary>符号图标。★ 与 <see cref="_iconImage"/> 二选一，配了 Sprite 时它为 null。</summary>
         private TMP_Text _icon;
+
+        /// <summary>Sprite 图标。★ 与 <see cref="_icon"/> 二选一。</summary>
+        private Image _iconImage;
+
         private TMP_Text _label;
 
         private bool _available;
@@ -28,7 +34,10 @@ namespace Game.UI
 
         public const float NodeSize = 64f;
 
-        public static MapNodeView Create(Transform parent, MapScreen screen, MapNode node)
+        /// <summary>图标四周留的边。留着底色才看得出节点是「可走 / 已走 / 锁着」。</summary>
+        private const float IconInset = 8f;
+
+        public static MapNodeView Create(Transform parent, MapScreen screen, MapNode node, Sprite icon = null)
         {
             var rt = UIFactory.CreatePanel(parent, $"Node{node.Id}", ColLocked);
             UIFactory.SetSize(rt, NodeSize, NodeSize);
@@ -41,8 +50,23 @@ namespace Game.UI
             view.Node = node;
             view._bg = rt.GetComponent<Image>();
 
-            view._icon = UIFactory.CreateText(rt, "Icon", IconOf(node.Type), 30);
-            UIFactory.Stretch(view._icon.rectTransform);
+            // 配了图标就用图，没配就还是那几个符号。
+            // ★ 顺带绕开一个真实存在的坑：⚔ ☠ ♨ ▣ 这些符号在很多系统字体里根本没有字形，
+            //   上一次已经为它们修过一轮兜底字体链。换成 Sprite 之后这条路彻底不依赖字体。
+            var iconWindow = UIFactory.CreateArtWindow(rt, "IconArt", icon,
+                NodeSize - IconInset * 2f, NodeSize - IconInset * 2f, anchorY: 0.5f);
+
+            if (iconWindow != null)
+            {
+                iconWindow.anchorMin = iconWindow.anchorMax = iconWindow.pivot = new Vector2(0.5f, 0.5f);
+                iconWindow.anchoredPosition = Vector2.zero;
+                view._iconImage = iconWindow.GetComponentInChildren<Image>();
+            }
+            else
+            {
+                view._icon = UIFactory.CreateText(rt, "Icon", IconOf(node.Type), 30);
+                UIFactory.Stretch(view._icon.rectTransform);
+            }
 
             view._label = UIFactory.CreateText(rt, "Label", LabelOf(node.Type), 15,
                 TextAnchor.UpperCenter, new Color(0.75f, 0.78f, 0.85f));
@@ -70,7 +94,13 @@ namespace Game.UI
             if (_hovered && available) c = Color.Lerp(c, Color.white, 0.30f);
 
             _bg.color = c;
-            _icon.color = available || visited || isCurrent ? Color.white : new Color(0.5f, 0.52f, 0.58f);
+
+            // 未点亮的节点整体压暗。★ 图标与符号只会有一个存在，两个都要照顾到——
+            //   只写 _icon 的话，换成 Sprite 之后「走不到的节点」就再也不会变灰了。
+            var iconColor = available || visited || isCurrent ? Color.white : new Color(0.5f, 0.52f, 0.58f);
+            if (_icon != null) _icon.color = iconColor;
+            if (_iconImage != null) _iconImage.color = iconColor;
+
             transform.localScale = (_hovered && available) ? Vector3.one * 1.12f : Vector3.one;
         }
 

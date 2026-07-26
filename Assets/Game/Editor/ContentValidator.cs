@@ -127,7 +127,68 @@ namespace Game.Editor
 
             errors += CheckLocalization(sb, ref warnings);
 
+            ReportArtCoverage();
+
             return errors;
+        }
+
+        // ============================================================ 美术覆盖率
+
+        /// <summary>
+        /// 报告哪些资产还没配图。
+        ///
+        /// ★★ 这里**刻意既不算错误也不算警告**，而是单独打一条 Log。
+        ///   本工程把「0 错误 0 警告」当成健康信号（README 与 WhatAiDo 都这么写）。
+        ///   57 张卡一张图都没有是完全正常的中间状态，
+        ///   把它记成 57 条警告等于当场废掉那个信号——从此没人会再认真看警告，
+        ///   而真正该被看见的那几条（占位符不匹配、关键字没定义）会淹死在里面。
+        ///
+        /// <para>缺图必须能跑：所有 UI 都是「有图才换，没图走原路」，
+        ///   所以这条报告的用途是「我还剩多少张要画」，不是「这里出错了」。</para>
+        /// </summary>
+        private static void ReportArtCoverage()
+        {
+            var sb = new StringBuilder();
+
+            int cards = CountArt(LoadAll<CardDefinition>(), c => c.Art, c => c.Id, "卡牌", sb);
+            int relics = CountArt(LoadAll<Game.Relics.RelicDefinition>(), r => r.Icon, r => r.Id, "遗物", sb);
+            int potions = CountArt(LoadAll<Game.Potions.PotionDefinition>(), p => p.Icon, p => p.Id, "药水", sb);
+            int enemies = CountArt(LoadAll<Game.Enemies.EnemyDefinition>(), e => e.Art, e => e.Id, "敌人", sb);
+            int statuses = CountArt(LoadAll<Game.Statuses.StatusDefinition>(), s => s.Icon, s => s.Id, "状态", sb);
+
+            int missing = cards + relics + potions + enemies + statuses;
+            if (missing == 0)
+            {
+                Debug.Log("[ContentValidator] 美术：全部资产都配了图。");
+                return;
+            }
+
+            Debug.Log($"[ContentValidator] 美术覆盖率（仅供参考，缺图不影响运行）：\n{sb}");
+        }
+
+        /// <summary>数一类资产里有几个没配图，并把前几个 Id 写进报告。返回缺图数量。</summary>
+        private static int CountArt<T>(List<T> all, Func<T, Sprite> artOf, Func<T, string> idOf,
+                                       string label, StringBuilder sb) where T : ScriptableObject
+        {
+            var missing = new List<string>();
+            for (int i = 0; i < all.Count; i++)
+                if (all[i] != null && artOf(all[i]) == null) missing.Add(idOf(all[i]));
+
+            if (all.Count == 0) return 0;
+
+            sb.Append("  ").Append(label).Append('：')
+              .Append(all.Count - missing.Count).Append(" / ").Append(all.Count).Append(" 已配图");
+
+            if (missing.Count > 0)
+            {
+                // 只列前 8 个：57 张全列出来会把 Console 刷屏，而「还差哪几张」看几个例子就够了
+                const int Show = 8;
+                sb.Append("，还缺：").Append(string.Join("、", missing.GetRange(0, Math.Min(Show, missing.Count))));
+                if (missing.Count > Show) sb.Append($" …等 {missing.Count} 个");
+            }
+
+            sb.AppendLine();
+            return missing.Count;
         }
 
         // ============================================================ 本地化

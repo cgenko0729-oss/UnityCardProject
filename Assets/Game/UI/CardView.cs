@@ -50,6 +50,16 @@ namespace Game.UI
         /// </summary>
         private const float HoverPadBelow = 84f;
 
+        // ---- 插画窗的尺寸。★ 这四个数是耦合的：
+        //   卡高 240 = 名字栏(48) + 插画(84) + 描述区(76) + 类型栏与内边距(32)。
+        //   动其中任何一个都要重算描述区还剩多少高度，别只改一个。
+        private const float ArtSideMargin = 6f;
+        private const float ArtTop = 48f;
+        private const float ArtHeight = 84f;
+
+        /// <summary>没有插画时描述区从卡顶往下多少开始。保持接美术之前的原值。</summary>
+        private const float DescTopNoArt = 50f;
+
         public static CardView Create(Transform parent, BattleScreen screen, CardInstance card)
         {
             var rt = UIFactory.CreatePanel(parent, "Card_" + card.DisplayName, ColSkill);
@@ -81,9 +91,34 @@ namespace Game.UI
             UIFactory.SetAnchored(view._nameText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(48, -42), new Vector2(-4, -6));
 
+            // ---- 插画窗（只在这张卡真的配了图时才建）
+            //
+            // ★ 没配图的卡走的是**和以前逐像素相同**的布局：插画窗整条不建，
+            //   描述区一直顶到名字下面。57 张卡现在一张图都没有，
+            //   所以「接了美术」这件事对没配图的卡必须是完全不可见的，
+            //   否则等于把一次可选的美化变成了一次全卡池的排版回归。
+            var art = UIFactory.CreateArtWindow(rt, "Art", card.Def != null ? card.Def.Art : null,
+                HandFanLayout.CardWidth - ArtSideMargin * 2f, ArtHeight);
+
+            float descTop = -DescTopNoArt;
+            if (art != null)
+            {
+                // pivot 顶边中点 + 锚在卡顶：sizeDelta 由 CreateArtWindow 设好，这里只管往下挂多远
+                art.anchorMin = art.anchorMax = new Vector2(0.5f, 1f);
+                art.pivot = new Vector2(0.5f, 1f);
+                art.anchoredPosition = new Vector2(0f, -ArtTop);
+
+                descTop = -(ArtTop + ArtHeight + 6f);
+            }
+
             view._descText = UIFactory.CreateText(rt, "Desc", "", 16, TextAnchor.UpperLeft);
             UIFactory.SetAnchored(view._descText.rectTransform, new Vector2(0, 0), new Vector2(1, 1),
-                new Vector2(8, 26), new Vector2(-8, -50));
+                new Vector2(8, 26), new Vector2(-8, descTop));
+
+            // ★ 插画窗吃掉了一半描述高度，长描述（「重复 3 次…」「选择弃掉 N 张…」）会溢出。
+            //   UIFactory.EnableAutoSize 是第七次会话为本地化写好、但一直没接到任何调用点的那个开关，
+            //   这里是它第一个真正的用处：中文长描述与英文（膨胀 1.6–2 倍）同时被它兜住。
+            if (art != null) UIFactory.EnableAutoSize(view._descText, 11f, 16f);
 
             view._typeText = UIFactory.CreateText(rt, "Type", "", 14, TextAnchor.LowerCenter,
                 new Color(1f, 1f, 1f, 0.6f));

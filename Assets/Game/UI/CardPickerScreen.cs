@@ -188,6 +188,14 @@ namespace Game.UI
         public const float Width = 190f;
         public const float Height = 250f;
 
+        // 插画窗。数值与 CardView 那组同构，只是卡略大一点。
+        private const float ArtSideMargin = 8f;
+        private const float ArtTop = 50f;
+        private const float ArtHeight = 88f;
+
+        /// <summary>没有插画时描述区从卡顶往下多少开始。保持接美术之前的原值。</summary>
+        private const float DescTopNoArt = 52f;
+
         private Image _bg;
         private Action _onClick;
         private Color _baseColor;
@@ -214,9 +222,25 @@ namespace Game.UI
             UIFactory.SetAnchored(name.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(50, -44), new Vector2(-6, -8));
 
+            // ---- 插画窗。规则与 CardView 完全一致（没配图就当它不存在），
+            //      两处必须一起接：只接一处的话，抽到的牌有图、奖励三选一里没图。
+            var art = UIFactory.CreateArtWindow(rt, "Art", def != null ? def.Art : null,
+                Width - ArtSideMargin * 2f, ArtHeight);
+
+            float descTop = -DescTopNoArt;
+            if (art != null)
+            {
+                art.anchorMin = art.anchorMax = new Vector2(0.5f, 1f);
+                art.pivot = new Vector2(0.5f, 1f);
+                art.anchoredPosition = new Vector2(0f, -ArtTop);
+                descTop = -(ArtTop + ArtHeight + 6f);
+            }
+
             var desc = UIFactory.CreateText(rt, "Desc", DescriptionOf(def), 15, TextAnchor.UpperLeft);
             UIFactory.SetAnchored(desc.rectTransform, new Vector2(0, 0), new Vector2(1, 1),
-                new Vector2(10, 30), new Vector2(-10, -52));
+                new Vector2(10, 30), new Vector2(-10, descTop));
+
+            if (art != null) UIFactory.EnableAutoSize(desc, 11f, 15f);
 
             var footer = UIFactory.CreateText(rt, "Footer", FooterOf(def), 14, TextAnchor.LowerCenter,
                 new Color(1f, 1f, 1f, 0.6f));
