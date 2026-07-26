@@ -14,7 +14,7 @@ namespace Game.UI
     /// ★ 暂时没有设置界面，值走 PlayerPrefs。
     ///   将来做统一设置菜单时，界面只要读写这几个属性即可，特效那边一行都不用改。
     ///
-    /// ★ 语言已经在第九次会话迁进 <see cref="Game.Save.MetaSave"/> 了，这五个键还没有。
+    /// ★ 语言已经在第十次会话迁进 <see cref="Game.Save.MetaSave"/> 了，这五个键还没有。
     ///   要迁的话照 <see cref="SaveService.LoadLanguage"/> 那个写法办：
     ///   meta 里没有值时去 PlayerPrefs 找一次并搬过去，
     ///   否则老玩家调好的震屏强度会在更新后被静默重置。
