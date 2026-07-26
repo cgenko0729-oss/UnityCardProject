@@ -32,8 +32,24 @@ namespace Game.UI
         private static readonly string[] LastResortFonts =
             { "Microsoft YaHei", "Segoe UI", "Arial", "Arial Unicode MS" };
 
+        /// <summary>
+        /// 缺字兜底用的字体族。
+        ///
+        /// ★ 界面里混着大量<b>非拉丁符号</b>：♥ ◆ ⚔ ☠ ♨ ▣ ▤ ✦ ♒ ▲ ▼ 以及提示框的 【】。
+        ///   英文候选链选中的 Segoe UI 只覆盖其中一部分，缺的那些 TMP 会渲染成 □
+        ///   并在 Console 刷 "was not found in the font asset or any potential fallbacks"。
+        ///   把一个 CJK 大字体挂成 fallback，缺什么就从它那里取。
+        ///
+        /// ★ 这比「把符号也翻译掉」更根本：翻译只能处理已知的那几个，
+        ///   而 fallback 对<b>将来任何人加的任何字符</b>都有效。
+        /// </summary>
+        private static readonly string[] FallbackFonts =
+            { "Microsoft YaHei", "微软雅黑", "Segoe UI Symbol", "Arial Unicode MS", "Noto Sans SC" };
+
         private static TMP_FontAsset _fontAsset;
         private static string _fontAssetLanguage;
+        private static TMP_FontAsset _fallbackAsset;
+        private static bool _fallbackTried;
         private static HashSet<string> _installedFonts;
 
         /// <summary>
@@ -51,6 +67,7 @@ namespace Game.UI
                 if (_fontAsset != null && _fontAssetLanguage == lang) return _fontAsset;
 
                 _fontAsset = BuildFontAsset(lang) ?? TMP_Settings.defaultFontAsset;
+                AttachFallback(_fontAsset);
                 _fontAssetLanguage = lang;
                 return _fontAsset;
             }
@@ -62,11 +79,39 @@ namespace Game.UI
         /// </summary>
         public static string CurrentFontLanguage = Game.Localization.Loc.SourceLanguage;
 
-        /// <summary>语言变了要重建字体资产。切语言时由 Loc 调。</summary>
+        /// <summary>
+        /// 语言变了要重建字体资产。切语言时由 <see cref="GameApp"/> 调。
+        /// ★ 兜底字体<b>不</b>跟着重建：它与语言无关，而且重建一次要重新光栅化整张图集。
+        /// </summary>
         public static void InvalidateFont()
         {
             _fontAsset = null;
             _fontAssetLanguage = null;
+        }
+
+        /// <summary>
+        /// 给主字体挂上缺字兜底。
+        ///
+        /// ★ 必须防「把自己挂成自己的 fallback」：简中语言下主字体就是微软雅黑，
+        ///   自引用会让 TMP 在查不到字形时无限绕圈。
+        /// </summary>
+        private static void AttachFallback(TMP_FontAsset primary)
+        {
+            if (primary == null) return;
+
+            if (!_fallbackTried)
+            {
+                _fallbackTried = true;
+                _fallbackAsset = TryBuild(FallbackFonts);
+            }
+
+            if (_fallbackAsset == null || _fallbackAsset == primary) return;
+
+            if (primary.fallbackFontAssetTable == null)
+                primary.fallbackFontAssetTable = new List<TMP_FontAsset>(1);
+
+            if (!primary.fallbackFontAssetTable.Contains(_fallbackAsset))
+                primary.fallbackFontAssetTable.Add(_fallbackAsset);
         }
 
         private static TMP_FontAsset BuildFontAsset(string lang)

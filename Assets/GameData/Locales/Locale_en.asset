@@ -260,7 +260,7 @@ MonoBehaviour:
     Value: "Victory"
     SourceSnapshot: "\u80DC\u5229"
   - Key: punct.list_separator
-    Value: ","
+    Value: ", "
     SourceSnapshot: "\uFF0C"
   - Key: rarity.basic
     Value: "Basic"
@@ -421,6 +421,9 @@ MonoBehaviour:
   - Key: shop.item.card_removal
     Value: "Remove a card"
     SourceSnapshot: "\u79FB\u9664\u4E00\u5F20\u5361"
+  - Key: tooltip.title_format
+    Value: "{0}"
+    SourceSnapshot: "\u3010{0}\u3011"
   - Key: tooltip.status_with_stacks
     Value: "{0} {1}"
     SourceSnapshot: "{0} {1}"

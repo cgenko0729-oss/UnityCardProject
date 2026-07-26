@@ -102,7 +102,7 @@ namespace Game.UI
                 //   遗物 / 关键字 / 状态 / 意图 / 药水不会长出五种不同的提示框。
                 TooltipTarget.Attach(chip.gameObject, new StaticTooltipSource(
                     relic.DisplayName,
-                    relic.Def != null ? relic.Def.Description : "",
+                    relic.Def != null ? relic.Def.LocalizedDescription : "",
                     TooltipContent.KeywordAccent));
             }
         }

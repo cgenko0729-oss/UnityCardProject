@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Game.Localization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -200,8 +201,12 @@ namespace Game.UI
 
                 var e = entries[i];
                 _sb.Clear();
-                _sb.Append("<color=#").Append(ColorUtility.ToHtmlStringRGB(e.Accent)).Append("><b>【")
-                   .Append(e.Title).Append("】</b></color>");
+                // ★ 标题的装饰符号本身也是文案：中文用「【】」，英文里那对括号既是
+                //   中日文标点、又要额外的字体覆盖，所以英文表里把它翻成不带括号。
+                //   富文本标签留在外面拼——它是格式不是文案，不该交给译者。
+                _sb.Append("<color=#").Append(ColorUtility.ToHtmlStringRGB(e.Accent)).Append("><b>")
+                   .Append(Loc.T("tooltip.title_format", "【{0}】", e.Title))
+                   .Append("</b></color>");
                 if (!string.IsNullOrEmpty(e.Body)) _sb.Append('\n').Append(e.Body);
 
                 string text = _sb.ToString();

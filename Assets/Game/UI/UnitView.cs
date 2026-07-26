@@ -186,7 +186,8 @@ namespace Game.UI
                 var inst = Unit.FindStatus(_chipIds[i]);
                 if (inst == null || inst.Def == null) continue;
 
-                string text = $"{inst.Def.DisplayName} {inst.Stacks}";
+                string text = Loc.T("tooltip.status_with_stacks", "{0} {1}",
+                                    inst.Def.LocalizedName, inst.Stacks);
                 if (_chipLabels[i].text != text) _chipLabels[i].text = text;
             }
         }
