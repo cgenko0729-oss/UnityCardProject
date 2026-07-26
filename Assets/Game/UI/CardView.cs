@@ -170,6 +170,9 @@ namespace Game.UI
         private float _targetRot;
         private float _targetScale = 1f;
 
+        /// <summary>当前缩放的「干净值」——不含落位弹跳的附加系数。见 <see cref="Update"/>。</summary>
+        private float _scale = 1f;
+
         /// <summary>
         /// 位置是否当帧直接生效（不插值）。自由拖拽时必须为 true——
         /// 插值会让牌明显落在光标后面，像挂了根橡皮筋。
@@ -194,8 +197,53 @@ namespace Game.UI
             _rt.anchoredPosition = position;
             _rt.localRotation = Quaternion.Euler(0f, 0f, rotation);
             _rt.localScale = Vector3.one * scale;
+
+            // ★ _scale 必须跟着钉，否则下一帧 Update 会从上一个 _scale 开始插值，
+            //   牌会先「跳」回原来的大小再飞出去。
+            _scale = scale;
+            _punchLeft = 0f;
+
             SetLayoutTarget(position, rotation, scale);
         }
+
+        // ---- 落位弹跳
+        //
+        // ★ 为什么不用 DOTween.DOPunchScale：本组件的 Update 每帧都在
+        //   Lerp(localScale, one * _targetScale)，tween 也每帧写 localScale，
+        //   两者会逐帧对着打，缩放永远到不了任何一个目标值。这正是铁律 23 记下的坑。
+        //   改成「插值结果 × 一个自己衰减的附加系数」，位姿的出口仍然只有下面这个 Update。
+
+        private const float PunchDuration = 0.22f;
+
+        /// <summary>剩余弹跳时间，> 0 表示正在弹。</summary>
+        private float _punchLeft;
+
+        /// <summary>本次弹跳的峰值幅度（0.12 = 最大鼓到 112%）。</summary>
+        private float _punchAmount;
+
+        /// <summary>弹一下。幅度已在调用方乘过无障碍开关。外部一律走 <see cref="ArmArrivalPunch"/>。</summary>
+        private void Punch(float amount)
+        {
+            if (amount <= 0.001f) return;
+            _punchAmount = amount;
+            _punchLeft = PunchDuration;
+        }
+
+        /// <summary>「飞到位之后再弹」。0 = 不弹。</summary>
+        private float _armedPunch;
+
+        /// <summary>牌落进扇形还差多少像素就算到位了。</summary>
+        private const float ArriveDistance = 26f;
+
+        /// <summary>
+        /// 预约一次落位弹跳：这张牌从抽牌堆飞进扇形、**真的到位那一刻**才弹。
+        ///
+        /// ★ 为什么由 CardView 自己判定到位，而不是 BattleScreen 建完牌就 <see cref="Punch"/>：
+        ///   建牌的那一刻牌还在屏幕左下角的抽牌堆上，在那里弹一下玩家根本注意不到；
+        ///   而「飞到了没有」只有插值的持有者知道——飞行时长取决于 <see cref="FollowSpeed"/>
+        ///   与出发点到目标的距离，BattleScreen 那边估不准，也不该去估（铁律 23）。
+        /// </summary>
+        public void ArmArrivalPunch(float amount) => _armedPunch = amount;
 
         private void Update()
         {
@@ -206,7 +254,30 @@ namespace Game.UI
 
             _rt.localRotation = Quaternion.Slerp(_rt.localRotation,
                 Quaternion.Euler(0f, 0f, _targetRot), k);
-            _rt.localScale = Vector3.Lerp(_rt.localScale, Vector3.one * _targetScale, k);
+
+            // 飞到位了 → 兑现预约的那一次弹跳
+            if (_armedPunch > 0f
+                && Vector2.Distance(_rt.anchoredPosition, _targetPos) <= ArriveDistance)
+            {
+                Punch(_armedPunch);
+                _armedPunch = 0f;
+            }
+
+            // ★ 插值的源必须是**没被弹跳污染过**的 _scale，不能直接读 _rt.localScale：
+            //   读回来的值里含着上一帧的弹跳系数，弹跳就会反过来喂进插值，
+            //   表现是弹一下之后缩放要拖好几帧才回得去。
+            _scale = Mathf.Lerp(_scale, _targetScale, k);
+
+            // 单峰正弦：t 从 0 走到 1，系数 1 → 1+amount → 1，两端严丝合缝地接回插值结果
+            float punch = 1f;
+            if (_punchLeft > 0f)
+            {
+                _punchLeft -= Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(1f - _punchLeft / PunchDuration);
+                punch = 1f + _punchAmount * Mathf.Sin(t * Mathf.PI);
+            }
+
+            _rt.localScale = Vector3.one * (_scale * punch);
         }
 
         // ============================================================ 输入

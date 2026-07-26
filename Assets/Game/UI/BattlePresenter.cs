@@ -30,6 +30,7 @@ namespace Game.UI
             _ctx = ctx;
             _log.Clear();
             _timer = 0f;
+            _fastForward = false;
         }
 
         // ============================================================ 播放节奏
@@ -45,6 +46,27 @@ namespace Game.UI
         private const float DurHeal = 0.14f;
         private const float DurStatus = 0.10f;
         private const float DurCardPlay = 0.10f;
+
+        /// <summary>
+        /// 抽一张牌。★ 这个数就是「一张一张发牌」的全部节奏来源。
+        ///
+        /// 原本是 0——于是一回合 5 条 <see cref="BattleEventType.CardDrawn"/> 在同一帧播完，
+        /// 手牌视图当场全部诞生，5 条一模一样的飞入动画叠在一起，看起来就是「啪」一下多了一把牌。
+        /// 给它一个非 0 时长之后，<see cref="BattleScreen"/> 才有依据把牌一张张放出来。
+        ///
+        /// 0.09 × 5 ≈ 0.45 秒。再长就每回合都要等，再短就看不出是一张一张的。
+        /// </summary>
+        private const float DurDraw = 0.09f;
+
+        /// <summary>
+        /// 一张牌离开手牌（弃 / 消耗）。比抽牌短——牌走掉不该和牌进来一样隆重。
+        /// ★ 它同时影响**打出一张牌的收尾**：`FinishPlay` 会把牌送进弃牌堆并发这条事件，
+        ///   所以这个数每加 0.01 秒，每次出牌就多黏 0.01 秒。
+        /// </summary>
+        private const float DurCardLeave = 0.05f;
+
+        /// <summary>洗牌。要留出一叠牌从弃牌堆飞回抽牌堆的时间。</summary>
+        private const float DurShuffle = 0.35f;
 
         /// <summary>死亡要单独留一拍，否则倒下的动作会被下一条事件盖过去。</summary>
         private const float DurDeath = 0.60f;
@@ -86,6 +108,13 @@ namespace Game.UI
                 case BattleEventType.StatusApplied: return DurStatus;
                 case BattleEventType.StatusTriggered: return DurStatus;
                 case BattleEventType.CardPlayed: return DurCardPlay;
+
+                // ---- 牌堆流动。★ 这四条原本全是 0（= 当场播完），手牌因此永远是「瞬间到位」的。
+                case BattleEventType.CardDrawn: return DurDraw;
+                case BattleEventType.CardDiscarded: return DurCardLeave;
+                case BattleEventType.CardExhausted: return DurCardLeave;
+                case BattleEventType.DeckShuffled: return DurShuffle;
+
                 case BattleEventType.UnitDied: return DurDeath;
                 case BattleEventType.TurnStarted: return DurTurnBanner;
                 case BattleEventType.EnemyTurnStarted: return DurEnemyTurn;
@@ -94,8 +123,27 @@ namespace Game.UI
             }
         }
 
+        /// <summary>玩家催「快点」时的额外倍率。</summary>
+        private const float FastForwardRate = 8f;
+
+        /// <summary>玩家正在催。播空一次队列就自动复位。</summary>
+        private bool _fastForward;
+
         /// <summary>
-        /// 当前的播放速率 = 玩家设的倍速 × 积压压缩。
+        /// 把当前积压尽快播完。发牌那 0.45 秒里点一下屏幕就走这里。
+        ///
+        /// ★ 它是**加速**，不是**跳过**——一条事件都不会被丢掉。
+        ///   本类的纪律写在 <see cref="MaxBacklogRate"/> 的注释里：五段攻击、全场中毒结算
+        ///   这些最该有打击感的时刻，恰恰是队列最长的时刻，一「跳过」就等于把它们全部删掉。
+        ///   8 倍速下 5 张牌是 0.056 秒 ≈ 3 帧，观感上就是「立刻发完」，但每一条仍然播过。
+        /// </summary>
+        public void RequestFastForward()
+        {
+            if (_ctx != null && _ctx.Events.Count > 0) _fastForward = true;
+        }
+
+        /// <summary>
+        /// 当前的播放速率 = 玩家设的倍速 × 积压压缩 ×（玩家在催时的）快进。
         /// ★ 用 <c>Time.deltaTime</c> 而不是 unscaled：致命一击的慢放走 <c>Time.timeScale</c>，
         ///   事件推进必须跟着一起慢下来，否则「世界慢放了但飘字照常一条条蹦」会很怪。
         /// </summary>
@@ -111,6 +159,8 @@ namespace Game.UI
                     rate *= Mathf.Min(MaxBacklogRate,
                                       1f + (backlog - BacklogSoftLimit) * BacklogRatePerEvent);
                 }
+
+                if (_fastForward) rate *= FastForwardRate;
                 return rate;
             }
         }
@@ -118,6 +168,11 @@ namespace Game.UI
         private void Update()
         {
             if (_ctx == null) return;
+
+            // ★ 复位放在推进之前：队列空了就说明「玩家催的那一批」已经播完，
+            //   下一批（敌人回合的攻击、下一回合的发牌）必须重新从正常速度开始。
+            //   忘了这一句的表现是「点过一次之后整场战斗都在 8 倍速」，而且不报任何错。
+            if (_ctx.Events.Count == 0) _fastForward = false;
 
             _timer -= Time.deltaTime * PlaybackRate;
 
@@ -237,7 +292,14 @@ namespace Game.UI
                     AddLog(Loc.T("log.potion_discarded", "倒掉了药水「{0}」", e.Id));
                     break;
 
+                // ★ 刻意**没有** case CardDrawn。
+                //   抽牌的表现全部由 BattleScreen 负责（它扫队列，看到这条还没播就先不建视图），
+                //   这里不需要做任何事；而写一条日志的话，每回合 5 行「抽到 XX」会把
+                //   只有 12 行的日志窗整个冲掉——真正该被看见的伤害与状态会被挤没。
+                //   将来接音效时，抽牌音就挂在这里。
+
                 case BattleEventType.DeckShuffled:
+                    _screen.PlayShuffleFx();
                     AddLog(Loc.T("log.shuffle", "洗牌"));
                     break;
 

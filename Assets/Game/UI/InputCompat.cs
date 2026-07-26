@@ -29,6 +29,27 @@ namespace Game.UI
             }
         }
 
+        /// <summary>
+        /// 左键按下。★ 与 uGUI 的点击事件是两条路：
+        /// EventSystem 只把点击发给射线命中的 Graphic，而「表现还在播的时候点一下催它快点」
+        /// 需要的是**整个屏幕任何位置**都算数——包括点在背景、日志、空白处。
+        /// 见 <see cref="BattleScreen"/> 的快进分支。
+        /// </summary>
+        public static bool LeftMouseDown
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                if (Mouse.current != null) return Mouse.current.leftButton.wasPressedThisFrame;
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+                return Input.GetMouseButtonDown(0);
+#else
+                return false;
+#endif
+            }
+        }
+
         public static bool EscapeDown => KeyDown(KeyCode.Escape);
         public static bool SpaceDown => KeyDown(KeyCode.Space);
 
