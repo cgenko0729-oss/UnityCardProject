@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Cards;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,7 +17,7 @@ namespace Game.UI
 
         private Button _restButton;
         private Button _upgradeButton;
-        private Text _resultText;
+        private TMP_Text _resultText;
         private Button _leaveButton;
 
         private bool _used;

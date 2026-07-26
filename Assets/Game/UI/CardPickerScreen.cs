@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Cards;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -27,7 +28,7 @@ namespace Game.UI
         private readonly List<CardMiniView> _views = new List<CardMiniView>();
 
         private Button _confirmButton;
-        private Text _counterText;
+        private TMP_Text _counterText;
 
         /// <summary>★ 组件挂在遮罩根自己身上，<see cref="Close"/> 一个 Destroy 就能收干净。</summary>
         public void Open(GameApp app, string title,

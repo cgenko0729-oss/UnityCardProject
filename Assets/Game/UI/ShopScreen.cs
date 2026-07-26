@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Cards;
 using Game.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,7 +16,7 @@ namespace Game.UI
         private readonly List<Button> _buttons = new List<Button>();
         private readonly List<ShopItem> _items = new List<ShopItem>();
         private RectTransform _list;
-        private Text _hint;
+        private TMP_Text _hint;
 
         private ShopStock Stock => Manager.CurrentShop;
 
@@ -46,7 +47,7 @@ namespace Game.UI
                     UIFactory.SetLayoutHeight((RectTransform)btn.transform, 70);
 
                     var label = UIFactory.LabelOf(btn);
-                    label.alignment = TextAnchor.MiddleLeft;
+                    UIFactory.SetAlignment(label, TextAnchor.MiddleLeft);
                     var lrt = label.rectTransform;
                     lrt.offsetMin = new Vector2(18, 0);
                     lrt.offsetMax = new Vector2(-18, 0);

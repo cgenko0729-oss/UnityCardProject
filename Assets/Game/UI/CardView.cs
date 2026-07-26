@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Battle;
 using Game.Cards;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -24,10 +25,10 @@ namespace Game.UI
 
         private BattleScreen _screen;
         private Image _bg;
-        private Text _costText;
-        private Text _nameText;
-        private Text _descText;
-        private Text _typeText;
+        private TMP_Text _costText;
+        private TMP_Text _nameText;
+        private TMP_Text _descText;
+        private TMP_Text _typeText;
         private RectTransform _rt;
 
         private static readonly Color ColAttack = new Color(0.55f, 0.20f, 0.20f);

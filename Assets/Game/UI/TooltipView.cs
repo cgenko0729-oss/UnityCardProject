@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,7 +41,7 @@ namespace Game.UI
         private Canvas _canvas;
         private RectTransform _panel;
 
-        private readonly List<Text> _lines = new List<Text>();
+        private readonly List<TMP_Text> _lines = new List<TMP_Text>();
         private readonly List<TooltipEntry> _buffer = new List<TooltipEntry>();
         private readonly StringBuilder _sb = new StringBuilder(256);
         private readonly Vector3[] _corners = new Vector3[4];

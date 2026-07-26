@@ -5,6 +5,7 @@ using Game.Cards;
 using Game.Core;
 using Game.Potions;
 using Game.Units;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -31,12 +32,12 @@ namespace Game.UI
         private RectTransform _resultPanel;
         public RectTransform PopupLayer { get; private set; }
 
-        private Text _turnText;
-        private Text _energyText;
-        private Text _pileText;
-        private Text _logText;
-        private Text _hintText;
-        private Text _resultText;
+        private TMP_Text _turnText;
+        private TMP_Text _energyText;
+        private TMP_Text _pileText;
+        private TMP_Text _logText;
+        private TMP_Text _hintText;
+        private TMP_Text _resultText;
         private Button _endTurnButton;
 
         private readonly List<UnitView> _unitViews = new List<UnitView>();
@@ -688,7 +689,7 @@ namespace Game.UI
         private TargetArrowView _arrow;
         private RectTransform _playLine;
         private Image _playLineBar;
-        private Text _playLineLabel;
+        private TMP_Text _playLineLabel;
 
         /// <summary>举牌位（_handArea 本地坐标）。选在敌人区与手牌区之间的空档上。</summary>
         private static readonly Vector2 AimSlot = new Vector2(0f, 400f);

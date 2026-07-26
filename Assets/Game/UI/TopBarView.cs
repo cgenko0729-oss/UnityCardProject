@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,9 +14,9 @@ namespace Game.UI
     {
         private GameApp _app;
         private RectTransform _root;
-        private Text _hpText;
-        private Text _goldText;
-        private Text _floorText;
+        private TMP_Text _hpText;
+        private TMP_Text _goldText;
+        private TMP_Text _floorText;
         private RectTransform _relicRow;
 
         private readonly List<string> _shownRelics = new List<string>();

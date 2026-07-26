@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game.Map;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +19,7 @@ namespace Game.UI
         private readonly List<MapNodeView> _views = new List<MapNodeView>();
         private readonly List<int> _available = new List<int>(8);
 
-        private Text _hintText;
+        private TMP_Text _hintText;
         private ScrollRect _scroll;
 
         protected override void Build()

@@ -3,6 +3,7 @@ using Game.Battle;
 using Game.Enemies;
 using Game.Statuses;
 using Game.Units;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -17,10 +18,10 @@ namespace Game.UI
         private BattleScreen _screen;
         private Image _bg;
         private Image _hpFill;
-        private Text _nameText;
-        private Text _hpText;
-        private Text _blockText;
-        private Text _intentText;
+        private TMP_Text _nameText;
+        private TMP_Text _hpText;
+        private TMP_Text _blockText;
+        private TMP_Text _intentText;
 
         /// <summary>状态列表的容器。状态改成一条一个小牌子，才可能逐条悬停出解释。</summary>
         private RectTransform _statusArea;
@@ -148,7 +149,7 @@ namespace Game.UI
         private const int StatusRowsShown = 3;
 
         private readonly List<RectTransform> _chipRoots = new List<RectTransform>();
-        private readonly List<Text> _chipLabels = new List<Text>();
+        private readonly List<TMP_Text> _chipLabels = new List<TMP_Text>();
 
         /// <summary>
         /// 每个牌子对应的状态 Id，与 <see cref="_chipLabels"/> 一一对应。

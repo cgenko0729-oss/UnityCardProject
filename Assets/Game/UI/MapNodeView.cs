@@ -1,4 +1,5 @@
 using Game.Map;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -12,8 +13,8 @@ namespace Game.UI
 
         private MapScreen _screen;
         private Image _bg;
-        private Text _icon;
-        private Text _label;
+        private TMP_Text _icon;
+        private TMP_Text _label;
 
         private bool _available;
         private bool _visited;

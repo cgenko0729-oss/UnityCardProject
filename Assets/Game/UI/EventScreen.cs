@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.Events;
 using Game.RunEffects;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,8 +18,8 @@ namespace Game.UI
     {
         private EventDefinition _def;
         private RectTransform _optionList;
-        private Text _bodyText;
-        private Text _resultText;
+        private TMP_Text _bodyText;
+        private TMP_Text _resultText;
         private Button _leaveButton;
 
         private readonly List<Button> _optionButtons = new List<Button>();
@@ -86,7 +87,7 @@ namespace Game.UI
                 UIFactory.SetLayoutHeight((RectTransform)btn.transform, 76);
 
                 var text = UIFactory.LabelOf(btn);
-                text.alignment = TextAnchor.MiddleLeft;
+                UIFactory.SetAlignment(text, TextAnchor.MiddleLeft);
                 text.rectTransform.offsetMin = new Vector2(18, 0);
                 text.rectTransform.offsetMax = new Vector2(-18, 0);
 
