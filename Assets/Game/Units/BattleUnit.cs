@@ -210,7 +210,8 @@ namespace Game.Units
                     int blocked = Math.Min(Block, remaining);
                     Block -= blocked;
                     remaining -= blocked;
-                    ctx.Post(BattleEventType.DamageBlocked, dmg.Attacker != null ? dmg.Attacker.Uid : 0, Uid, blocked);
+                    ctx.Post(new BattleEvent(BattleEventType.DamageBlocked,
+                        dmg.Attacker != null ? dmg.Attacker.Uid : 0, Uid, blocked, null, dmg.Kind));
                 }
 
                 // 3.5) 致死拦截。★ 必须在扣血之前——此时单位仍然存活，Hook 才收得到。
@@ -230,9 +231,19 @@ namespace Game.Units
                 // 4) 扣血
                 if (remaining > 0)
                 {
+                    int hpBefore = Hp;
                     Hp -= remaining;
                     if (Hp < 0) Hp = 0;
-                    ctx.Post(BattleEventType.DamageDealt, dmg.Attacker != null ? dmg.Attacker.Uid : 0, Uid, remaining);
+
+                    // ★ 「这一下打死了没有」只有此刻是确定的：致死拦截（3.5）已经跑完，
+                    //   prevent 生效时 remaining 已被钳到剩 1 血，于是这里自然不会打上 Lethal。
+                    //   表现层拿不到这个结论——见 BattleEventFlags 的注释。
+                    var flags = BattleEventFlags.None;
+                    if (Hp <= 0) flags |= BattleEventFlags.Lethal;
+                    if (remaining > hpBefore) flags |= BattleEventFlags.Overkill;
+
+                    ctx.Post(new BattleEvent(BattleEventType.DamageDealt,
+                        dmg.Attacker != null ? dmg.Attacker.Uid : 0, Uid, remaining, null, dmg.Kind, flags));
 
                     for (int i = 0; i < hooks.Count; i++)
                         if (hooks[i].Src.Owner == this)
@@ -286,8 +297,18 @@ namespace Game.Units
             }
 
             if (amount <= 0) return;
+
+            // ★ 上报的必须是**钳制之后实际回了多少**，不是治疗量。
+            //   原本这里发的是 amount：满血前剩 2 点时喝一瓶 10 点的治疗药水，
+            //   飘字会写「+10」而血条只动 2 格——玩家会以为药水失效了或者血条坏了。
+            //   一分钱回不了就干脆不发事件，免得飘一个「+0」出来。
+            int before = Hp;
             Hp = Math.Min(MaxHp, Hp + amount);
-            ctx.Post(BattleEventType.Healed, Uid, Uid, amount);
+
+            int actual = Hp - before;
+            if (actual <= 0) return;
+
+            ctx.Post(BattleEventType.Healed, Uid, Uid, actual);
         }
 
         /// <summary>由触发队列调用。★ 死亡单位不从 AllUnits 移除，只是 Hp 为 0，用 IsAlive 过滤。</summary>

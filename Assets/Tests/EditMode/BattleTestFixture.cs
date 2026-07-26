@@ -103,5 +103,24 @@ namespace Game.Tests
             while (Ctx.Events.Count > 0) list.Add(Ctx.Events.Dequeue().Type);
             return list;
         }
+
+        /// <summary>
+        /// 取出整条事件（不只是类型）。表现层要靠事件里的 Kind / Flags 决定播什么，
+        /// 那些字段只有在这里才断言得到。
+        /// </summary>
+        protected List<BattleEvent> DrainEvents()
+        {
+            var list = new List<BattleEvent>();
+            while (Ctx.Events.Count > 0) list.Add(Ctx.Events.Dequeue());
+            return list;
+        }
+
+        /// <summary>取某一类事件里的最后一条。找不到返回 null。</summary>
+        protected BattleEvent? LastEventOf(List<BattleEvent> events, BattleEventType type)
+        {
+            for (int i = events.Count - 1; i >= 0; i--)
+                if (events[i].Type == type) return events[i];
+            return null;
+        }
     }
 }
