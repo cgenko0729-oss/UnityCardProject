@@ -46,15 +46,38 @@ namespace Game.Editor
     public static class LocalizationKeys
     {
         /// <summary>
-        /// 匹配 <c>Loc.T("key", "源文"</c> 与 <c>Loc.TPlural("key", n, "单数", "复数"</c>。
-        /// 字符串体允许转义（<c>\"</c> / <c>\n</c>）。
+        /// 匹配 <c>Loc.T("key", "源文"</c>。字符串体允许转义（<c>\"</c> / <c>\n</c>）。
+        ///
+        /// ★ 只认「源文**紧跟在** key 后面」这一种形状，中间除空白不许有别的东西。
+        ///   <c>Loc.T</c> 的签名就是 <c>(string key, string fallback, params object[] args)</c>，
+        ///   第二个参数永远是源文，所以这个约束不会漏掉任何合法写法。
+        ///
+        /// ★ 原来的写法是「先抓到调用的右括号，再去括号里找第一个字符串」，
+        ///   而「找到匹配的右括号」正则本来就做不到——括号会嵌套。
+        ///   结果是惰性的 rest 一路吃到下一个 <c>);</c>，
+        ///   于是**一行里第二个及以后的 Loc.T 会被第一个整个吞掉**：
+        ///   <code>a ? Loc.T("ui.battle.victory", "…") : Loc.T("ui.battle.defeat", "…");</code>
+        ///   只有 victory 进得了清单。全工程有 10 行是这种写法，涉及 24 条 key。
+        ///
+        ///   它们当时都碰巧已经有译文，所以没坏——真正的风险在将来：
+        ///   **任何新加在第二个位置的文案都不会进待翻译清单**，
+        ///   表现是那句话在别的语言下永远是中文，且不报任何错。
+        ///   这正是本类存在的理由（见类注释里「为什么扫源码而不是维护注册表」），
+        ///   也正是铁律 40 想防的失效模式——扫描器自己漏了，比注册表漏了更难发现。
         /// </summary>
-        private static readonly Regex LocCall = new Regex(
-            @"Loc\.(?<m>TPlural|T)\s*\(\s*""(?<key>(?:[^""\\]|\\.)*)""\s*,\s*(?<rest>.*?)(?=\)\s*[;,\)\+]|\)\s*$)",
-            RegexOptions.Compiled | RegexOptions.Singleline);
+        private static readonly Regex LocT = new Regex(
+            @"Loc\.T\s*\(\s*""(?<key>(?:[^""\\]|\\.)*)""\s*,\s*""(?<src>(?:[^""\\]|\\.)*)""",
+            RegexOptions.Compiled);
 
-        private static readonly Regex FirstString = new Regex(
-            @"""(?<s>(?:[^""\\]|\\.)*)""", RegexOptions.Compiled);
+        /// <summary>
+        /// 匹配 <c>Loc.TPlural("key", n, "单数", "复数"</c>。
+        /// ★ 中间那个 n 是整数表达式，**不可能含字符串字面量**，
+        ///   所以用「不含引号也不含分号」把它框住就够精确，不会越过语句边界去抓别处的字符串。
+        /// ★ <c>Loc\.T</c> 不会误匹配到 <c>Loc.TPlural</c>：后者的 T 之后是 P，不是空白或左括号。
+        /// </summary>
+        private static readonly Regex LocTPlural = new Regex(
+            @"Loc\.TPlural\s*\(\s*""(?<key>(?:[^""\\]|\\.)*)""\s*,\s*[^"";]*?,\s*""(?<one>(?:[^""\\]|\\.)*)""\s*,\s*""(?<other>(?:[^""\\]|\\.)*)""",
+            RegexOptions.Compiled);
 
         /// <summary>行注释与块注释。★ 见 <see cref="StripComments"/>。</summary>
         private static readonly Regex Comments = new Regex(
@@ -165,28 +188,18 @@ namespace Game.Editor
                 int idx = rel.LastIndexOf("/Assets/", StringComparison.Ordinal);
                 if (idx >= 0) rel = rel.Substring(idx + 1);
 
-                foreach (Match m in LocCall.Matches(text))
+                // ★ 两条正则各扫一遍，互不干扰。
+                //   源文不是字面量（用变量拼的）的调用两边都匹配不上，于是被跳过——
+                //   这是**故意**的，铁律 40 要求 key 与源文都写成字面量，
+                //   拼出来的那条本来就进不了任何语言的清单。
+                foreach (Match m in LocT.Matches(text))
+                    Add(list, seen, Unescape(m.Groups["key"].Value), Unescape(m.Groups["src"].Value), rel);
+
+                foreach (Match m in LocTPlural.Matches(text))
                 {
                     string key = Unescape(m.Groups["key"].Value);
-                    string rest = m.Groups["rest"].Value;
-
-                    if (m.Groups["m"].Value == "TPlural")
-                    {
-                        // TPlural(key, n, 单数, 复数, ...) —— rest 里的头两个字符串就是那两条源文
-                        var strings = new List<string>(2);
-                        foreach (Match sm in FirstString.Matches(rest))
-                        {
-                            strings.Add(Unescape(sm.Groups["s"].Value));
-                            if (strings.Count == 2) break;
-                        }
-                        if (strings.Count >= 1) Add(list, seen, key + ".one", strings[0], rel);
-                        if (strings.Count >= 2) Add(list, seen, key + ".other", strings[1], rel);
-                        continue;
-                    }
-
-                    var first = FirstString.Match(rest);
-                    if (!first.Success) continue;   // 源文不是字面量（变量拼的），没法收
-                    Add(list, seen, key, Unescape(first.Groups["s"].Value), rel);
+                    Add(list, seen, key + ".one", Unescape(m.Groups["one"].Value), rel);
+                    Add(list, seen, key + ".other", Unescape(m.Groups["other"].Value), rel);
                 }
             }
         }

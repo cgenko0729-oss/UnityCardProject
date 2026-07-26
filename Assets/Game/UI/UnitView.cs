@@ -42,6 +42,10 @@ namespace Game.UI
             v._bg = rt.GetComponent<Image>();
             v._baseColor = baseColor;
 
+            // 面板刚建出来时，表现值就是当前的逻辑值——此刻没有任何待播事件
+            v._shownHp = unit.Hp;
+            v._shownBlock = unit.Block;
+
             v._intentText = UIFactory.CreateText(rt, "Intent", "", 20, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.4f));
             UIFactory.SetAnchored(v._intentText.rectTransform, new Vector2(0, 1), new Vector2(1, 1),
                 new Vector2(4, -34), new Vector2(-4, -2));
@@ -92,20 +96,22 @@ namespace Game.UI
         {
             if (Unit == null) return;
 
-            float pct = Unit.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)Unit.Hp / Unit.MaxHp);
+            AlignWhenIdle(ctx);
+
+            float pct = Unit.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)_shownHp / Unit.MaxHp);
             _hpFill.fillAmount = pct;
-            _hpText.text = $"{Unit.Hp} / {Unit.MaxHp}";
-            _blockText.text = Unit.Block > 0 ? Loc.T("ui.unit.block", "[ 护甲 {0} ]", Unit.Block) : "";
+            _hpText.text = $"{_shownHp} / {Unit.MaxHp}";
+            _blockText.text = _shownBlock > 0 ? Loc.T("ui.unit.block", "[ 护甲 {0} ]", _shownBlock) : "";
 
             RefreshStatusChips();
 
             if (!Unit.IsPlayer)
             {
-                _intentText.text = Unit.IsAlive ? FormatIntent(Unit.CurrentIntent) : "";
+                _intentText.text = DisplayAlive ? FormatIntent(Unit.CurrentIntent) : "";
             }
 
             Color c = _baseColor;
-            if (!Unit.IsAlive) c = new Color(0.12f, 0.12f, 0.12f);
+            if (!DisplayAlive) c = new Color(0.12f, 0.12f, 0.12f);
             else if (highlighted) c = Color.Lerp(_baseColor, new Color(1f, 0.9f, 0.4f), 0.5f);
             else if (targetable) c = Color.Lerp(_baseColor, Color.white, 0.15f);
 
@@ -116,8 +122,66 @@ namespace Game.UI
             }
             _bg.color = c;
 
-            _nameText.text = Unit.IsAlive ? Unit.DisplayName : Loc.T("ui.unit.dead", "{0}（已倒下）", Unit.DisplayName);
+            _nameText.text = DisplayAlive
+                ? Unit.DisplayName
+                : Loc.T("ui.unit.dead", "{0}（已倒下）", Unit.DisplayName);
         }
+
+        // ============================================================ 表现血量
+
+        /// <summary>
+        /// 表现血量 / 表现护甲。★ 这两个不是 <c>Unit.Hp</c> / <c>Unit.Block</c>。
+        ///
+        /// 战斗逻辑是**同步**的：玩家点「结束回合」的那一帧，三个敌人的攻击已经全部结算完，
+        /// 而 <see cref="BattlePresenter"/> 还要花一秒多把飘字一条条播出来。
+        /// 血条若直读 <c>Unit.Hp</c>，血就在第一个飘字出现之前掉光了——
+        /// 现在只有飘字还勉强看不出来，一旦加上闪白 / 震屏 / 慢放，
+        /// 这个脱节就会变成「屏幕在为一件早就结束的事情抖动」。
+        ///
+        /// 所以血条只认 <see cref="BattlePresenter"/> 播到的那一条事件（<see cref="OnDamaged"/> 等），
+        /// 逻辑值只在**队列播完时**用来对齐（见 <see cref="AlignWhenIdle"/>）。
+        /// </summary>
+        private int _shownHp;
+        private int _shownBlock;
+
+        /// <summary>「画面上它还活着吗」。★ 与 <c>Unit.IsAlive</c> 不同，这个会晚到死亡事件播出来那一刻。</summary>
+        private bool DisplayAlive => _shownHp > 0;
+
+        /// <summary>
+        /// 事件播完了就与逻辑值对齐。
+        ///
+        /// ★ 这一步是**兜底，不是可选项**：哪天有个路径改了 Hp 却忘了 Post 事件
+        ///   （或者新加的效果走了别的分支），有它最多晚半秒自动纠正，
+        ///   没它就是永久错位，而且画面上一切正常、不报任何错、没人会发现。
+        /// </summary>
+        private void AlignWhenIdle(BattleContext ctx)
+        {
+            if (ctx == null || ctx.Events.Count > 0) return;
+            _shownHp = Unit.Hp;
+            _shownBlock = Unit.Block;
+        }
+
+        // 下面这几个只由 BattlePresenter 在播到对应事件时调用。
+        // ★ 不要在别处调——「谁能改表现值」必须和「谁在播事件」是同一个人，
+        //   否则就退回成了两个来源互相覆盖的老问题（同铁律 23 的道理）。
+
+        public void OnDamaged(int amount)
+        {
+            _shownHp = Mathf.Max(0, _shownHp - amount);
+            Flash();
+        }
+
+        public void OnHealed(int amount)
+        {
+            int max = Unit != null ? Unit.MaxHp : _shownHp + amount;
+            _shownHp = Mathf.Min(max, _shownHp + amount);
+        }
+
+        public void OnBlockGained(int amount) => _shownBlock += amount;
+
+        public void OnBlockConsumed(int amount) => _shownBlock = Mathf.Max(0, _shownBlock - amount);
+
+        public void OnBlockCleared() => _shownBlock = 0;
 
         private static string FormatIntent(Intent intent)
         {
@@ -138,7 +202,12 @@ namespace Game.UI
             }
         }
 
-        public void Flash() => _flashTimer = 0.25f;
+        /// <summary>受击闪白。★ 受 <see cref="FeedbackSettings.FlashEnabled"/> 控制（光敏感 / 减少动态效果）。</summary>
+        public void Flash()
+        {
+            if (!FeedbackSettings.FlashEnabled) return;
+            _flashTimer = 0.25f;
+        }
 
         public void OnPointerClick(PointerEventData e) => _screen.OnUnitClicked(this);
 

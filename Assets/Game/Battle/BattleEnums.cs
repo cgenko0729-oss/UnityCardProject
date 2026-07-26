@@ -1,3 +1,5 @@
+using System;
+
 namespace Game.Battle
 {
     public enum BattlePhase
@@ -20,6 +22,28 @@ namespace Game.Battle
         EnergyChanged, IntentChanged,
         PotionUsed, PotionDiscarded,
         UnitDied, Message
+    }
+
+    /// <summary>
+    /// 表现事件的附加标记。★ 与 <see cref="BattleEventType"/> 一样只影响播放，不影响结算。
+    ///
+    /// ★ 为什么这类判断必须由逻辑层写进事件，而不是让表现层自己看队列去猜：
+    ///   「这一下把它打死了没有」在表现层唯一的线索是「后面会不会跟一条 UnitDied」，
+    ///   而 <see cref="BattleEventType.UnitDied"/> 是走 <c>EnqueueTrigger</c> 排队的，
+    ///   中间会插进 <c>OnDamaged</c> 引发的任意事件（荆棘反弹、亡语、遗物触发）。
+    ///   前瞻的距离不确定，而且哪天多一个新 Hook 就会静默失效。
+    ///   逻辑层在 Post 的那一刻答案是确定的，直接写下来最省事也最钉得住。
+    /// </summary>
+    [Flags]
+    public enum BattleEventFlags
+    {
+        None = 0,
+
+        /// <summary>这次伤害把目标打死了。致命一击的顿帧 / 慢放靠它。</summary>
+        Lethal = 1 << 0,
+
+        /// <summary>伤害量超过了目标当时剩余的生命（过量击杀）。表现可以给更夸张的反馈。</summary>
+        Overkill = 1 << 1,
     }
 
     /// <summary>Hook 执行顺序。数值小的先跑。</summary>
