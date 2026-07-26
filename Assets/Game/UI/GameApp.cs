@@ -155,13 +155,25 @@ namespace Game.UI
             OnPhaseChanged(Manager != null ? Manager.Phase : RunPhase.MainMenu);
         }
 
+        private void Update()
+        {
+            // ★ 卡组面板优先吃掉 Esc / 右键。局外界面目前没有任何一个自己处理 Esc，
+            //   所以这里没有优先级冲突；写成拉取式是为了与 BattleScreen 保持同一形状
+            //   （理由见 CardListView.ConsumeCancelInput）。
+            if (_cardList != null) _cardList.ConsumeCancelInput();
+        }
+
         private void LateUpdate()
         {
-            if (_topBar != null) _topBar.Refresh(Manager.Run, ManagerPhaseShowsTopBar());
+            if (_topBar != null)
+                _topBar.Refresh(Manager.Run, ManagerPhaseShowsTopBar(), ManagerPhaseShowsDeckButton());
         }
 
         private bool ManagerPhaseShowsTopBar()
             => Manager.Run != null && _current != null && _current.ShowTopBar;
+
+        private bool ManagerPhaseShowsDeckButton()
+            => Manager.Run != null && _current != null && _current.ShowTopBar && _current.ShowDeckButton;
 
         // ================================================================= 开新局
 
@@ -191,6 +203,14 @@ namespace Game.UI
             {
                 Destroy(_activePicker.gameObject);
                 _activePicker = null;
+            }
+
+            // ★ 卡组面板同理。少了这一段，「在商店里点开卡组 → 买一张牌弹出选牌面板」
+            //   两个面板会叠在一起，正是第三次会话那个界面泄漏 bug 的同一形状。
+            if (_cardList != null)
+            {
+                Destroy(_cardList.gameObject);
+                _cardList = null;
             }
 
             if (_current != null)
@@ -261,5 +281,37 @@ namespace Game.UI
         }
 
         private CardPickerScreen _activePicker;
+
+        // ================================================================= 查看卡组
+
+        /// <summary>当前开着的卡组浏览面板。null = 没开。</summary>
+        private CardListView _cardList;
+
+        /// <summary>
+        /// 弹出「当前卡组」浏览面板。由顶栏那颗按钮调用。
+        ///
+        /// ★ 排序显示而不是按 <c>Run.Deck</c> 的真实顺序：母牌组的顺序对玩家没有任何意义
+        ///   （每场战斗开头都会重洗），按费用/类型排开才看得出这副牌的形状。
+        /// </summary>
+        public void ShowDeckView()
+        {
+            if (Manager?.Run == null) return;
+
+            // ★ 这不是「再点一次关掉」——玩家点不到第二次：OverlayLayer 建在 _topBar 之后
+            //   （兄弟顺序 = 遮挡顺序），面板一开就把顶栏连按钮一起盖住了。
+            //   这一段纯粹是防「同一时刻冒出两个面板」：真发生了的话旧的那个会永远留在
+            //   OverlayLayer 里没人收（_cardList 只存得下一个），就是第三次会话那种界面泄漏。
+            if (_cardList != null)
+            {
+                _cardList.Close();
+                _cardList = null;
+            }
+
+            var run = Manager.Run;
+            _cardList = CardListView.Open(OverlayLayer,
+                Loc.T("ui.cardlist.title.deck", "卡组（{0}）", run.Deck.Count),
+                run.Deck, Database, CardListOrder.Sorted,
+                onClosed: () => _cardList = null);
+        }
     }
 }

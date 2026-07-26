@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Cards;
+using Game.Core;
 using Game.Localization;
 using TMPro;
 using UnityEngine;
@@ -183,7 +184,7 @@ namespace Game.UI
     }
 
     /// <summary>选牌面板里的一张小卡。只显示费用 / 名字 / 描述，够做决策就行。</summary>
-    public class CardMiniView : MonoBehaviour, IPointerClickHandler
+    public class CardMiniView : MonoBehaviour, IPointerClickHandler, ITooltipSource
     {
         public const float Width = 190f;
         public const float Height = 250f;
@@ -200,8 +201,36 @@ namespace Game.UI
         private Action _onClick;
         private Color _baseColor;
 
+        /// <summary>这张小卡对应的运行时实例。只由 <c>Create(parent, card, db)</c> 那条路设，tooltip 用它。</summary>
+        private CardInstance _card;
+
+        /// <summary>Tooltip 用它按关键字位反查 <c>KeywordDefinition</c>。null = 本卡不挂 tooltip。</summary>
+        private GameDatabase _db;
+
         public static CardMiniView Create(Transform parent, CardInstance card)
-            => Create(parent, card.Def, card.UpgradeLevel > 0);
+            => Create(parent, card, null);
+
+        /// <summary>
+        /// 从运行时实例建一张小卡。
+        ///
+        /// ★ <paramref name="db"/> 默认 null = **不挂 tooltip**，所以既有的调用点
+        ///   （奖励三选一 / 删卡 / 升级 / 事件给牌 / 战斗内选牌）一行都不用改、行为一个像素不变。
+        ///   想给它们也加悬停解释，各自传一个 db 即可，那是独立的一步。
+        /// </summary>
+        public static CardMiniView Create(Transform parent, CardInstance card, GameDatabase db)
+        {
+            var view = Create(parent, card.Def, card.UpgradeLevel > 0);
+
+            // ★ 悬停解释关键字（消耗 / 虚无…）与状态（易伤 / 虚弱…），与手牌上的 CardView 共用
+            //   同一套内容与样式。原本只有大卡有提示、小卡没有，是一处没人注意到的不一致。
+            if (db != null)
+            {
+                view._card = card;
+                view._db = db;
+                TooltipTarget.Attach(view.gameObject, view);
+            }
+            return view;
+        }
 
         public static CardMiniView Create(Transform parent, CardDefinition def, bool upgraded)
         {
@@ -259,6 +288,13 @@ namespace Game.UI
         }
 
         public void OnPointerClick(PointerEventData e) => _onClick?.Invoke();
+
+        /// <summary>
+        /// 悬停时解释这张牌涉及的关键字与状态。内容与 <see cref="CardView.BuildTooltip"/> 完全同源
+        /// （状态是**扫效果树**得到的，不是拿描述文字做子串匹配——铁律 29）。
+        /// </summary>
+        public bool BuildTooltip(List<TooltipEntry> buffer)
+            => TooltipContent.BuildForCard(_card, _db, buffer);
 
         /// <summary>
         /// 战斗外没有 BattleContext，描述模板里的 {N} 用效果的静态数值填。

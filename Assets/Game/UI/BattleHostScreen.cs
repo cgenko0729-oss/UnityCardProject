@@ -14,6 +14,17 @@ namespace Game.UI
     /// </summary>
     public class BattleHostScreen : ScreenBase
     {
+        /// <summary>
+        /// 战斗中不显示「查看卡组」。
+        ///
+        /// ★ 不是因为麻烦，是因为那颗按钮在战斗里**语义有歧义**：
+        ///   <c>RunContext.Deck</c> 是母牌组，而场上四堆的总和 = 母牌组 + 本场战斗中生成的牌
+        ///   （<c>AddCardEffect</c> 造出来的状态牌 / 诅咒牌是新的 <c>CardInstance</c>，不在母牌组里）。
+        ///   两个数字对不上，玩家只会当成 bug。
+        ///   战斗里要看牌，左下角那三颗牌堆按钮才是正确答案。
+        /// </summary>
+        public override bool ShowDeckButton => false;
+
         private BattleScreen _battleScreen;
         private Button _continueButton;
 

@@ -63,9 +63,11 @@
 | 阶段 5 存档与内容 | 🔶 部分完成 | ✅ SaveSystem / MetaSave；⬜ 自动对战模拟器 / 内容量产 / Fuzz |
 | 阶段 6 动画音效打磨 | 🔶 部分完成 | ✅ 本地化 / ✅ TextMeshPro；⬜ DOTween / 音效 |
 
-**当前代码规模**：`Assets/Game/` 下 123 个 .cs 文件；测试 12 个文件 198 个用例。
+**当前代码规模**：`Assets/Game/` 下 124 个 .cs 文件；测试 12 个文件 198 个用例。
 **内容规模**：10 个状态、57 张卡、6 个敌人、11 场战斗、16 个遗物、7 个事件、10 瓶药水、5 个关键字。
-**本地化规模**：495 条文案，简体中文（源语言）+ 英文。
+**本地化规模**：`Locale_en.asset` 里 514 条译文，简体中文（源语言）+ 英文。
+（第七次会话写的「495 条」之后没人同步过——第九 / 十 / 十二次会话各加了一批。
+以 `grep -c "^  - Key:"` 的实测为准，别再手抄这个数字。）
 
 > ⚠️ **新会话第一件事**：如果 `Assets/GameData/Potions/` 或 `Assets/GameData/Keywords/` 不存在、
 > 或卡池不足 57 张，说明内容资产还没生成，先跑菜单 `Tools/卡牌游戏/1. 生成示例内容`。
@@ -112,7 +114,8 @@ Assets/
 │   │                FloatingText, BattlePresenter, BattleScreen, BattleBootstrap,
 │   │                GameApp, ScreenBase, TopBarView, MapScreen(+MapNodeView),
 │   │                BattleHostScreen, RewardScreen, ShopScreen, EventScreen,
-│   │                RestScreen, MainMenuScreen, GameOverScreen, CardPickerScreen
+│   │                RestScreen, MainMenuScreen, GameOverScreen, CardPickerScreen,
+│   │                CardListView（只读牌堆 / 卡组浏览）           ← 第十二次会话
 │   └── Editor/      Game.Editor.asmdef, SampleContentGenerator(+Relics/+Events),
 │                    BattleSceneBuilder, MainSceneBuilder, ContentValidator
 ├── GameData/        （由菜单生成，不手写）
@@ -390,6 +393,34 @@ Assets/
     本工程把「0 错误 0 警告」当健康信号。把 57 张没画的卡记成 57 条警告，
     等于当场废掉那个信号——真正该被看见的几条（占位符不匹配、关键字没定义）会淹死在里面。
     `ContentValidator.ReportArtCoverage` 单独打一条 Log 报覆盖率。
+
+---
+
+## 六之九、2026-07-26 第十二次会话新增的铁律（牌堆浏览）
+
+52. **`DeckController` 的四个牌堆是 `public readonly List`——`readonly` 只锁引用不锁内容。**
+    UI 要排序 / 筛选 / 反转，一律先 `new List<>(pile)` 复制一份。
+    就地 `pile.Sort(...)` 会**真的改掉玩家的抽牌顺序**：编译通过、不抛异常、
+    `Game.UI` 也没有测试程序集能覆盖它，而表象只是「这局的运气有点怪」。
+    这是铁律 9（UI 只读）唯一一处可以被静默违反的地方——别的越权写入都会撞上
+    `BattleController` 那三个入口，只有集合内容是敞开的。
+    收口在 `CardListView.Arrange`，那里是唯一允许碰顺序的地方。
+
+53. **抽牌堆是隐藏信息，展示时必须重排。**
+    弃牌堆 / 消耗堆按真实顺序（它们本来就是公开信息），抽牌堆一律排序后展示：
+    只回答「里面有什么」，不回答「什么时候来」。
+    这条是**玩法约束**而不是审美——按真实顺序显示等于把抽牌随机性从决策层删掉，
+    「下一张抽什么」从一个要承担的风险变成一条免费情报。
+    排序键最后必须垫一个 `Uid`：`List.Sort` 不稳定，牌组里三张一样的「打击」
+    两次打开可能换位，看起来像面板在自己闪。
+
+54. **凡是每帧无条件赋值的全局开关，别处压下的值都会被它冲掉。**
+    `BattleScreen.LateUpdate` 里那句 `TooltipView.Suppressed = 正在拖牌` 是无条件赋值，
+    于是放大卡面压下的 `Suppressed` 活不过一帧，表现是「大卡开着，
+    底下网格的 tooltip 照样从大卡背后冒出来」。
+    这是铁律 31 的另一面：全局静态开关不止「忘了放开」会坏，
+    **「被别人每帧覆盖」也会坏，而且更难看出来**——因为两边的代码单独看都是对的。
+    新增压制方必须把自己的诉求 OR 进那一处赋值（见 `CardListView.SuppressesTooltip`）。
 
 ---
 
@@ -1018,3 +1049,89 @@ Assets/
 - 文档本地链接目标全部存在，Markdown 代码围栏全部配对。
 - Unity 编辑器当前占用工程，未在本次会话中实际点击“生成示例内容”；首次使用时应关注
   Console 是否出现手工资产 Id 冲突，并确认 `GameDatabase` 列表包含手工资产。
+
+### 2026-07-26 — 第十二次会话：牌堆浏览 + 卡组浏览
+
+对应 `Docs/Ideas-Backlog.md` 的 **C12**，以及 `ImprovementAnaylze.md` 4.3 里标了 ★★★ 的
+「查看抽牌堆 / 弃牌堆 / 消耗堆内容」。
+
+**决策（由使用者拍板）**
+
+| 议题 | 选择 |
+|---|---|
+| 抽牌堆顺序 | **排序后显示**（费用→类型→名字→Uid）；弃牌堆 / 消耗堆按真实入堆顺序 |
+| 面板实现 | **新建只读 `CardListView`**（否决了「给 `CardPickerScreen` 加只读模式」） |
+| 卡组按钮范围 | 所有局外界面（地图/商店/事件/休息/奖励），**战斗中隐藏** |
+| 面板功能 | 基线浏览 + 小卡挂 Tooltip + 点小卡放大成完整卡面；**不做**筛选 / 排序控件 |
+| 表现事件还在播时（`InputLocked`） | **禁止打开，按钮置灰** |
+| 小卡描述数值 | 一律静态基础值，与既有的奖励 / 删卡面板保持一致 |
+| 放大卡面 | 双轨：悬停出 Tooltip，点击出大卡；大卡弹出时主动压住 Tooltip |
+| 快捷键 | 不加 |
+
+**为什么不复用 `CardPickerScreen`**
+
+那个类的语义是「必须选够 N 张才能确定，回调返回下标」，已经在服务 6 个调用点，
+其中战斗内选牌还牵着可挂起的结算栈（铁律 16/17）。
+加一套「不选、不回调、随时可关」的生命周期，就多出一个
+「面板关掉时该不该 `ResolveSelection`」的分支——**漏掉它的表现是战斗永久卡在挂起态**，
+而且不报任何错。共享的是 `CardMiniView` 和网格代码，不是那套生命周期。
+
+**做了什么（分支 `feature/pile-browse`）**
+
+1. **`CardListView`（新，UI）**：只读浏览面板。遮罩 + 标题（带张数）+ 网格滚动 + 关闭按钮，
+   空堆显示一行提示。`Arrange` 是唯一允许碰顺序的地方（铁律 52）。
+   放大卡面用**等比放大的 `CardMiniView`**，不用 `CardView`——后者的 `Create` 要一个
+   `BattleScreen`，还带拖拽 / 悬停抬牌 / 位姿插值（铁律 23），局外根本没有 BattleScreen。
+2. **`CardMiniView` 补上 Tooltip**：实现 `ITooltipSource`，转发给现成的
+   `TooltipContent.BuildForCard`。`Create` 新增的 `db` 参数**默认 null = 不挂**，
+   所以既有 5 个调用点一行未改、行为一个像素未变。
+   顺带补掉「手牌上的大卡有提示、小卡没有」这处没人注意过的不一致。
+3. **战斗内**：左下那行纯文字 `_pileText` 换成三颗按钮（位置与兄弟顺序都没动——
+   它夹在能量球与 `_handArea` 之间，而 `HandWidth` 是按遮挡关系推算的，见铁律 24）。
+   面板建在 `BattleScreen._modalLayer`，**不是** `GameApp.OverlayLayer`。
+4. **局外**：`ScreenBase.ShowDeckButton`（`BattleHostScreen` 覆写 false）→
+   `GameApp` → `TopBarView` 右上角的「卡组 N」按钮 → `GameApp.ShowDeckView()`。
+   顶栏右侧三样东西的几何是互相咬住的，注释里写清了。
+5. **本地化**：新增 10 条 key，作废 `ui.battle.piles`；英文译文同步进 `Locale_en.asset`，
+   占位符与 `SourceSnapshot` 都用脚本交叉核对过（这条是第七次会话的教训：
+   只核对「译文有没有缺」而不核对「源文有没有漏收」，漏的那些会安静地永远不被翻译）。
+
+**实施中避开 / 修掉的 4 个坑（每一条都不报错，只是静默错）**
+
+| # | 坑 | 处理 |
+|---|---|---|
+| 1 | 就地 `DrawPile.Sort()` 会**真的改掉抽牌顺序**——`readonly` 只锁引用不锁内容，编译器不会拦 | 收口到 `CardListView.Arrange`，一律先复制（立为铁律 52） |
+| 2 | `BattleScreen.LateUpdate` 每帧**无条件**写 `TooltipView.Suppressed`，把放大卡面压下的值一帧就冲掉 | 在那一处 OR 进 `_cardList.SuppressesTooltip`（立为铁律 54） |
+| 3 | 面板自己在 `Update` 里轮询 Esc 会踩时序：两个 MonoBehaviour 的 Update 先后不定，`CancelTargeting` 可能同帧先吃掉 Esc，于是面板「有时候关得掉、有时候关不掉」 | 改成拉取式 `ConsumeCancelInput()`，由持有者在自己的取消分支最前面问，优先级写死 |
+| 4 | 遮罩只吃**射线**不吃键盘：面板开着时按空格照样会结束回合 | `Update` 里面板开着就 return |
+
+另外两处是顺手兜住的：`GameApp.OnPhaseChanged` 里把卡组面板与选牌面板一起销毁
+（否则「商店里点开卡组 → 买牌弹出选牌面板」会叠在一起，正是第三次会话界面泄漏的同一形状）；
+`RefreshPileButtons` 在战斗结束时收掉还开着的面板。
+
+**验证**
+
+- 四个程序集 **0 error 0 warning**（Unity 编辑器占锁，用 VS2022 MSBuild 编译 Unity 生成的 csproj）
+- **`Game.Runtime` 一行未改，`Assets/Tests/` 一行未改** → EditMode 198 条的断言对象一个未动。
+  本次改动全在 `Game.UI`，而测试只依赖 `Game.Runtime`，跑一遍在结构上抓不到任何东西
+  （同第十一次会话的判断）。测试程序集编译通过。
+- `Assets/GameData/` 只改 `Locales/Locale_en.asset`（−1 条 key、+10 条），卡牌 / 敌人 / 遗物资产一个字节没变。
+- 本地化用脚本离线复现了 `ContentValidator.CheckLocalization` 的三条判定
+  （key 在不在表里 / 占位符集合是否一致 / `SourceSnapshot` 是否等于当前源文）：10 条全过，作废的那条两边都已清掉。
+
+**已知限制 / 尚未验证**
+
+- ⚠️ **尚未在 Play 模式下点过。** 首次试玩重点看六处：
+  ① 战斗中三颗按钮都能开能关、Esc 能关、关掉后手牌**还能拖**（铁律 25 那类状态残留）；
+  ② 面板开着时按空格**不会**结束回合；
+  ③ 点「结束回合」后动画在播时三颗按钮**是灰的**；
+  ④ 弃一张牌 → 打开弃牌堆，数量与内容对得上；抽牌堆里**看不出**下一张是什么；
+  ⑤ 地图右上角按钮在商店 / 事件 / 休息里都在，**战斗里不在**；
+     从商店点开卡组再买牌，两个面板不叠；
+  ⑥ 英文下标题 / 「关闭」/ 顶栏「Deck N」不溢出——顶栏右侧现在挤了三样东西，最可能出问题。
+- **滚动时误点**：小卡实现 `IPointerClickHandler`，按住拖动滚动条后在同一张卡上松手会弹出大卡。
+  既有的 `CardPickerScreen` 选择行为完全一样，所以这不是新问题，但卡多了会更容易碰到。
+  真要治就是加拖动阈值判定。
+- **筛选 / 排序控件没做**（使用者明确不要）。卡组超过 30 张后再考虑，见 C12。
+- 放大卡面是 `localScale = 2`，**已配插画的卡会有轻微模糊**（取决于源图分辨率）。
+  57 张卡目前都没配图，所以现在看不见；将来配图后可以把 `ArtHeight` 也按倍数放大来缓解。
