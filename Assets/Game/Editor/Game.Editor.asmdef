@@ -3,7 +3,9 @@
     "rootNamespace": "Game.Editor",
     "references": [
         "Game.Runtime",
-        "Game.UI"
+        "Game.UI",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"
@@ -14,6 +16,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "",
+            "define": "URP_PRESENT"
+        }
+    ],
     "noEngineReferences": false
 }

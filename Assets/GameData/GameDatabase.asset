@@ -70,6 +70,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fba84ba611ae3424ea1e21cb90650081, type: 2}
   - {fileID: 11400000, guid: da471605f71f52a4fa12d57d26539aea, type: 2}
   - {fileID: 11400000, guid: ee7533e60504f1344929831e4ccb4653, type: 2}
+  - {fileID: 11400000, guid: f860a6f25f6ab7e4aa5ea139f1c003c5, type: 2}
+  - {fileID: 11400000, guid: 4a93c6b8d5fb35d40b84e475399ab145, type: 2}
+  - {fileID: 11400000, guid: 7435e7da178403f41a529e7a89c6af05, type: 2}
+  - {fileID: 11400000, guid: 9533ce89e5069a441a31c64b8eb58bbc, type: 2}
+  - {fileID: 11400000, guid: 63af9539bbedf564dad6cd70c89f6cc1, type: 2}
+  - {fileID: 11400000, guid: 5f72113b51fbeea418fbde1e01bde74d, type: 2}
+  - {fileID: 11400000, guid: 4a26e80edef13f149b2e0e59b90cb246, type: 2}
+  - {fileID: 11400000, guid: 2ff26717c4e9b724ca762d2259c216c4, type: 2}
   Enemies:
   - {fileID: 11400000, guid: f91aa69cefd0c2c41b3b31c9c2b09731, type: 2}
   - {fileID: 11400000, guid: 8c35a29b327b1574dab4f88e3bc1837a, type: 2}
@@ -142,5 +150,43 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 01c08ce56610d024c9a8718afe120d46, type: 2}
   - {fileID: 11400000, guid: 50f25aa75005f1e4e92ced28ebf5c2dd, type: 2}
   - {fileID: 11400000, guid: ff5b714b007b3af46b6018dcd11c0e06, type: 2}
+  MapIcons: []
+  CardFrames:
+  - Type: 0
+    Frame: {fileID: 21300000, guid: b861fea5a4e2f7742a8f73dcbf870efd, type: 3}
+    FrameScale: {x: 1.74, y: 1.15}
+    Background: {fileID: 21300000, guid: 0164129f85bb7f44c95a147cdcd75580, type: 3}
+    BackgroundTint: {r: 0.90943396, g: 0.90943396, b: 0.90943396, a: 1}
+    Tint: {r: 1, g: 1, b: 1, a: 1}
+    InsetSide: 0.1
+    InsetTop: 0.115
+    InsetBottom: 0.095
+    NameBarHeight: 30
+    DescHeight: 72
+    DotMargin: 6
+  - Type: 1
+    Frame: {fileID: 21300000, guid: b861fea5a4e2f7742a8f73dcbf870efd, type: 3}
+    FrameScale: {x: 1.74, y: 1.15}
+    Background: {fileID: 21300000, guid: 45411d5aa4a0c8b44a421678b30aee6f, type: 3}
+    BackgroundTint: {r: 0.9245283, g: 0.9245283, b: 0.9245283, a: 1}
+    Tint: {r: 1, g: 1, b: 1, a: 1}
+    InsetSide: 0.215
+    InsetTop: 0
+    InsetBottom: 0
+    NameBarHeight: 30
+    DescHeight: 72
+    DotMargin: 6
+  - Type: 2
+    Frame: {fileID: 21300000, guid: b861fea5a4e2f7742a8f73dcbf870efd, type: 3}
+    FrameScale: {x: 1, y: 1}
+    Background: {fileID: 0}
+    BackgroundTint: {r: 1, g: 1, b: 1, a: 1}
+    Tint: {r: 1, g: 1, b: 1, a: 1}
+    InsetSide: 0.1
+    InsetTop: 0.115
+    InsetBottom: 0.095
+    NameBarHeight: 30
+    DescHeight: 72
+    DotMargin: 6
   Locales:
   - {fileID: 11400000, guid: abfb1c7ae234429e93998946ec7c7844, type: 2}

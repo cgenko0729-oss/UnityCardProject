@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: guardian
   DisplayName: "\u5B88\u536B\u8005"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   MinHp: 240
   MaxHp: 240
   IsElite: 0
@@ -34,7 +34,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 1
     Effects:
-    - rid: 1041046769074962983
+    - rid: 1041046820846829760
   - Name: "\u91CD\u51FB"
     Intent: 1
     Weight: 40
@@ -46,7 +46,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 1
     Effects:
-    - rid: 1041046769074962984
+    - rid: 1041046820846829761
   - Name: "\u62A4\u76FE"
     Intent: 4
     Weight: 40
@@ -58,7 +58,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 1
     Effects:
-    - rid: 1041046769074962985
+    - rid: 1041046820846829762
   - Name: "\u72C2\u66B4\u7A81\u523A"
     Intent: 1
     Weight: 60
@@ -70,7 +70,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 2
     Effects:
-    - rid: 1041046769074962986
+    - rid: 1041046820846829763
   - Name: "\u6BC1\u706D"
     Intent: 3
     Weight: 40
@@ -82,8 +82,8 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 2
     Effects:
-    - rid: 1041046769074962987
-    - rid: 1041046769074962988
+    - rid: 1041046820846829764
+    - rid: 1041046820846829765
   FixedSequence: 
   LoopSequence: 1
   PhaseHpThresholds: 32000000
@@ -91,7 +91,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962983
+    - rid: 1041046820846829760
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -108,7 +108,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962984
+    - rid: 1041046820846829761
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -133,7 +133,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962985
+    - rid: 1041046820846829762
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -149,7 +149,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962986
+    - rid: 1041046820846829763
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -174,7 +174,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962987
+    - rid: 1041046820846829764
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -199,7 +199,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962988
+    - rid: 1041046820846829765
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

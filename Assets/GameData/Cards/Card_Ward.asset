@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: ward
   DisplayName: "\u5B88\u62A4\u5492"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 1
   CostMode: 0
   Type: 1
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 1
   DescriptionTemplate: "\u83B7\u5F97 {0} \u5C42\u795E\u5668\u3002\u6D88\u8017\u3002"
   Effects:
-  - rid: 1041046769074962913
+  - rid: 1041046820846829691
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962913
+    - rid: 1041046820846829691
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

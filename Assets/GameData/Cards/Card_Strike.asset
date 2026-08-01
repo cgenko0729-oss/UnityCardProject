@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: strike
   DisplayName: "\u6253\u51FB"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 72a5d06381d439142becd8894c201097, type: 3}
   Cost: 1
   CostMode: 0
   Type: 0
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002"
   Effects:
-  - rid: 1041046769074962864
+  - rid: 1041046820846829636
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 11400000, guid: 17325c11f40f8484bbda7a541462a4a3, type: 2}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962864
+    - rid: 1041046820846829636
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

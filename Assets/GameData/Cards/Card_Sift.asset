@@ -24,14 +24,14 @@ MonoBehaviour:
   DescriptionTemplate: "\u9009\u62E9\u5F03\u6389 {0} \u5F20\u624B\u724C\uFF0C\u7136\u540E\u62BD
     {1} \u5F20\u724C\u3002"
   Effects:
-  - rid: 1041046769074962844
-  - rid: 1041046769074962845
+  - rid: 1041046820846829622
+  - rid: 1041046820846829623
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 11400000, guid: 86234d25b105086479d015f187721be0, type: 2}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962844
+    - rid: 1041046820846829622
       type: {class: SelectCardsEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -52,7 +52,7 @@ MonoBehaviour:
         AllowFewer: 1
         Cancellable: 0
         Prompt: 
-    - rid: 1041046769074962845
+    - rid: 1041046820846829623
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

@@ -21,11 +21,11 @@ MonoBehaviour:
   Description: "\u53D7\u5230\u7684\u653B\u51FB\u4F24\u5BB3 +50%\uFF0C\u5269\u4F59
     {stacks} \u56DE\u5408\u3002"
   Behaviours:
-  - rid: 1041046769074962854
+  - rid: 1041046820846829632
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962854
+    - rid: 1041046820846829632
       type: {class: VulnerableBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data:
         PercentBonus: 50

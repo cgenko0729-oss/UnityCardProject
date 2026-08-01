@@ -28,16 +28,26 @@ namespace Game.UI
         private const float SpinDegrees = 28f;
 
         private RectTransform _rt;
+        private RectTransform _layer;
+
+        /// <summary>到了终点是「散掉」还是「烧掉」。见 <see cref="Play"/> 的 burnOnArrive。</summary>
+        private bool _burn;
 
         /// <summary>
-        /// 让一张牌飞向 <paramref name="targetAnchored"/>（<paramref name="layer"/> 的本地坐标）。
+        /// 把一张**已经离开手牌**的 CardView 从手牌区摘下来搬到 <paramref name="layer"/> 上，
+        /// 关掉它的组件与射线，返回它的 <see cref="CanvasGroup"/>。
+        ///
+        /// ★ 单独提出来是因为「飞走消散」和「烧成灰」（<see cref="CardBurnOut"/>）
+        ///   共用这一段，而其中的坐标系换算是最容易写错的部分：写错的表现只是
+        ///   「牌开始飞的那一帧跳了一下」，很容易被当成动画曲线的问题去调，怎么调都不对。
         /// </summary>
-        public static void Play(CardView view, RectTransform layer, Vector2 targetAnchored)
+        public static CanvasGroup Detach(CardView view, RectTransform layer)
         {
-            if (view == null) return;
-
             var rt = (RectTransform)view.transform;
-            if (layer == null) { Destroy(view.gameObject); return; }
+
+            // ★ 顺序：先让它收掉悬停高光，**再**关组件。反过来的话 Update 已经不跑了，
+            //   一张被悬停时打出去的牌会带着那块高光一路飞出去。
+            view.ClearHoverFx();
 
             // ★ 先关组件再动它。CardView.Update 还活着的话，下面设的位置会被它下一帧插值回去。
             view.enabled = false;
@@ -61,8 +71,29 @@ namespace Game.UI
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.position = worldCenter;
 
+            return group;
+        }
+
+        /// <summary>
+        /// 让一张牌飞向 <paramref name="targetAnchored"/>（<paramref name="layer"/> 的本地坐标）。
+        /// </summary>
+        /// <param name="burnOnArrive">
+        /// 到了终点交给 <see cref="CardBurnOut"/> 烧掉，而不是淡出消散。
+        /// ★ 打出去的**消耗牌**走这条：它既要飞向目标（那是「谁干的」这句因果，铁律 57），
+        ///   又要烧掉（消耗是不可逆的，得让玩家看见它没有进任何牌堆）。两件事是串联的，不是二选一。
+        /// </param>
+        public static void Play(CardView view, RectTransform layer, Vector2 targetAnchored,
+                                bool burnOnArrive = false)
+        {
+            if (view == null) return;
+            if (layer == null) { Destroy(view.gameObject); return; }
+
+            var group = Detach(view, layer);
+
             var fly = view.gameObject.AddComponent<CardFlyOut>();
-            fly._rt = rt;
+            fly._rt = (RectTransform)view.transform;
+            fly._layer = layer;
+            fly._burn = burnOnArrive;
             fly.Run(group, targetAnchored);
         }
 
@@ -76,13 +107,36 @@ namespace Game.UI
                                   targetAnchored, FlyTime).SetEase(Ease.InQuad));
 
             seq.Join(_rt.DOScale(Vector3.one * EndScale, FlyTime).SetEase(Ease.InQuad));
-            seq.Join(_rt.DOLocalRotate(new Vector3(0f, 0f, spin), FlyTime));
+
+            // ★ 要烧的牌**不甩**：接下来 CardBurnOut 会把它扶正再点燃，
+            //   带着 28° 冲过去只会让那一步看起来像是「先抖了一下」。
+            seq.Join(_rt.DOLocalRotate(new Vector3(0f, 0f, _burn ? 0f : spin), FlyTime));
 
             // 淡出比飞行短，且排在后半段：牌要「到了才散」，一出手就透明看起来像是没打出去
-            seq.Insert(FlyTime - FadeTime,
-                       DOTween.To(() => group.alpha, a => group.alpha = a, 0f, FadeTime).SetTarget(_rt));
+            // ★ 要烧的牌不在这里淡出——它的消失由燃烧那一段负责，两边都淡会淡掉两次。
+            if (!_burn)
+                seq.Insert(FlyTime - FadeTime,
+                           DOTween.To(() => group.alpha, a => group.alpha = a, 0f, FadeTime).SetTarget(_rt));
 
-            seq.OnComplete(() => Destroy(gameObject));
+            seq.OnComplete(OnArrived);
+        }
+
+        private void OnArrived()
+        {
+            if (!_burn) { Destroy(gameObject); return; }
+
+            var rt = _rt;
+            var layer = _layer;
+
+            // ★★ 必须先把 _rt 清掉再 Destroy(this)：
+            //    Destroy(Component) 要到本帧末才真的执行，那时 OnDisable 会跑
+            //    <c>DOTween.Kill(_rt)</c>——而 CardBurnOut 那时已经在同一个 RectTransform 上
+            //    挂好了整条燃烧序列，会被连坐杀掉。表现是「牌飞到目标，然后**凭空消失**」，
+            //    燃烧一帧都没播，而且不报任何错。
+            _rt = null;
+            Destroy(this);
+
+            CardBurnOut.PlayOn(rt, layer);
         }
 
         /// <summary>

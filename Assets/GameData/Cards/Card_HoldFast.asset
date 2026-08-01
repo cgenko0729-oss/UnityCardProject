@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: hold_fast
   DisplayName: "\u628A\u6301"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 0
   CostMode: 0
   Type: 1
@@ -24,14 +24,14 @@ MonoBehaviour:
   DescriptionTemplate: "\u9009\u62E9 {0} \u5F20\u624B\u724C\uFF0C\u672C\u56DE\u5408\u7ED3\u675F\u65F6\u4FDD\u7559\u5B83\u3002\u62BD
     {1} \u5F20\u724C\u3002"
   Effects:
-  - rid: 1041046769074962826
-  - rid: 1041046769074962827
+  - rid: 1041046820846829604
+  - rid: 1041046820846829605
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962826
+    - rid: 1041046820846829604
       type: {class: SelectCardsEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -52,7 +52,7 @@ MonoBehaviour:
         AllowFewer: 1
         Cancellable: 0
         Prompt: 
-    - rid: 1041046769074962827
+    - rid: 1041046820846829605
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

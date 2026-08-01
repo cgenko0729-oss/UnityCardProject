@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: field_dressing
   DisplayName: "\u6218\u5730\u5305\u624E"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 1
   CostMode: 0
   Type: 1
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u83B7\u5F97 {0} \u5C42\u518D\u751F\u3002"
   Effects:
-  - rid: 1041046769074962918
+  - rid: 1041046820846829696
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962918
+    - rid: 1041046820846829696
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: cultist
   DisplayName: "\u90AA\u6559\u5F92"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   MinHp: 48
   MaxHp: 54
   IsElite: 0
@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962965
+    - rid: 1041046820846829740
   - Name: "\u97AD\u7B1E"
     Intent: 1
     Weight: 100
@@ -44,7 +44,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962966
+    - rid: 1041046820846829741
   FixedSequence: 00000000
   LoopSequence: 0
   PhaseHpThresholds: 
@@ -52,7 +52,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962965
+    - rid: 1041046820846829740
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -69,7 +69,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962966
+    - rid: 1041046820846829741
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

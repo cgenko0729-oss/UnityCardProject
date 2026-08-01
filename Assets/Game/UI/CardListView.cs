@@ -83,9 +83,16 @@ namespace Game.UI
             return view;
         }
 
+        /// <summary>
+        /// 留一份给放大卡面用。★ 它只用于**给描述里的关键字名上色**，不用于挂 tooltip——
+        /// 放大卡打开时 tooltip 是被全局压住的（见 <see cref="ShowBigCard"/>）。
+        /// </summary>
+        private GameDatabase _db;
+
         private void Build(RectTransform root, string title,
                            IReadOnlyList<CardInstance> cards, GameDatabase db, CardListOrder order)
         {
+            _db = db;
             var shown = Arrange(cards, order);
 
             var titleText = UIFactory.CreateText(root, "Title", title, 34,
@@ -242,9 +249,13 @@ namespace Game.UI
             closeArea.targetGraphic = layer.GetComponent<Image>();
             closeArea.onClick.AddListener(CloseBigCard);
 
-            // ★ db 传 null：下面刚把 tooltip 全局压住了，挂上去也永远不会弹，
+            // ★ 走 def 重载而不是 Create(layer, card, db)：那个重载的 db 会**挂 tooltip**，
+            //   而下面刚把 tooltip 全局压住了，挂上去也永远不会弹——
             //   留一个永不触发的 TooltipTarget 只会让下一个人以为它坏了。
-            var big = CardMiniView.Create(layer, card, null);
+            // ★ 但描述仍然要上色，否则「小卡有色、点开放大反而没色」，
+            //   看起来像是放大卡走了另一条渲染路径。这正是 def 重载那个 db 参数的用途：
+            //   只上色，不挂 tooltip。
+            var big = CardMiniView.Create(layer, card.Def, card.UpgradeLevel > 0, _db);
             var rt = (RectTransform)big.transform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = Vector2.zero;

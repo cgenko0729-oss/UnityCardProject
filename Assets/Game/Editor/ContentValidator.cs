@@ -116,7 +116,9 @@ namespace Game.Editor
             errors += CheckStatelessTypes(typeof(StatusBehaviour), sb);
             errors += CheckStatelessTypes(typeof(Game.RunEffects.RunEffect), sb);
 
-            warnings += CheckCards(sb);
+            // ★ CheckCards 现在也能报错误（铁律 14 / 21 的稀有度检查），
+            //   所以它的形状与 CheckLocalization 一致：返回错误数，警告数走 ref。
+            errors += CheckCards(sb, ref warnings);
             warnings += CheckEnemies(sb);
             warnings += CheckRelics(sb);
             warnings += CheckPotions(sb);
@@ -393,74 +395,36 @@ namespace Game.Editor
 
         // ============================================================ 内容检查
 
-        private static int CheckCards(StringBuilder sb)
+        /// <summary>
+        /// 卡牌检查。★ 判断逻辑全部在 <see cref="Game.Editor.CardTables.CardRules"/>，
+        /// 这里只负责遍历资产和格式化输出。
+        ///
+        /// <para>为什么要这样拆：卡表导入器和卡牌编辑器窗口都需要「校验一张卡 → 拿到结构化结果」。
+        /// 让它们各自实现一份规则的话，两份一定会分叉，而分叉的表现是
+        /// 「菜单 3 说没问题，窗口说有问题」——使用者从此不再信任两者中的任何一个。</para>
+        /// </summary>
+        private static int CheckCards(StringBuilder sb, ref int warnings)
         {
-            int warnings = 0;
+            int errors = 0;
 
             foreach (var card in LoadAll<CardDefinition>())
             {
-                var path = PathOf(card);
+                foreach (var issue in Game.Editor.CardTables.CardRules.Validate(card))
+                {
+                    // Id 为空时 CardRules 会退回资产名，但这里能给出更有用的完整路径。
+                    string line = string.IsNullOrEmpty(card.Id)
+                        ? $"{issue} （{PathOf(card)}）"
+                        : issue.ToString();
 
-                if (string.IsNullOrEmpty(card.Id))
-                {
-                    warnings++; sb.AppendLine($"[警告] {path}: Id 为空。");
-                }
+                    sb.AppendLine(line);
 
-                if (card.Effects == null || card.Effects.Count == 0)
-                {
-                    // ★ 状态牌 / 诅咒牌本来就该没有出牌效果——它们的作用就是堵手牌。
-                    //   同理，只有「留在手上的代价」的牌（灼烧）也不算配错。
-                    //   不放行这两类，校验器每次都会报一串假警告，真警告就没人看了。
-                    bool intentionallyEmpty = card.Type == CardType.Status
-                                              || card.Type == CardType.Curse
-                                              || card.HasInHandEndOfTurnEffects;
-                    if (!intentionallyEmpty)
-                    {
-                        warnings++; sb.AppendLine($"[警告] {card.Id}: 没有任何效果。");
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < card.Effects.Count; i++)
-                    {
-                        if (card.Effects[i] == null)
-                        {
-                            warnings++;
-                            sb.AppendLine($"[警告] {card.Id}: 第 {i} 个效果为空（可能是类被重命名导致 " +
-                                          $"[SerializeReference] 丢失引用）。");
-                        }
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(card.DescriptionTemplate) && card.Effects != null)
-                {
-                    for (int i = card.Effects.Count; i < 10; i++)
-                    {
-                        if (card.DescriptionTemplate.Contains("{" + i + "}"))
-                        {
-                            warnings++;
-                            sb.AppendLine($"[警告] {card.Id}: 描述模板引用了 {{{i}}}，但只有 {card.Effects.Count} 个效果。");
-                            break;
-                        }
-                    }
-                }
-
-                if (card.TargetKind == CardTargetKind.SingleEnemy && HasNoChosenTarget(card))
-                {
-                    warnings++;
-                    sb.AppendLine($"[警告] {card.Id}: 声明需要选择敌人，但没有任何效果使用 ChosenTarget。");
+                    if (issue.Level == Game.Editor.CardTables.CardIssueLevel.Error) errors++;
+                    else warnings++;
                 }
             }
 
-            return warnings;
+            return errors;
         }
-
-        /// <summary>
-        /// ★ 必须递归进组合子：「重复 3 次造成 4 点伤害」的 ChosenTarget 藏在 RepeatEffect 里，
-        ///   只看顶层会把这种完全正常的卡误报成配错。
-        /// </summary>
-        private static bool HasNoChosenTarget(CardDefinition card)
-            => !UsesChosenTarget(card.Effects);
 
         private static int CheckEnemies(StringBuilder sb)
         {
@@ -580,7 +544,8 @@ namespace Game.Editor
 
                 // ★ 与卡牌同一条规则：声明要选目标却没有任何效果打到 Chosen，
                 //   玩家会被要求点一个敌人然后发现点了没用。
-                if (p.TargetKind == CardTargetKind.SingleEnemy && !UsesChosenTarget(p.Effects))
+                if (p.TargetKind == CardTargetKind.SingleEnemy
+                    && !Game.Editor.CardTables.CardRules.UsesChosenTarget(p.Effects))
                 {
                     warnings++;
                     sb.AppendLine($"[警告] 药水 {p.Id}: 声明了 SingleEnemy，" +
@@ -598,44 +563,9 @@ namespace Game.Editor
             return warnings;
         }
 
-        /// <summary>效果树里是否存在以 Chosen 为目标的效果（递归进组合子）。</summary>
-        private static bool UsesChosenTarget(System.Collections.Generic.IReadOnlyList<CardEffect> effects)
-        {
-            if (effects == null) return false;
-
-            for (int i = 0; i < effects.Count; i++)
-            {
-                var e = effects[i];
-                if (e == null) continue;
-                if (e.Target.Kind == TargetKind.ChosenTarget) return true;
-
-                switch (e)
-                {
-                    case Game.Effects.Impl.RepeatEffect rep when UsesChosenTarget(rep.Effects):
-                        return true;
-                    case Game.Effects.Impl.ConditionalEffect cond
-                        when UsesChosenTarget(cond.Then) || UsesChosenTarget(cond.Else):
-                        return true;
-                    case Game.Effects.Impl.DelayedEffect del when UsesChosenTarget(del.Effects):
-                        return true;
-                    case Game.Effects.Impl.RandomPickEffect pick when PickUsesChosen(pick):
-                        return true;
-                }
-            }
-            return false;
-        }
-
-        private static bool PickUsesChosen(Game.Effects.Impl.RandomPickEffect pick)
-        {
-            if (pick.Options == null) return false;
-            for (int i = 0; i < pick.Options.Count; i++)
-            {
-                var opt = pick.Options[i];
-                if (opt?.Effect == null) continue;
-                if (UsesChosenTarget(new[] { opt.Effect })) return true;
-            }
-            return false;
-        }
+        // 「效果树里是否存在以 Chosen 为目标的效果」已移到
+        // Game.Editor.CardTables.CardRules.UsesChosenTarget——卡牌与药水共用一份，
+        // 而卡表导入器和编辑器窗口也要用它。一处收口，避免铁律 22 的递归入口出现第二份拷贝。
 
         private static int CheckEvents(StringBuilder sb)
         {

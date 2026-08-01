@@ -121,8 +121,13 @@ namespace Game.UI
 
             var canvasRect = (RectTransform)_canvas.transform;
 
-            _panel = UIFactory.CreatePanel(canvasRect, "TooltipPanel", new Color(0.05f, 0.06f, 0.09f, 0.96f));
-            _panel.GetComponent<Image>().raycastTarget = false;
+            // ★ 提示框是全界面**唯一**一个「浮在所有东西之上」的元素（sortingOrder 5000），
+            //   而在这之前它与底下那些面板长得一模一样，全靠盖住别人来表达「我在上层」。
+            //   RoundedStyle.Tooltip 是六个预设里描边最亮、投影最重的一个，正是为这件事调的。
+            var panel = UIFactory.CreateRoundedPanel(canvasRect, "TooltipPanel",
+                new Color(0.05f, 0.06f, 0.09f, 0.96f), RoundedStyle.Tooltip);
+            panel.raycastTarget = false;
+            _panel = panel.rectTransform;
 
             // 锚点钉在左下角、pivot 在左上角：于是 anchoredPosition 就是
             // 「面板左上角距屏幕左下角的距离（画布单位）」，摆放时不用再换算参考系。

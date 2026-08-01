@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "id": "crescent_slash",
+      "name": "新月斩",
+      "cost": 1,
+      "type": "Attack",
+      "rarity": "Uncommon",
+      "target": "SingleEnemy",
+      "desc": "造成 {0} 点伤害，使其易伤 {1} 层。",
+      "effects": [
+        {
+          "$kind": "damage",
+          "amount": 8
+        },
+        {
+          "$kind": "applyStatus",
+          "target": "prev",
+          "status": "vulnerable"
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "$kind": "damage",
+            "amount": 11
+          },
+          {
+            "$kind": "applyStatus",
+            "target": "prev",
+            "status": "vulnerable",
+            "stacks": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "tempest_dance",
+      "name": "风暴之舞",
+      "cost": 2,
+      "type": "Skill",
+      "rarity": "Rare",
+      "target": "None",
+      "desc": "重复 {0} 次：对随机敌人造成 5 点伤害，并获得 3 点护甲。",
+      "effects": [
+        {
+          "$kind": "repeat",
+          "effects": [
+            {
+              "$kind": "damage",
+              "target": "randomEnemy",
+              "amount": 5
+            },
+            {
+              "$kind": "block",
+              "amount": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zealous_strike",
+      "name": "狂信一击",
+      "cost": 1,
+      "type": "Attack",
+      "rarity": "Common",
+      "target": "SingleEnemy",
+      "desc": "造成 {0} 点伤害。每层力量使这张牌额外造成 3 点伤害。",
+      "effects": [
+        {
+          "$kind": "damage",
+          "amount": {
+            "base": 4,
+            "per": "statusOnSelf:strength",
+            "each": 3
+          }
+        }
+      ],
+      "upgrade": {
+        "effects": [
+          {
+            "$kind": "damage",
+            "amount": {
+              "base": 6,
+              "per": "statusOnSelf:strength",
+              "each": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "overload",
+      "name": "超载",
+      "cost": 0,
+      "costMode": "X",
+      "type": "Attack",
+      "rarity": "Rare",
+      "target": "None",
+      "keywords": [
+        "Exhaust"
+      ],
+      "desc": "消耗所有能量。对所有敌人造成 {0} 点伤害。消耗。",
+      "effects": [
+        {
+          "$kind": "damage",
+          "target": "allEnemies",
+          "amount": {
+            "base": 0,
+            "per": "x",
+            "each": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "desperate_gambit",
+      "name": "绝境赌注",
+      "cost": 1,
+      "type": "Skill",
+      "rarity": "Uncommon",
+      "target": "None",
+      "desc": "若生命低于 50%：抽 2 张牌并获得 1 点能量。否则：将 1 张伤口置入弃牌堆。",
+      "effects": [
+        {
+          "$kind": "conditional",
+          "condition": {
+            "kind": "SelfHpBelowPercent",
+            "value": 50,
+            "invert": false
+          },
+          "then": [
+            {
+              "$kind": "draw",
+              "count": 2
+            },
+            {
+              "$kind": "energy"
+            }
+          ],
+          "else": [
+            {
+              "$kind": "addCard",
+              "card": "wound",
+              "pile": "Discard"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "new_card",
+      "name": "新卡",
+      "cost": 1,
+      "type": "Power",
+      "rarity": "Rare",
+      "target": "AllEnemies",
+      "desc": "造成 {0} 点伤害。 {1} {2} {3} {4}",
+      "effects": [
+        {
+          "$kind": "damage"
+        },
+        {
+          "$kind": "block"
+        },
+        {
+          "$kind": "draw",
+          "target": "self"
+        },
+        {
+          "$kind": "addCard",
+          "target": "self",
+          "card": "burn"
+        },
+        {
+          "$kind": "discard",
+          "target": "self",
+          "discardMode": "ChooseByPlayer"
+        }
+      ],
+      "inHandEndOfTurn": []
+    }
+  ]
+}

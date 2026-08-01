@@ -21,10 +21,10 @@ MonoBehaviour:
   Description: "\u53D7\u5230\u653B\u51FB\u65F6\u5BF9\u653B\u51FB\u8005\u9020\u6210
     {stacks} \u70B9\u4F24\u5BB3\u3002"
   Behaviours:
-  - rid: 1041046769074962910
+  - rid: 1041046820846829688
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962910
+    - rid: 1041046820846829688
       type: {class: ThornsBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data: 

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: burden_of_proof
   DisplayName: "\u4E3E\u8BC1\u4E4B\u8D23"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 1
   CostMode: 0
   Type: 1
@@ -24,14 +24,14 @@ MonoBehaviour:
   DescriptionTemplate: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u4FDD\u7559\u3002\u56DE\u5408\u7ED3\u675F\u65F6\u82E5\u4ECD\u5728\u624B\u724C\uFF0C\u5931\u53BB
     2 \u70B9\u751F\u547D\u3002"
   Effects:
-  - rid: 1041046769074962975
+  - rid: 1041046820846829754
   InHandEndOfTurnEffects:
-  - rid: 1041046769074962976
+  - rid: 1041046820846829755
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962975
+    - rid: 1041046820846829754
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -47,7 +47,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962976
+    - rid: 1041046820846829755
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

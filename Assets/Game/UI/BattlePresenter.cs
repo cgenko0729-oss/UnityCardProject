@@ -56,23 +56,23 @@ namespace Game.UI
         ///
         /// 0.09 × 5 ≈ 0.45 秒。再长就每回合都要等，再短就看不出是一张一张的。
         /// </summary>
-        private const float DurDraw = 0.09f;
+        private const float DurDraw = 0.21f;
 
         /// <summary>
         /// 一张牌离开手牌（弃 / 消耗）。比抽牌短——牌走掉不该和牌进来一样隆重。
         /// ★ 它同时影响**打出一张牌的收尾**：`FinishPlay` 会把牌送进弃牌堆并发这条事件，
         ///   所以这个数每加 0.01 秒，每次出牌就多黏 0.01 秒。
         /// </summary>
-        private const float DurCardLeave = 0.05f;
+        private const float DurCardLeave = 0.21f;
 
         /// <summary>洗牌。要留出一叠牌从弃牌堆飞回抽牌堆的时间。</summary>
-        private const float DurShuffle = 0.35f;
+        private const float DurShuffle = 0.7f;
 
         /// <summary>死亡要单独留一拍，否则倒下的动作会被下一条事件盖过去。</summary>
         private const float DurDeath = 0.60f;
 
-        private const float DurTurnBanner = 0.25f;
-        private const float DurEnemyTurn = 0.30f;
+        private const float DurTurnBanner = 0.35f;
+        private const float DurEnemyTurn = 0.35f;
         private const float DurBattleEnd = 0.40f;
 
         /// <summary>队列超过这个条数才开始压缩。</summary>

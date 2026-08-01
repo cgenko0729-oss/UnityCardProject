@@ -19,12 +19,12 @@ MonoBehaviour:
   Description: "\u6BCF\u573A\u6218\u6597\u7684\u7B2C\u4E00\u56DE\u5408\u989D\u5916\u83B7\u5F97
     1 \u70B9\u80FD\u91CF\u3002"
   Behaviours:
-  - rid: 1041046769074962909
+  - rid: 1041046820846829687
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962909
+    - rid: 1041046820846829687
       type: {class: TurnResourceBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         ExtraDraw: 0

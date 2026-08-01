@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: wild_gamble
   DisplayName: "\u5B64\u6CE8\u4E00\u63B7"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 1
   CostMode: 0
   Type: 1
@@ -24,13 +24,13 @@ MonoBehaviour:
   DescriptionTemplate: "\u968F\u673A\u83B7\u5F97\u4E0B\u5217\u4E4B\u4E00\uFF1A8 \u70B9\u62A4\u7532
     / \u62BD 2 \u5F20\u724C / 2 \u70B9\u80FD\u91CF\u3002"
   Effects:
-  - rid: 1041046769074962940
+  - rid: 1041046820846829718
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962940
+    - rid: 1041046820846829718
       type: {class: RandomPickEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -43,18 +43,18 @@ MonoBehaviour:
         - Note: "\u62A4\u7532"
           Weight: 40
           Effect:
-            rid: 1041046769074962941
+            rid: 1041046820846829719
         - Note: "\u62BD\u724C"
           Weight: 40
           Effect:
-            rid: 1041046769074962942
+            rid: 1041046820846829720
         - Note: "\u80FD\u91CF"
           Weight: 20
           Effect:
-            rid: 1041046769074962943
+            rid: 1041046820846829721
         PickCount: 1
         AllowDuplicates: 0
-    - rid: 1041046769074962941
+    - rid: 1041046820846829719
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -70,7 +70,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962942
+    - rid: 1041046820846829720
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -86,7 +86,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962943
+    - rid: 1041046820846829721
       type: {class: EnergyEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: ambush
   DisplayName: "\u4F0F\u51FB"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 2
   CostMode: 0
   Type: 0
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 2
   DescriptionTemplate: "\u6BCF\u6709\u4E00\u5F20\u624B\u724C\u9020\u6210 {0} \u70B9\u4F24\u5BB3\u3002\u4FDD\u7559\u3002"
   Effects:
-  - rid: 1041046769074962969
+  - rid: 1041046820846829743
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 11400000, guid: 50ac2b298e17bc34aa05316c0b01c183, type: 2}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962969
+    - rid: 1041046820846829743
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

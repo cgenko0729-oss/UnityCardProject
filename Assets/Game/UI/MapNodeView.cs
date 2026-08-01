@@ -39,7 +39,12 @@ namespace Game.UI
 
         public static MapNodeView Create(Transform parent, MapScreen screen, MapNode node, Sprite icon = null)
         {
-            var rt = UIFactory.CreatePanel(parent, $"Node{node.Id}", ColLocked);
+            // ★ 地图节点是全界面**最密**的一片方块阵，而它们之间只靠几条细连线区分。
+            //   圆角 + 投影把每个节点从背景里拎起来，一眼就能数清有几个、哪些连着。
+            //   ★ 用 Chip 而不是 Card：节点是「一枚棋子」不是「一张牌」，
+            //     投影必须收得很小，否则相邻节点的投影会连成一片糊。
+            var rt = UIFactory.CreateRoundedPanel(parent, $"Node{node.Id}",
+                ColLocked, RoundedStyle.Chip).rectTransform;
             UIFactory.SetSize(rt, NodeSize, NodeSize);
             rt.anchorMin = new Vector2(0.5f, 0f);
             rt.anchorMax = new Vector2(0.5f, 0f);

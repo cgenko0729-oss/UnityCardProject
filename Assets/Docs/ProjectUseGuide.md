@@ -56,10 +56,17 @@
 
 项目同时支持：
 
-- **流程 A：通过生成器代码创建和维护内容**
-- **流程 B：通过 Inspector 手工创建内容**
+- **流程 A：通过生成器代码创建和维护内容**（`SampleContent*.cs`，全部内容类型）
+- **流程 B：通过 Inspector 手工创建内容**（全部内容类型）
+- **流程 C：通过 `CardTable.json` 维护卡牌**（只有卡牌，见 [4.9](#49-流程-c卡表-json新卡推荐走这条)）
 
-两者可以共存，但必须理解所有权规则。
+三者可以共存，但必须理解所有权规则。
+
+> **新增卡牌优先走流程 C。** A 要编译 + 跑生成器才能看到一次数值改动；
+> B 要在裸 Inspector 里对付 `[SerializeReference]` 的扁平表单
+> （一个 `DamageEffect` 展开是 14 行，其中 9 行是当下无意义的字段）。
+> 流程 C 把一张卡压成十几行 JSON，并且带 Id 冲突、稀有度、目标一致性的即时校验。
+> 状态 / 敌人 / 遗物 / 药水 / 事件仍然只有 A 和 B。
 
 ### 2.1 标准内容目录
 
@@ -344,14 +351,50 @@ EditorUtility.SetDirty(flameGuard);
 | 自己获得护甲 | `None` | `SelfOnly` |
 | 第一效果打敌人，第二效果继续作用同一目标 | `SingleEnemy` | 第一项 `Chosen`，第二项 `Previous` |
 
-危险配置：
+> ⚠ **卡牌级 `TargetKind` 不声明打击范围。**
+>
+> 全工程只有三处读它，全都是 `== SingleEnemy`：
+> `BattleController.NeedsTargetSelection`、`BattleController.CanPlayCard` 的目标合法性检查、
+> 以及 `PotionDefinition.NeedsTarget`。
+>
+> 也就是说 `None` / `AllEnemies` / `Self` / `RandomEnemy` **行为完全等价**，
+> 都只表示「不要让玩家点目标」。真正决定打谁的是每个效果自己的 `Target`。
+>
+> 字段名叫「目标」、取值里又有 `AllEnemies`，读起来非常像「这张卡打全体」——
+> 这是本工程最容易误读的一处配置。
+
+两个方向的配错，后果完全不同：
+
+**方向一（警告）**：声明要选目标，但没有效果用 `chosen`
 
 ```text
 CardTargetKind = SingleEnemy
-DamageEffect.Target = RandomEnemy
+DamageEffect.Target  = RandomEnemy
 ```
 
-玩家会被要求点目标，但这个选择完全没被使用。
+玩家会被要求点一个敌人，然后那次点击被忽略。烦人，但卡的其它效果照常生效。
+
+**方向二（错误，后果重得多）**：有效果用 `chosen`，但卡牌级不是 `SingleEnemy`
+
+```text
+CardTargetKind = AllEnemies      ← 不会让玩家点目标
+DamageEffect.Target  = ChosenTarget    ← 于是 chosen 恒为空
+```
+
+出牌时 `ChosenTarget` 是 null，`TargetResolver` 解析 `chosen` 得到空集合，
+于是**那些效果静默命中 0 个目标**。表象是：
+
+```text
+卡打出去了、能量扣了、动画播了、护甲和抽牌都生效了，只有伤害没有。
+```
+
+看起来像「只有攻击那一半坏了」，离根因（卡牌级目标不是 `SingleEnemy`）非常远。
+
+同理，**`InHandEndOfTurnEffects` 里永远不能用 `chosen`** ——
+回合末结算那个时机根本不存在玩家点选。
+
+这三条都由 `CardRules` 检查（菜单 3 与卡牌编辑器共用同一份），
+方向二和 `inHandEndOfTurn` 那条报**错误**，会阻止卡表导入。
 
 ### 4.7 描述模板
 
@@ -389,6 +432,219 @@ CardView / BattleScreen
 - 修改 `CardEffect` 会影响所有使用它的卡牌、药水和敌人行动。
 - 修改 `EffectResolver` 会影响几乎全部战斗内容。
 - 修改 `BattleController.TryPlayCard` 会影响所有卡牌的出牌规则。
+
+### 4.9 流程 C：卡表 JSON（新卡推荐走这条）
+
+相关文件：
+
+- [CardTable.json](../GameData/CardTable.json) — 事实来源
+- [CardTableImporter.cs](../Game/Editor/CardTable/CardTableImporter.cs) — 表 → 资产
+- [CardTableJson.cs](../Game/Editor/CardTable/CardTableJson.cs) — 序列化契约
+- [CardRules.cs](../Game/Editor/CardTable/CardRules.cs) — 校验规则（全工程唯一一份）
+- [CardTableSelfCheck.cs](../Game/Editor/CardTable/CardTableSelfCheck.cs) — 序列化层的自检
+
+#### 4.9.1 所有权
+
+```text
+CardTable.json  →（菜单 7）→  GameData/Cards/Authored/*.asset  →  GameDatabase
+```
+
+- **表是唯一事实来源。** `Cards/Authored/` 完全归导入器所有，是 build 产物，不要手改。
+- 表里删掉一张卡，下次导入会把对应 `.asset` 一起删掉。
+- 生成器写 `Cards/` 根目录，导入器写 `Cards/Authored/`，两者物理隔离。
+  现有 57 张卡继续由 `SampleContent*.cs` 管，不受影响。
+- Id 撞车（表 vs 生成器 vs 其它手工资产）会**阻止导入**，不会像 2.4 规则 4 那样静默丢卡。
+
+#### 4.9.2 菜单
+
+```text
+Tools/卡牌游戏/7. 导入卡表     表 → 资产 → 重建 GameDatabase
+Tools/卡牌游戏/8. 卡表自检     序列化层的往返幂等断言（改了效果类之后跑一次）
+Tools/卡牌游戏/9. 卡牌编辑器   图形界面，编的是这张表（见 4.9.9）
+```
+
+导入器的 CI 入口是 `Game.Editor.CardTables.CardTableImporter.ImportBatch`，
+自检是 `CardTableSelfCheck.RunBatch`，都在有错误时返回退出码 1。
+
+#### 4.9.3 一张卡的完整写法
+
+```jsonc
+{
+  "version": 1,
+  "cards": [
+    {
+      "id": "flame_guard",
+      "name": "焰盾",
+      "cost": 1,
+      "type": "Attack",           // Attack / Skill / Power / Status / Curse
+      "rarity": "Uncommon",       // Basic / Common / Uncommon / Rare / Special
+      "target": "SingleEnemy",    // None / SingleEnemy / AllEnemies / Self / RandomEnemy
+      "keywords": ["Exhaust"],    // Exhaust / Retain / Innate / Ethereal / Unplayable
+      "desc": "造成 {0} 点伤害，获得 {1} 点护甲。",
+      "effects": [
+        { "$kind": "damage", "target": "chosen", "amount": 7 },
+        { "$kind": "block",  "target": "self",   "amount": 5 }
+      ],
+      "upgrade": {
+        "effects": [
+          { "$kind": "damage", "target": "chosen", "amount": 10 },
+          { "$kind": "block",  "target": "self",   "amount": 7 }
+        ]
+      }
+    }
+  ]
+}
+```
+
+`costMode` 省略即 `Fixed`（可写 `X` / `Unplayable`）。`inHandEndOfTurn` 与 `effects` 同结构。
+
+#### 4.9.4 四条压缩规则
+
+**① `$kind` 是效果类型，短名 = 类名去掉 `Effect` 后首字母小写。**
+
+| 类 | `$kind` |
+|---|---|
+| `DamageEffect` | `damage` |
+| `ApplyStatusEffect` | `applyStatus` |
+| `ModifyCardCostEffect` | `modifyCardCost` |
+| `SelectCardsEffect` | `selectCards` |
+
+字段名 = C# 字段名的 camelCase。**两者都由反射推导，没有映射表要维护** ——
+在 `Effects/Impl/` 新建一个效果类，它立刻能在表里用。写错 `$kind` 或字段名会当场报错并列出合法取值。
+
+> `$` 前缀不是装饰。判别符与效果字段共处一个 JSON 对象，
+> 而 `DamageEffect` 有一个 `Kind` 字段（就是铁律 20 那个 `DamageKind`），camelCase 后正是 `kind`。
+> 撞名会让「非攻击伤害」的卡在读取时把效果类型变成 `Loss`，
+> 且因为 `DamageKind.Attack` 是默认值会被省略，**只有设了非攻击伤害的卡会坏**。
+> `$` 开头的名字永远不可能由字段推导而来，所以这个冲突结构上不可能再发生。
+
+**② 与构造函数默认值相同的字段一律省略。**
+
+于是 `{ "$kind": "block", "amount": 5 }` 就是完整的「获得 5 点护甲」——
+`BlockEffect()` 的构造函数已经把 `target` 设成 `self`。反过来，**省略 = 构造函数默认值**，
+不是 `default(T)`；这条两个方向都成立。
+
+**③ 固定数值写成裸数字，需要缩放时才展开。**
+
+```jsonc
+"amount": 7
+"amount": { "base": 3, "per": "statusOnSelf:strength", "each": 2, "min": 1, "max": 30 }
+```
+
+`per` 的取值：`statusOnSelf:<id>`、`statusOnTarget:<id>`、`cardInHand`、`cardInDiscard`、
+`cardPlayedThisTurn`、`enemyAlive`、`blockOnSelf`、`missingHpOnSelf`、`x`、`repeatIndex`。
+前两个必须带状态 Id —— 不带会报错，因为那是一个恒等于 0 且不报错的哑配置。
+
+**④ `target` 写成裸字符串，有附加参数时才展开。**
+
+```jsonc
+"target": "chosen"
+"target": { "kind": "randomEnemy", "count": 2, "allowDuplicates": true }
+```
+
+取值：`none`、`self`、`chosen`、`allEnemies`、`allAllies`、`allUnits`、
+`randomEnemy`、`lowestHpEnemy`、`highestHpEnemy`、`prev`。
+
+#### 4.9.5 `upgrade` 内嵌块
+
+导入器自动产出 `<id>_plus`、自动设 `Special`（铁律 14）、自动接 `UpgradedVersion`。
+
+- 标量字段（`name` / `cost` / `desc` / `keywords`）省略即继承基础版；`name` 省略时默认加 `+`。
+- **`effects` 只要出现就是整体替换，不做按下标 patch。**
+  按下标 patch 会重现铁律 33 那类错位隐患：往基础版效果列表中间插一个效果，
+  patch 会静默打到错误的效果上。多写几行换掉一整类不报错的故障。
+- 继承 `effects` 时是深拷贝，两个资产不共享效果实例。
+
+#### 4.9.6 引用其它内容
+
+`applyStatus.status`、`addCard.card` 这类字段在表里写 **Id 字符串**，不写路径也不写 GUID：
+
+```jsonc
+{ "$kind": "applyStatus", "target": "chosen", "status": "vulnerable", "stacks": 2 }
+{ "$kind": "addCard", "card": "strike", "pile": "Hand", "count": 2, "temporary": true }
+```
+
+解析不到的 Id 会**中断导入并列出所有已知 Id**，不会静默变成 null
+（那会产出一张能进游戏、打出去什么都不发生、且不报任何错的卡）。
+同一张表里的卡可以互相引用。
+
+#### 4.9.7 这条流程不管的事
+
+- **美术**：导入器不写 `Art`，手配的图会保留（铁律 47）。
+- **英文文案**：仍然走菜单 5 / 6 的 CSV 往返。表只管简中原文。
+- **状态 / 敌人 / 遗物 / 药水 / 事件**：不在卡表范围内，继续走流程 A 或 B。
+
+#### 4.9.8 改了效果类之后
+
+给已有效果类加字段、或新建效果类之后，跑一次 `Tools/卡牌游戏/8. 卡表自检`。
+
+它会给每个效果类造一个「所有字段都非默认」的实例做往返幂等断言，
+覆盖范围由反射决定，所以新字段自动进入测试范围，不需要有人记得来补一行。
+`Game.Tests.EditMode` 只引用 `Game.Runtime`，够不到 `Game.Editor`
+（与 `Game.UI` 同一个覆盖盲区，铁律 52），这个自检就是那一层的替代品。
+
+### 4.9.9 卡牌编辑器窗口
+
+```text
+Tools/卡牌游戏/9. 卡牌编辑器
+```
+
+相关文件：[CardEditorWindow.cs](../Game/Editor/CardTable/CardEditorWindow.cs)
+
+**这个窗口编辑的是 `CardTable.json`，不是 `.asset`。** 它是表的图形前端：
+点几下 → 写回 JSON → 点工具栏「导入卡表」→ 资产更新。资产始终是 build 产物。
+
+一个直接编辑资产的窗口会与「表是唯一事实来源」打架 ——
+你在窗口里改的东西下次导入就被表冲掉。
+
+#### 界面
+
+- **左栏**：搜索 + 类型/稀有度筛选 + 卡列表。
+  行首红点 = 有错误，黄点 = 有警告，不用点开就知道哪张卡有问题。
+- **右上**：卡面近似预览。**描述文字是真实算出来的** ——
+  走 `CardInstance.GetDescription(null)`，也就是牌库界面用的同一条路径，
+  所以 `{N}` 的替换结果与游戏里逐字一致。
+- **右中**：字段区。描述模板上方有一行 `{0}=damage  {1}=block` 的对照提示，
+  不用自己数下标。
+- **右下**：效果列表。折叠头直接显示摘要（`damage amount=8 → ChosenTarget`）。
+- **底部**：内联校验，规则与菜单 3 完全同一份（`CardRules`）。
+
+#### 三件它主动替你做的事
+
+1. **`{N}` 自动重排。** 增删效果、上下移动效果时，描述模板里的占位符跟着改。
+   不做这件事的话，新窗口会原样重现旧痛点：往效果列表中间插一个效果，
+   后面所有 `{N}` 全部错位，而校验器只抓「下标越界」，抓不到「错位」。
+2. **改 id 时弹确认。** 本地化 key 由 id 派生，改 id 等于删一张卡再建一张新卡 ——
+   旧译文变孤儿，旧资产在下次导入时被当孤儿删掉。
+3. **复制卡 / 升级版继承效果时深拷贝。** 共用同一批 `CardEffect` 实例的话，
+   改副本会同时改原件。
+
+#### 没有「未保存」状态
+
+任何改动立刻写回磁盘（不调 `AssetDatabase.Refresh()`，所以没有导入抖动）。
+理由与铁律 56 相同：一个「未保存」标志意味着要回答「域重载时谁存 / 关窗口时谁存 /
+崩了怎么办」三个问题，而写几 KB 文本是亚毫秒操作，那三个问题根本不必存在。
+
+写盘失败时错误挂在窗口顶部，不打 `Debug.LogError` —— 窗口每帧重绘，
+每帧一条错误会瞬间刷爆 Console，而你看到的只是「窗口好像没反应」。
+
+#### 已知限制
+
+| 限制 | 说明 |
+|---|---|
+| **只画一层组合子** | 使用者拍板的深度。组合子的子列表里不能再放组合子（菜单项会灰掉并提示）。**表本身支持任意深度**，深嵌套直接改 JSON。 |
+| **注释会被冲掉** | 窗口保存时重写整个文件，`CardTable.json` 里的 `//` 注释会丢。目前那些注释的内容已经全部写进本节和 4.9.1–4.9.8。 |
+| **升级版继承描述 + 重排升级版效果** | 升级版 `desc` 省略（继承基础版）而 `effects` 自己一套时，重排升级版效果**不会**重排那句继承来的描述 —— 因为它属于基础版。这种情况下建议勾上升级版自己的「描述模板」。 |
+| **窗口不认识的字段类型** | 会画一行灰字「请在 JSON 里改」，而不是静默跳过。静默跳过意味着那个字段永远无法在窗口里设置，且没人会发现。 |
+
+#### 新增效果类之后不用改这个窗口
+
+字段控件由**反射**从字段类型推导，「是不是组合子」也由反射判断
+（看字段里装不装得下 `CardEffect`），所以在 `Effects/Impl/` 新建一个效果类之后，
+它立刻在窗口里可编辑、在添加菜单里出现、嵌套逻辑也正确。
+
+唯一纯装饰的部分是添加菜单的分类名，它有兜底桶 ——
+没归类的新效果落进「其他」，**不会从菜单里消失**。
 
 ---
 
@@ -1642,6 +1898,80 @@ RelicDefinition.Icon
 - 精英、休息和商店默认不会过早出现。
 
 改变这些规则会改变相同种子的整张地图。
+
+### 22.2 改战斗中的卡牌尺寸
+
+**只改一个地方**：[HandFanLayout.cs](../Game/UI/HandFanLayout.cs) 顶部的两个常量。
+
+```csharp
+public const float CardWidth  = 230f;
+public const float CardHeight = 330f;
+```
+
+其余全部由它们推导。**不要**再去手工改扇形间距、手牌区宽度、出牌线高度、插画窗高度——
+那些都已经写成推导式了，手工改反而会把推导关系打断。
+
+#### 22.2.1 会自动跟上的量
+
+| 量 | 在哪 | 推导式 |
+|---|---|---|
+| 相邻间距 `MaxSpacing` | `HandFanLayout` | `CardWidth × SpacingRatio`（0.86 → 14% 叠压） |
+| 扇形下沉 `MaxArcDepth` / `ArcPerCard` | `HandFanLayout` | `CardHeight × 比例` |
+| 外探距离 `OuterReach` | `HandFanLayout` | `半宽·cosθ + 牌高·sinθ`（θ = `MaxEndTilt`） |
+| 手牌区宽 `HandWidth` | `BattleScreen` | 由 `OuterReach` 与左侧 HUD 竖排反解 |
+| 出牌线 `PlayLineY` | `BattleScreen` | `HandBaseY + CardHeight + 36` |
+| 举牌位 `AimSlot` | `BattleScreen` | 由「不能盖住敌人区」反解 |
+| 提示文字 / 结束回合 / 日志底边 | `BattleScreen` | 由 `SelectedTopY` 反解 |
+| 插画窗高 `ArtHeight` | `CardView` | `CardHeight −` 名字栏 `−` 描述区 `−` 留白 |
+
+**卡面的分配方向是「文字区定死，剩下全给插画」**：名字栏、描述区、底部留白都是固定像素
+（它们装的是字，字号不随卡变大），插画窗吃掉所有增量。所以把卡加高 40，插画窗就长 40。
+
+#### 22.2.2 改完必须确认的三条余量
+
+这三条**都不会报错**，坏了只表现为「点不动某个按钮」或「牌互相糊住」。
+
+1. **左侧 HUD 不能被啃到。**
+   `HandWidth` 是反解出来的，所以左侧余量恒等于 `HudClearance`（16px），这条自动成立。
+   真正的失败模式是卡太大把 `HandWidth` 解得**太小**——牌一多就被压缩，等于白改。
+   判据：`HandWidth ≥ 4.44 × CardWidth`，否则 5 张手牌就开始压缩间距。
+
+2. **举牌位不能低于静止位。**
+   `AimSlot.y = 694 − 20 − CardHeight × 1.12 − 6` 必须明显大于 `HandBaseY`(24)。
+   解成负数说明卡太高了：举起来的牌会盖住敌人，玩家看不见自己要打谁。
+
+3. **「结束回合」不能撞进敌人区。**
+   `EndTurnBottomY + 90` 必须 `< 694`。这是当前布局最先撑爆的一条。
+
+#### 22.2.3 当前的尺寸上限
+
+按现有布局实测，**约 245 × 350** 是不动其他东西的天花板（受第 3 条约束）。
+再往上要先做下面之一：
+
+- 把敌人区 `_enemyRow` 整体上移（`BuildUI` 里 `top - 330 / top - 80` 那两行）；
+- 把「结束回合」挪出右侧，例如做成屏幕正下方居中、手牌绕开它；
+- 缩小 `SelectedLift` / `SelectedScale`（抬起幅度小了，上方需要的净空也小）。
+
+#### 22.2.4 改完怎么验
+
+代码只保证编译，**布局对不对只能看**。项目的 EditMode 测试全是逻辑层的，
+`Game.UI` 整个是覆盖盲区，没有任何测试会因为布局错位而失败。
+
+1. 编译：`dotnet build Game.UI.csproj`（比等 Unity 重载快，且能单独验这一个程序集）。
+2. 进 Play，开一场战斗，按顺序看四件事：
+   - **手牌 8～10 张**时两端的牌有没有压到左下 HUD 竖排 / 有没有溢出屏幕；
+   - **悬停**最右那张牌，抬起来之后有没有盖住「结束回合」（盖住就点不动了）；
+   - **拖一张不需要目标的牌**（如「防御」），出牌线是否在静止手牌**上方**；
+   - **拖一张需要目标的牌**（如「打击」），举起来的牌有没有挡住敌人。
+3. 顺带看一眼卡面：名字有没有被费用球压住、描述有没有溢出到关键字色点上。
+
+#### 22.2.5 另外两个可调的旋钮
+
+| 想要的效果 | 改哪个 |
+|---|---|
+| 牌叠得更松 / 更紧 | `HandFanLayout.SpacingRatio`（越接近 1 越松） |
+| 扇形张得更开 / 更平 | `HandFanLayout.MaxEndTilt`（注意它会同时吃掉两侧空间，`HandWidth` 会自动缩） |
+| 悬停抬得更高 | `BattleScreen.HoverLift` / `HoverScale` |
 
 ---
 

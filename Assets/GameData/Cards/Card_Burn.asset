@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: burn
   DisplayName: "\u707C\u70E7"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 0
   CostMode: 2
   Type: 3
@@ -25,12 +25,12 @@ MonoBehaviour:
     2 \u70B9\u4F24\u5BB3\u3002"
   Effects: []
   InHandEndOfTurnEffects:
-  - rid: 1041046769074962871
+  - rid: 1041046820846829649
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962871
+    - rid: 1041046820846829649
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

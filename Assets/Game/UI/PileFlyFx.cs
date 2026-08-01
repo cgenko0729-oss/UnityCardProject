@@ -41,23 +41,35 @@ namespace Game.UI
         /// <summary>翻滚角度的上限。飞行途中转小半圈，一叠牌被甩过去的感觉全在这里。</summary>
         private const float MaxSpin = 160f;
 
-        /// <summary>卡背色。与 <see cref="CardView"/> 的任何一种类型色都不同——它不该被误读成某类牌。</summary>
-        private static readonly Color BackColor = new Color(0.30f, 0.34f, 0.46f, 0.95f);
+        /// <summary>
+        /// 卡背的染色。
+        ///
+        /// ★ 与 <see cref="CardView"/> 的任何一种类型色都不同——它不该被误读成某类牌。
+        /// ★ 现在它乘的是一张**有图案的灰度卡背**（<see cref="UIFactory.CardBackSprite"/>），
+        ///   而不是从前那样直接当纯色用。所以这个值要比从前亮一档：
+        ///   卡背的底是 0.46 灰，乘完之后比原来的纯色暗一半，不提亮的话飞过去就是几块黑影。
+        /// </summary>
+        private static readonly Color BackColor = new Color(0.62f, 0.68f, 0.88f, 0.95f);
 
         private RectTransform _rt;
 
         /// <summary>
         /// 从 <paramref name="from"/> 飞到 <paramref name="to"/>（都是 <paramref name="layer"/> 的本地坐标）。
         /// </summary>
-        public static void Play(RectTransform layer, Vector2 from, Vector2 to)
+        /// <param name="cardBack">
+        /// 卡背图。传 null 会退回内置的那张（<see cref="UIFactory.CardBackOr"/>），
+        /// ★ 但**不会**退回纯色方块——纯色是这次要消灭的东西。
+        /// </param>
+        public static void Play(RectTransform layer, Vector2 from, Vector2 to, Sprite cardBack = null)
         {
             if (layer == null) return;
 
+            var sprite = UIFactory.CardBackOr(cardBack);
             for (int i = 0; i < BlockCount; i++)
-                SpawnBlock(layer, from, to, i * Stagger);
+                SpawnBlock(layer, from, to, i * Stagger, sprite);
         }
 
-        private static void SpawnBlock(RectTransform layer, Vector2 from, Vector2 to, float delay)
+        private static void SpawnBlock(RectTransform layer, Vector2 from, Vector2 to, float delay, Sprite cardBack)
         {
             var rt = UIFactory.CreatePanel(layer, "ShuffleBlock", BackColor);
             UIFactory.SetSize(rt, BlockWidth, BlockHeight);
@@ -66,7 +78,15 @@ namespace Game.UI
 
             // 这些方块横穿屏幕，绝不能吃掉点击——洗牌时玩家可能正要点别的东西
             var img = rt.GetComponent<Image>();
-            if (img != null) img.raycastTarget = false;
+            if (img != null)
+            {
+                img.raycastTarget = false;
+                img.sprite = cardBack;
+
+                // ★ Simple 而不是 Sliced：卡背的框是**整张图等比缩放**的一部分，
+                //   九宫格拉伸会把菱形纹样抻成一条，而那正是「这是张牌」的唯一线索。
+                img.type = Image.Type.Simple;
+            }
 
             var fly = rt.gameObject.AddComponent<PileFlyFx>();
             fly._rt = rt;

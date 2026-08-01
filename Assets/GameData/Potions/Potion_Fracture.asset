@@ -14,18 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: fracture
   DisplayName: "\u788E\u88C2\u836F\u6C34"
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Rarity: 2
   DescriptionTemplate: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 5 \u70B9\u4F24\u5BB3\uFF0C\u91CD\u590D
     {0} \u6B21\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962828
+  - rid: 1041046820846829613
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962828
+    - rid: 1041046820846829613
       type: {class: RepeatEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -42,8 +42,8 @@ MonoBehaviour:
           Min: 0
           Max: 0
         Effects:
-        - rid: 1041046769074962829
-    - rid: 1041046769074962829
+        - rid: 1041046820846829614
+    - rid: 1041046820846829614
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

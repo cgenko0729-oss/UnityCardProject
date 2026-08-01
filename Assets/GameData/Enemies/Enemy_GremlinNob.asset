@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: gremlin_nob
   DisplayName: "\u5C0F\u6076\u9B54\u5934\u76EE"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   MinHp: 82
   MaxHp: 86
   IsElite: 1
@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962901
+    - rid: 1041046820846829679
   - Name: "\u91CD\u62F3"
     Intent: 1
     Weight: 66
@@ -44,7 +44,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962902
+    - rid: 1041046820846829680
   - Name: "\u8DFA\u811A"
     Intent: 3
     Weight: 34
@@ -56,8 +56,8 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962903
-    - rid: 1041046769074962904
+    - rid: 1041046820846829681
+    - rid: 1041046820846829682
   FixedSequence: 00000000
   LoopSequence: 0
   PhaseHpThresholds: 
@@ -65,7 +65,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962901
+    - rid: 1041046820846829679
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -82,7 +82,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962902
+    - rid: 1041046820846829680
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -107,7 +107,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962903
+    - rid: 1041046820846829681
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -132,7 +132,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962904
+    - rid: 1041046820846829682
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

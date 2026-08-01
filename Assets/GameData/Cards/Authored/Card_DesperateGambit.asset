@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_DesperateGambit
+  m_EditorClassIdentifier: 
+  Id: desperate_gambit
+  DisplayName: "\u7EDD\u5883\u8D4C\u6CE8"
+  Art: {fileID: 0}
+  Cost: 1
+  CostMode: 0
+  Type: 1
+  Rarity: 2
+  TargetKind: 0
+  Keywords: 0
+  DescriptionTemplate: "\u82E5\u751F\u547D\u4F4E\u4E8E 50%\uFF1A\u62BD 2 \u5F20\u724C\u5E76\u83B7\u5F97
+    1 \u70B9\u80FD\u91CF\u3002\u5426\u5219\uFF1A\u5C06 1 \u5F20\u4F24\u53E3\u7F6E\u5165\u5F03\u724C\u5806\u3002"
+  Effects:
+  - rid: 1041046820846829590
+  InHandEndOfTurnEffects: []
+  UpgradedVersion: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046820846829590
+      type: {class: ConditionalEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Condition:
+          Kind: 3
+          Id: 
+          Value: 50
+          Invert: 0
+        Then:
+        - rid: 1041046820846829591
+        - rid: 1041046820846829592
+        Else:
+        - rid: 1041046820846829593
+    - rid: 1041046820846829591
+      type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Count:
+          Base: 2
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+    - rid: 1041046820846829592
+      type: {class: EnergyEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+    - rid: 1041046820846829593
+      type: {class: AddCardEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 0
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Card: {fileID: 11400000, guid: 9f4819b2817077e4b93d3caf247cc621, type: 2}
+        Pile: 2
+        Count:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Temporary: 1
+        Upgraded: 0
+        CopySourceCard: 0

@@ -32,7 +32,7 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962889
+    - rid: 1041046820846829667
   - Name: "\u8F70\u9E23"
     Intent: 2
     Weight: 30
@@ -44,8 +44,8 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962890
-    - rid: 1041046769074962891
+    - rid: 1041046820846829668
+    - rid: 1041046820846829669
   - Name: "\u786C\u5316"
     Intent: 4
     Weight: 25
@@ -57,8 +57,8 @@ MonoBehaviour:
       Invert: 0
     PhaseMask: 0
     Effects:
-    - rid: 1041046769074962892
-    - rid: 1041046769074962893
+    - rid: 1041046820846829670
+    - rid: 1041046820846829671
   FixedSequence: 00000000
   LoopSequence: 0
   PhaseHpThresholds: 
@@ -66,7 +66,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962889
+    - rid: 1041046820846829667
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -91,7 +91,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962890
+    - rid: 1041046820846829668
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -116,7 +116,7 @@ MonoBehaviour:
           Max: 0
         Kind: 0
         IgnoreBlock: 0
-    - rid: 1041046769074962891
+    - rid: 1041046820846829669
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -132,7 +132,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962892
+    - rid: 1041046820846829670
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -148,7 +148,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962893
+    - rid: 1041046820846829671
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

@@ -14,6 +14,33 @@ namespace Game.UI
     /// </summary>
     public static class InputCompat
     {
+        /// <summary>
+        /// 光标的屏幕坐标。没有鼠标（纯手柄 / 触屏）时返回屏幕中心。
+        ///
+        /// ★ 为什么要**每帧轮询**，而不是用 <c>IPointerMoveHandler</c> 的 <c>eventData.position</c>：
+        ///   卡牌悬停倾斜要的是「光标在这张牌里的**相对**位置」，而牌自己在动
+        ///   （悬停会抬高、扇形会重排、缩放在插值）。光标一动不动时 PointerMove 不会发，
+        ///   于是牌抬起来之后倾斜量就停在抬起前的那个值上，看起来像卡住了。
+        ///   这与铁律 28（悬停归属每帧扫，不靠事件通知）是同一个理由。
+        ///
+        /// ★ 兜底给屏幕中心而不是 <c>Vector2.zero</c>：零点是屏幕左下角，
+        ///   任何「以光标为中心」的效果都会瞬间歪到角落里去，而且看起来像是算错了。
+        /// </summary>
+        public static Vector2 PointerPosition
+        {
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                if (Mouse.current != null) return Mouse.current.position.ReadValue();
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+                return Input.mousePosition;
+#else
+                return new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+#endif
+            }
+        }
+
         public static bool RightMouseDown
         {
             get

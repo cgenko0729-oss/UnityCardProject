@@ -26,7 +26,7 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u4F60\u5C4F\u4F4F\u547C\u5438\uFF0C\u6536\u83B7\u9887\u4E30\u3002"
     Effects:
-    - rid: 1041046769074962932
+    - rid: 1041046820846829710
     EndsEvent: 1
   - Text: "\u6253\u5F00\u90A3\u4E2A\u5305\u88F9"
     Condition:
@@ -37,8 +37,8 @@ MonoBehaviour:
     DisabledHint: 
     ResultText: "\u5305\u88F9\u91CC\u662F\u4E2A\u597D\u4E1C\u897F\u2014\u2014\u4F46\u4F60\u5F04\u51FA\u4E86\u58F0\u54CD\u3002"
     Effects:
-    - rid: 1041046769074962933
-    - rid: 1041046769074962934
+    - rid: 1041046820846829711
+    - rid: 1041046820846829712
     EndsEvent: 1
   - Text: "\u7ED5\u5F00\u5B83"
     Condition:
@@ -54,17 +54,17 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962932
+    - rid: 1041046820846829710
       type: {class: GoldRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Amount: 90
-    - rid: 1041046769074962933
+    - rid: 1041046820846829711
       type: {class: GainRelicRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         Relic: {fileID: 0}
         RandomRarity: 1
         AnyRarity: 1
-    - rid: 1041046769074962934
+    - rid: 1041046820846829712
       type: {class: StartBattleRunEffect, ns: Game.RunEffects.Impl, asm: Game.Runtime}
       data:
         EncounterId: 

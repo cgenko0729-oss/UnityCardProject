@@ -14,17 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: draw
   DisplayName: "\u7075\u611F\u836F\u6C34"
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Rarity: 0
   DescriptionTemplate: "\u62BD {0} \u5F20\u724C\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962865
+  - rid: 1041046820846829637
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962865
+    - rid: 1041046820846829637
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

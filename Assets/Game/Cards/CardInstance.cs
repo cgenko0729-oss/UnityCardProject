@@ -110,12 +110,21 @@ namespace Game.Cards
         /// 生成动态描述。把 DescriptionTemplate 里的 {N} 替换成第 N 个效果的 Describe 结果。
         /// ctx 可为 null（战斗外，例如牌库界面），此时用静态数值。
         /// </summary>
-        public string GetDescription(BattleContext ctx, Units.BattleUnit source = null, Units.BattleUnit target = null)
+        /// <param name="decorator">
+        /// 可选的上色钩子（见 <see cref="Game.Effects.IDescriptionDecorator"/>）。
+        /// 传 null 时输出纯文本，与加这个参数之前完全一致。
+        /// </param>
+        public string GetDescription(BattleContext ctx, Units.BattleUnit source = null, Units.BattleUnit target = null,
+                                     Game.Effects.IDescriptionDecorator decorator = null)
         {
             if (Def == null) return string.Empty;
             string template = Def.LocalizedDescriptionTemplate;
             if (string.IsNullOrEmpty(template)) return string.Empty;
-            if (Def.Effects == null || Def.Effects.Count == 0) return template;
+
+            // ★ 没有效果的牌也要走一遍 Format：模板里的词条名（「消耗」「虚无」）仍然要上色。
+            //   原来这里是 <c>return template;</c> 直接早退的。
+            if (Def.Effects == null || Def.Effects.Count == 0)
+                return decorator != null ? decorator.DecorateTemplate(template) : template;
 
             var effCtx = new EffectContext
             {
@@ -126,7 +135,7 @@ namespace Game.Cards
                 PreviewMode = true,   // 描述每帧都会算，绝不能消耗随机流
             };
 
-            return EffectDescription.Format(template, Def.Effects, effCtx);
+            return EffectDescription.Format(template, Def.Effects, effCtx, decorator);
         }
 
         public void OnBattleEnd()

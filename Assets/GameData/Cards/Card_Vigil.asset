@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: vigil
   DisplayName: "\u5B88\u591C"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 2
   CostMode: 0
   Type: 1
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 4
   DescriptionTemplate: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002\u56FA\u6709\u3002"
   Effects:
-  - rid: 1041046769074962952
+  - rid: 1041046820846829730
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962952
+    - rid: 1041046820846829730
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

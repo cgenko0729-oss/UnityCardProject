@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: doubt
   DisplayName: "\u7591\u8651"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 0
   CostMode: 2
   Type: 4
@@ -25,12 +25,12 @@ MonoBehaviour:
     1 \u5C42\u865A\u5F31\u3002"
   Effects: []
   InHandEndOfTurnEffects:
-  - rid: 1041046769074962974
+  - rid: 1041046820846829753
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962974
+    - rid: 1041046820846829753
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

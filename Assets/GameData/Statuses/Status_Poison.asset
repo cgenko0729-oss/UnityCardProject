@@ -21,10 +21,10 @@ MonoBehaviour:
   Description: "\u56DE\u5408\u7ED3\u675F\u53D7\u5230 {stacks} \u70B9\u65E0\u89C6\u62A4\u7532\u4F24\u5BB3\uFF0C\u7136\u540E\u5C42\u6570
     -1\u3002"
   Behaviours:
-  - rid: 1041046769074962840
+  - rid: 1041046820846829618
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962840
+    - rid: 1041046820846829618
       type: {class: PoisonBehaviour, ns: Game.Statuses.Impl, asm: Game.Runtime}
       data: 

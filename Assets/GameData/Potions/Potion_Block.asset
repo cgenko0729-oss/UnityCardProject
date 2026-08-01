@@ -14,17 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: block
   DisplayName: "\u94C1\u58C1\u836F\u6C34"
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Rarity: 0
   DescriptionTemplate: "\u83B7\u5F97 {0} \u70B9\u62A4\u7532\u3002"
   TargetKind: 0
   Effects:
-  - rid: 1041046769074962954
+  - rid: 1041046820846829732
   ShopPrice: 0
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962954
+    - rid: 1041046820846829732
       type: {class: BlockEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

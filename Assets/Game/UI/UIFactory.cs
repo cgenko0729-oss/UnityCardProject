@@ -214,11 +214,57 @@ namespace Game.UI
             return false;
         }
 
+        /// <summary>
+        /// 所有 Canvas 共用的那台相机。<c>null</c> = 走 Overlay（没有相机）。
+        ///
+        /// ★★ 全工程凡是 <c>RectTransformUtility.*</c> 需要 camera 参数的地方，
+        ///    **一律传这个属性，不许再传字面量 null**。
+        ///
+        ///    这不是风格问题。那一族 API 的 camera 参数语义是「这个 Canvas 挂在哪台相机上」：
+        ///    Overlay 模式下正确答案就是 null，Camera 模式下必须是那台相机。
+        ///    传错的表现不是报错，而是**算出一个偏掉的坐标**——
+        ///    拖拽的牌会离光标越来越远、目标箭头指不到敌人、飘字飘到屏幕外。
+        ///    改管线之前工程里有 11 处写死的 null，全部收口到这里之后，
+        ///    「一键退回 Overlay」（<see cref="UIRenderSetup.Enabled"/>）也跟着白送了。
+        /// </summary>
+        public static Camera CanvasCamera => UIRenderSetup.Camera;
+
         public static Canvas CreateCanvas(string name)
         {
             var go = new GameObject(name, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = go.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            var cam = CanvasCamera;
+            if (cam != null)
+            {
+                // ★ ScreenSpaceCamera：Canvas 变成相机渲染流程里的透明几何体，
+                //   排在 post-processing pass 之前 —— 后处理这才碰得到界面。见 UIRenderSetup。
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = cam;
+
+                // ★★ 三个 Canvas 必须用**同一个** planeDistance。
+                //    同一台相机下，Canvas 之间的先后仍然由 sortingOrder 决定
+                //    （Tooltip 的 5000 照样压住一切），但那只在**距离相同**时成立：
+                //    距离不同的话它们变成两个深度不同的透明面，排序会改由距离接管，
+                //    sortingOrder 就静默失效了。
+                canvas.planeDistance = CanvasPlaneDistance;
+            }
+            else
+            {
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            }
+
+            // ★★ 开齐 RoundedPanel 要用的顶点通道。**这一行漏了，圆角面板会静默变回直角矩形**：
+            //    Canvas 默认只带 TexCoord1，没开的通道到了顶点着色器里全是 0，
+            //    于是圆角半径 0、描边 0、投影 0——画面上什么都不缺，只是什么都没有，且不报错。
+            //    RoundedPanel.OnEnable 里还有一道兜底，但那是给「手搓的 Canvas」用的；
+            //    本工程所有 Canvas 都从这里出生，正解是在出生地开好。
+            canvas.additionalShaderChannels |=
+                AdditionalCanvasShaderChannels.TexCoord1 |
+                AdditionalCanvasShaderChannels.TexCoord2 |
+                AdditionalCanvasShaderChannels.TexCoord3 |
+                AdditionalCanvasShaderChannels.Normal |
+                AdditionalCanvasShaderChannels.Tangent;
 
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -228,6 +274,13 @@ namespace Game.UI
             return canvas;
         }
 
+        /// <summary>
+        /// 所有 Canvas 离相机的距离。★ 必须落在相机的 near/far 之间
+        /// （见 <see cref="UIRenderSetup"/> 里那两个值），否则 Canvas 会被整个裁掉——
+        /// 表现是「改完管线之后一片全黑，什么都不显示」。
+        /// </summary>
+        private const float CanvasPlaneDistance = 100f;
+
         public static RectTransform CreatePanel(Transform parent, string name, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
@@ -236,12 +289,248 @@ namespace Game.UI
             return (RectTransform)go.transform;
         }
 
+        /// <summary>
+        /// 圆角面板。与 <see cref="CreatePanel"/> 同构，只是把 <c>Image</c> 换成
+        /// <see cref="RoundedPanel"/>，于是白得到圆角 / 描边 / 内发光 / 外投影 / 渐变底。
+        ///
+        /// ★★ 刻意**不**把 <see cref="CreatePanel"/> 整个换成这个：
+        ///    那个方法同时还在建全屏遮罩、受创闪光层、地图连线、灰烬碎片、悬停判定垫——
+        ///    这些东西要么本来就该是直角，要么根本不该有投影（连线加投影会变成一团糊）。
+        ///    「哪里该圆」是一个逐处判断的问题，不是一个可以全局开关的问题。
+        ///
+        /// ★ 样式请从 <see cref="RoundedStyle"/> 的预设里挑，不要就地填数字。理由见那边的类注释。
+        /// </summary>
+        public static RoundedPanel CreateRoundedPanel(Transform parent, string name, Color color,
+                                                      RoundedStyle style = null)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(RoundedPanel));
+            go.transform.SetParent(parent, false);
+
+            var panel = go.GetComponent<RoundedPanel>();
+            panel.color = color;
+            panel.Apply(style ?? RoundedStyle.Panel);
+            return panel;
+        }
+
         public static RectTransform CreateEmpty(Transform parent, string name)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             return (RectTransform)go.transform;
         }
+
+        // ================================================================= 圆形
+
+        private static Sprite _circleSprite;
+
+        /// <summary>
+        /// 一张程序化烘出来的白色圆形 sprite（外缘一像素抗锯齿）。
+        ///
+        /// ★ 全工程不引入任何图片资产（整套 UI 都是代码搭的），要圆形只能自己烘。
+        ///   烘成**纯白**，颜色一律交给 <c>Image.color</c> 去乘——
+        ///   于是费用球、关键字色点、以及将来任何圆形元素共用这一张 64×64 的贴图。
+        ///
+        /// ★ 每次都判空重建，不能只在字段为 null 时建一次：
+        ///   编辑器退出播放模式会销毁运行时生成的 Texture2D，而静态字段留下的是
+        ///   一个「假 null」的 Unity 对象引用（<c>== null</c> 为真但引用还在）。
+        ///   下一次进播放模式必须重新烘，否则整屏圆形元素变成不可见的白框。
+        /// </summary>
+        public static Sprite CircleSprite
+        {
+            get
+            {
+                if (_circleSprite != null) return _circleSprite;
+
+                const int size = 64;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+
+                float r = size * 0.5f;
+                var pixels = new Color32[size * size];
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = x + 0.5f - r;
+                        float dy = y + 0.5f - r;
+
+                        // 「离圆边还有几个像素」：≥1 全不透明，≤0 全透明，
+                        // 中间那一圈线性过渡就是抗锯齿——不做的话小尺寸的色点会是个锯齿八边形。
+                        float edge = Mathf.Clamp01(r - Mathf.Sqrt(dx * dx + dy * dy));
+                        pixels[y * size + x] = new Color32(255, 255, 255, (byte)(edge * 255f));
+                    }
+                }
+
+                tex.SetPixels32(pixels);
+                tex.Apply();
+
+                _circleSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+                _circleSprite.hideFlags = HideFlags.HideAndDontSave;
+                return _circleSprite;
+            }
+        }
+
+        /// <summary>圆形面板。与 <see cref="CreatePanel"/> 同构，只是贴了 <see cref="CircleSprite"/>。</summary>
+        public static RectTransform CreateCircle(Transform parent, string name, Color color)
+        {
+            var rt = CreatePanel(parent, name, color);
+            var img = rt.GetComponent<Image>();
+            img.sprite = CircleSprite;
+            img.type = Image.Type.Simple;
+            return rt;
+        }
+
+        // ================================================================= 径向高光
+
+        private static Sprite _glowSprite;
+
+        /// <summary>
+        /// 一张中心亮、向外平滑收敛到全透明的白色圆斑。卡牌悬停时的「光泽」用它。
+        ///
+        /// ★ 与 <see cref="CircleSprite"/> 的区别是**没有边**：圆形那张是「实心圆 + 一像素抗锯齿」，
+        ///   拿它当高光会在光斑外圈画出一道清晰的圆边，看起来是贴了张白纸而不是照到了光。
+        ///
+        /// ★ alpha 用 <c>t²·(3−2t)</c>（smoothstep）而不是线性衰减：
+        ///   线性衰减在半径处的一阶导数不为零，眼睛能看出那一圈「亮度突然不再降了」的硬边。
+        ///
+        /// ★ 「假 null」重建的理由与 <see cref="CircleSprite"/> 完全一样，
+        ///   不能改成只在字段为 null 时建一次，见那边的注释。
+        /// </summary>
+        public static Sprite RadialGlowSprite
+        {
+            get
+            {
+                if (_glowSprite != null) return _glowSprite;
+
+                const int size = 128;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+
+                float r = size * 0.5f;
+                var pixels = new Color32[size * size];
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = x + 0.5f - r;
+                        float dy = y + 0.5f - r;
+
+                        // 1 = 正中心，0 = 半径之外
+                        float t = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy) / r);
+                        float a = t * t * (3f - 2f * t);
+                        pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                    }
+                }
+
+                tex.SetPixels32(pixels);
+                tex.Apply();
+
+                _glowSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+                _glowSprite.hideFlags = HideFlags.HideAndDontSave;
+                return _glowSprite;
+            }
+        }
+
+        // ================================================================= 卡背
+
+        private static Sprite _cardBackSprite;
+
+        /// <summary>
+        /// 内置卡背。**灰度**图案，实际颜色一律交给 <c>Image.color</c> 去乘。
+        ///
+        /// ★★ 为什么要程序化烘、而不是「等美术给一张」：
+        ///    卡背出现在两个地方——洗牌时飞过屏幕的那一叠（<see cref="PileFlyFx"/>）、
+        ///    以及牌堆按钮上那一小摞（<c>BattleScreen.PileStack</c>）。
+        ///    在这之前它们都是**纯色方块**，而纯色方块与「一叠牌」之间差的不是精度，
+        ///    是「有没有图案」这个二元的东西：只要有边框和一个中心纹样，
+        ///    哪怕 22×30 像素，眼睛也会立刻把它读成卡片。
+        ///    没有它就得一直等美术，而这是全项目**最不需要美术**的一张图。
+        ///
+        /// ★ 用灰度而不是 alpha 来表达图案：alpha 会让卡背半透明，
+        ///   背后的按钮底色 / 战场会透出来，一叠牌看起来像一叠玻璃。
+        ///   灰度乘上 <c>Image.color</c> 得到的是「暗底 + 亮边框 + 中亮菱形」，全程不透明。
+        ///
+        /// ★ 可以被 <c>GameDatabase.CardBack</c> 整个换掉（见 <see cref="CardBackOr"/>）——
+        ///   这一张是「没配也能看」的兜底，不是终点。
+        ///
+        /// ★ 「假 null」重建的理由与 <see cref="CircleSprite"/> 完全一样，见那边。
+        /// </summary>
+        public static Sprite CardBackSprite
+        {
+            get
+            {
+                if (_cardBackSprite != null) return _cardBackSprite;
+
+                // 96×144 = 2:3，与卡面 230×346 基本同比。飞行块和小图标都是从这里缩下去的。
+                const int w = 96, h = 144;
+
+                var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+
+                // 三个灰阶。差值刻意拉得比较开：这张图会被缩到 22×30，
+                // 对比度不够的话缩完就糊成一块纯色，等于白画。
+                const float fill = 0.46f;    // 内部底
+                const float edge = 1.00f;    // 外框亮线
+                const float motif = 0.80f;   // 中心菱形
+
+                var pixels = new Color32[w * h];
+                for (int y = 0; y < h; y++)
+                {
+                    for (int x = 0; x < w; x++)
+                    {
+                        // 离最近一条边有多远（像素）
+                        int d = Mathf.Min(Mathf.Min(x, w - 1 - x), Mathf.Min(y, h - 1 - y));
+
+                        float g;
+                        if (d < 3) g = fill;                 // 最外圈留一点底色，框才不会贴着切边
+                        else if (d < 7) g = edge;            // 框
+                        else
+                        {
+                            // 中心菱形：|dx|/a + |dy|/b <= 1
+                            float dx = Mathf.Abs(x + 0.5f - w * 0.5f) / (w * 0.30f);
+                            float dy = Mathf.Abs(y + 0.5f - h * 0.5f) / (h * 0.30f);
+                            float t = dx + dy;
+
+                            // 1 → 菱形内，0 → 外。留一段过渡当抗锯齿，
+                            // 否则缩小之后菱形的斜边会碎成台阶。
+                            float k = Mathf.Clamp01((1.08f - t) / 0.16f);
+                            g = Mathf.Lerp(fill, motif, k);
+                        }
+
+                        byte v = (byte)(Mathf.Clamp01(g) * 255f);
+                        pixels[y * w + x] = new Color32(v, v, v, 255);
+                    }
+                }
+
+                tex.SetPixels32(pixels);
+                tex.Apply();
+
+                _cardBackSprite = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f));
+                _cardBackSprite.hideFlags = HideFlags.HideAndDontSave;
+                return _cardBackSprite;
+            }
+        }
+
+        /// <summary>
+        /// 配了就用配的，没配用内置的。
+        /// ★ 收成一个方法，是因为「卡背从哪来」这件事有两个调用点
+        ///   （洗牌动画、牌堆按钮），各写一次 null 判断迟早会漏一处，
+        ///   表现是「洗牌用的是新卡背，牌堆图标还是旧的」。
+        /// </summary>
+        public static Sprite CardBackOr(Sprite configured)
+            => configured != null ? configured : CardBackSprite;
 
         // ================================================================= 美术
 
@@ -281,6 +570,38 @@ namespace Game.UI
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
 
+            FitCover(rt, sprite, width, height, anchorY);
+            return window;
+        }
+
+        /// <summary>
+        /// 改一个已经建好的插画窗的尺寸，并重新裁切。
+        ///
+        /// ★ 必须有这个方法、不能只改窗口的 sizeDelta：cover 裁切是把**图片**缩放到
+        ///   刚好盖住窗口，图片的尺寸是建窗那一刻按窗口比例算出来的。
+        ///   只改窗口而不重算图片，窗变大就会露出背景、变小则裁得比预期多。
+        ///
+        /// ★ 存在的理由是「运行中拖着调排版」（见 <c>CardView.ApplyLayout</c>）：
+        ///   没有它，每调一次卡框的缩进都得退出 Play 再进。
+        /// </summary>
+        public static void ResizeArtWindow(RectTransform window, float width, float height, float anchorY = 1f)
+        {
+            if (window == null) return;
+            SetSize(window, width, height);
+
+            // 窗自己没有 Image（只挂 RectMask2D），所以这一句拿到的必然是里面那张图
+            var image = window.GetComponentInChildren<Image>();
+            if (image == null || image.sprite == null) return;
+
+            FitCover((RectTransform)image.transform, image.sprite, width, height, anchorY);
+        }
+
+        /// <summary>
+        /// 把图片缩放到「刚好盖住」窗口（cover），溢出的那一边由 <paramref name="anchorY"/> 决定留哪段。
+        /// 见 <see cref="CreateArtWindow"/> 类注释里关于「为什么不用 preserveAspect」的说明。
+        /// </summary>
+        private static void FitCover(RectTransform rt, Sprite sprite, float width, float height, float anchorY)
+        {
             var size = sprite.rect.size;
             float spriteAspect = size.y > 0f ? size.x / size.y : 1f;
             float windowAspect = height > 0f ? width / height : 1f;
@@ -308,8 +629,6 @@ namespace Game.UI
             //   让图的上缘与窗的上缘对齐 → y = -overflowY / 2。
             float overflowY = h - height;
             rt.anchoredPosition = new Vector2(0f, overflowY * (0.5f - anchorY));
-
-            return window;
         }
 
         /// <summary>
@@ -375,13 +694,21 @@ namespace Game.UI
             }
         }
 
+        /// <summary>
+        /// 所有按钮的出生地。★ 这里换成圆角是整次改动里**覆盖面最大的一处**——
+        /// 主菜单 / 休息 / 事件 / 奖励 / 商店 / 结束回合 / 药水栏 全都从这条路出来。
+        ///
+        /// ★ <c>targetGraphic</c> 仍然拿得到：<see cref="RoundedPanel"/> 是 <c>Image</c> 的子类，
+        ///   Button 的 ColorTint 过渡照旧改 <c>Graphic.color</c>，而那个 setter 会标脏顶点，
+        ///   底色因此会连同渐变一起重算——按下去的变暗效果不但没丢，还比原来立体。
+        /// </summary>
         public static Button CreateButton(Transform parent, string name, string label, int fontSize, Color bg)
         {
-            var rt = CreatePanel(parent, name, bg);
-            var btn = rt.gameObject.AddComponent<Button>();
-            btn.targetGraphic = rt.GetComponent<Image>();
+            var panel = CreateRoundedPanel(parent, name, bg, RoundedStyle.Button);
+            var btn = panel.gameObject.AddComponent<Button>();
+            btn.targetGraphic = panel;
 
-            var txt = CreateText(rt, "Label", label, fontSize);
+            var txt = CreateText(panel.rectTransform, "Label", label, fontSize);
             Stretch(txt.rectTransform);
             return btn;
         }

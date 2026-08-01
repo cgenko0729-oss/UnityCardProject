@@ -78,7 +78,14 @@ namespace Game.UI
         {
             if (def == null) return false;
 
-            buffer.Add(new TooltipEntry(def.LocalizedName, def.GetDescription(ctx), NeutralAccent));
+            // ★ 药水描述与卡牌描述走同一套上色（铁律 19：药水的效果就是 List<CardEffect>，
+            //   于是「造成 {0} 点伤害」在两边长得一模一样，没有理由只染一边）。
+            // ★ 这里 new 一个是可以的：tooltip 只在悬停目标变化时重建，不是每帧。
+            //   手牌那边每帧都要算，所以 CardView 自己长期持有一份带缓存的实例。
+            var rich = new RichDescription();
+            rich.SetPotion(def, null);
+
+            buffer.Add(new TooltipEntry(def.LocalizedName, def.GetDescription(ctx, rich), NeutralAccent));
 
             var statuses = new List<StatusDefinition>(4);
             EffectTree.CollectStatuses(def.Effects, statuses);

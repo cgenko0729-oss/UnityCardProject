@@ -49,7 +49,10 @@ namespace Game.Potions
         public string LocalizedDescriptionTemplate => Loc.T($"potion.{Id}.desc", DescriptionTemplate);
 
         /// <summary>动态描述。ctx 可为 null（战斗外的商店 / 奖励界面），此时用静态数值。</summary>
-        public string GetDescription(BattleContext ctx)
+        /// <param name="decorator">
+        /// 可选的上色钩子（见 <see cref="IDescriptionDecorator"/>）。传 null 时输出纯文本。
+        /// </param>
+        public string GetDescription(BattleContext ctx, IDescriptionDecorator decorator = null)
         {
             var effCtx = new EffectContext
             {
@@ -57,7 +60,7 @@ namespace Game.Potions
                 Source = ctx?.Player,
                 PreviewMode = true,   // 描述每帧都会算，绝不能消耗随机流
             };
-            return EffectDescription.Format(LocalizedDescriptionTemplate, Effects, effCtx);
+            return EffectDescription.Format(LocalizedDescriptionTemplate, Effects, effCtx, decorator);
         }
 
 #if UNITY_EDITOR

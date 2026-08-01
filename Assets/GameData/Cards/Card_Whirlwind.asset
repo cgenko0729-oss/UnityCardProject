@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: whirlwind
   DisplayName: "\u65CB\u98CE\u65A9"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 0
   CostMode: 1
   Type: 0
@@ -24,13 +24,13 @@ MonoBehaviour:
   DescriptionTemplate: "\u5BF9\u6240\u6709\u654C\u4EBA\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0CX
     \u6B21\u3002"
   Effects:
-  - rid: 1041046769074962953
+  - rid: 1041046820846829731
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962953
+    - rid: 1041046820846829731
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

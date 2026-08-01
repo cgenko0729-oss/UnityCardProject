@@ -281,6 +281,70 @@ namespace Game.Tests
             Assert.AreEqual("造成 10 点伤害。", strike.GetDescription(Ctx), "描述要随力量动态变化");
         }
 
+        /// <summary>
+        /// 描述上色的**核心契约**：`{N}` 被替换的那一刻，装饰器必须能拿到「是谁产出了这一段」。
+        ///
+        /// ★★ 这条测试守的是一件在成品字符串上**永远做不到**的事。
+        ///    "造成 9 点伤害" 里的 9 与周围字符没有任何区别，UI 想给伤害染色就只能正则找数字，
+        ///    而那会在「造成 2 次 9 点伤害」「获得 9 点护甲」「抽 2 张牌」之间全部失效。
+        ///    结构信息在格式化之后就永久丢失了 —— 所以只能在丢失之前取。
+        ///
+        /// ★ 真正的上色实现（RichDescription）在 Game.UI，那个程序集没有测试覆盖（铁律 52），
+        ///   所以这里守的是**它依赖的那条契约**，而不是颜色本身。
+        /// </summary>
+        [Test]
+        public void Description_Decorator_ReceivesProducingEffect()
+        {
+            StartBattle("dummy", deck: new[] { ("strike", 10) });
+            var strike = HandCard("strike");
+
+            var probe = new ProbeDecorator();
+            string text = strike.GetDescription(Ctx, null, null, probe);
+
+            Assert.IsTrue(probe.TemplateSeen, "模板必须先经过 DecorateTemplate");
+            Assert.AreEqual(1, probe.Values.Count, "「造成 {0} 点伤害。」只有一个占位符");
+
+            // ★ 关键的一条：拿到的不只是字符串「6」，还有产出它的 DamageEffect 本身。
+            //   有了它，UI 才谈得上「伤害染红、护甲染蓝」。
+            Assert.IsInstanceOf<DamageEffect>(probe.Values[0].Effect);
+            Assert.AreEqual("6", probe.Values[0].Text);
+
+            // 装饰的结果确实进了成品
+            Assert.AreEqual("[T]造成 [DamageEffect:6] 点伤害。", text);
+        }
+
+        /// <summary>
+        /// 不传装饰器时输出必须与从前**逐字符相同**。
+        /// ★ 自动模拟器、战斗日志、Editor 的卡表预览全走这条路——
+        ///   它们一旦拿到富文本标记，日志会变成一堆 &lt;color&gt;，而且没人会立刻发现。
+        /// </summary>
+        [Test]
+        public void Description_WithoutDecorator_StaysPlainText()
+        {
+            StartBattle("dummy", deck: new[] { ("strike", 10) });
+            var strike = HandCard("strike");
+
+            Assert.AreEqual("造成 6 点伤害。", strike.GetDescription(Ctx, null, null, null));
+        }
+
+        private class ProbeDecorator : IDescriptionDecorator
+        {
+            public bool TemplateSeen;
+            public readonly List<(string Text, CardEffect Effect)> Values = new List<(string, CardEffect)>();
+
+            public string DecorateTemplate(string template)
+            {
+                TemplateSeen = true;
+                return "[T]" + template;
+            }
+
+            public string DecorateValue(string value, CardEffect effect)
+            {
+                Values.Add((value, effect));
+                return $"[{effect.GetType().Name}:{value}]";
+            }
+        }
+
         [Test]
         public void CardUpgrade_SwapsDefinition()
         {

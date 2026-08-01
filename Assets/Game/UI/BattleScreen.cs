@@ -60,16 +60,44 @@ namespace Game.UI
 
         // ---------------- 手牌区几何（全部是 _handArea 的本地坐标）
 
+        /// <summary>Canvas 的参考分辨率宽度（见 <see cref="UIFactory.CreateCanvas"/>）。所有横向推导以它为屏幕宽。</summary>
+        private const float ReferenceWidth = 1920f;
+
+        // ---------------- 左侧 HUD 竖排（能量球 + 三颗牌堆按钮）
+        //
+        // ★ 原本三颗牌堆按钮是**横排**在左下角 x 40..418 的，正好横在手牌带的左端上。
+        //   收成竖排之后左下角只占 136 宽，手牌才有加宽的余地（见 HandWidth 的推导）。
+        //   顺带解决了另一件事：三颗按钮原来只隔 128 像素，牌飞过去的终点几乎是同一个角落
+        //   （见 FlashPileButton 的注释），竖排之后三个终点在纵向拉开了 54 像素。
+
+        private const float HudLeft = 16f;
+        private const float HudColWidth = 120f;
+
+        /// <summary>手牌与左侧 HUD 竖排之间至少留多少像素。</summary>
+        private const float HudClearance = 16f;
+
         /// <summary>
-        /// 手牌区宽度。
+        /// 手牌区宽度。★ **反解**出来的，不是审美取的。
         ///
-        /// ★ 1360 不是随手取的：手牌区现在建在「结束回合」按钮之后（为了拖起来的牌不被 HUD 盖住），
-        ///   于是遮挡关系反过来了——牌只要压到按钮上就会把点击吃掉。
-        ///   最两侧那张牌的中心最远到 (HandWidth − CardWidth) / 2 = 595，加半张牌宽 85 = 680，
-        ///   而按钮左边缘在 1920/2 + 700 = 1660 处，正好留 20 的余量。
-        ///   要加宽手牌区，必须同时把按钮往外挪或把手牌整体压低。
+        /// ★ 手牌区建在所有 HUD 之后（为了拖起来的牌不被 HUD 盖住），于是遮挡关系是反的
+        ///   ——牌只要压到某个按钮上就会把它的点击吃掉（铁律 24）。所以「最外侧那张牌
+        ///   探得最远的那个角，离左侧 HUD 竖排还剩多少」就是这个宽度的唯一约束：
+        ///
+        ///     半宽 = 960 − (HudLeft + HudColWidth) − HudClearance − <see cref="HandFanLayout.OuterReach"/>
+        ///     HandWidth = 半宽 × 2 + CardWidth
+        ///
+        ///   230×330 / 14° 代进去：960 − 136 − 16 − 191 = 617 → HandWidth ≈ 1463，
+        ///   最外侧那张牌的左端落在 x = 152，HUD 右缘 136，余量正好是 HudClearance。
+        ///
+        /// ★ 写成推导而不是写死一个数：卡牌尺寸、倾角、HUD 列宽任何一个变了，这里自动跟上。
+        ///   写死的话漏改的表现是「边上那张牌把牌堆按钮点不动了」——不报错，且很难联想到尺寸。
+        ///
+        /// ★ 右侧不需要单独约束：「结束回合」已经被 <see cref="EndTurnBottomY"/> 抬到
+        ///   手牌够不着的高度，右下角现在整片归手牌。
         /// </summary>
-        private const float HandWidth = 1360f;
+        private static float HandWidth
+            => (ReferenceWidth * 0.5f - (HudLeft + HudColWidth) - HudClearance - HandFanLayout.OuterReach) * 2f
+               + HandFanLayout.CardWidth;
 
         private const float HandAreaBottom = 20f;
         private const float HandAreaTop = 280f;
@@ -83,12 +111,47 @@ namespace Game.UI
         /// <summary>点击选中后的抬高量（比悬停更明显，玩家要能分清「我只是划过」和「我选了它」）。</summary>
         private const float SelectedLift = 72f;
 
+        // ---- 四种姿态的缩放。★ 提成常量是因为下面几条几何推导要用到它们：
+        //      「选中的牌顶到哪」= HandBaseY + SelectedLift + CardHeight × SelectedScale。
+        private const float HoverScale = 1.10f;
+        private const float SelectedScale = 1.12f;
+        private const float DragFreeScale = 1.06f;
+        private const float DragAimScale = 1.12f;
+
+        /// <summary>静止手牌的顶边（手牌区本地 y）。</summary>
+        private static float HandTopY => HandBaseY + HandFanLayout.CardHeight;
+
+        /// <summary>
+        /// 选中态抬起后的顶边（手牌区本地 y）——**全部非拖拽姿态里最高的那个**。
+        /// 任何「不该被手牌盖住」的东西都要排在它上面。
+        /// </summary>
+        private static float SelectedTopY
+            => HandBaseY + SelectedLift + HandFanLayout.CardHeight * SelectedScale;
+
         /// <summary>
         /// 出牌线的 y。不需要目标的牌只要**牌面中心**越过它，松手就出。
+        ///
         /// ★ 判定用牌面中心而不是光标：光标离牌底有一段距离（保留了抓取时的相对位置），
         ///   用光标判定会出现「线还在牌上方，但已经算越过了」的怪事。
+        ///
+        /// ★ 必须排在静止手牌之上（+36）：写死成一个像素值的话，牌一加高这条线
+        ///   就会横穿在卡面上，变成一条永远亮着、毫无意义的装饰线。
         /// </summary>
-        private const float PlayLineY = 330f;
+        private static float PlayLineY => HandTopY + 36f;
+
+        /// <summary>
+        /// 敌人区底边的屏幕 y。★ 取**被局外流程托管**时的那个值（整体下移 56）：
+        /// 两种情形里它更低，按它算才两边都安全。
+        /// </summary>
+        private const float EnemyRowBottomY = 694f;
+
+        private const float EndTurnHeight = 90f;
+
+        /// <summary>
+        /// 「结束回合」按钮的底边（屏幕 y）。★ 排在 <see cref="SelectedTopY"/> 之上，
+        /// 否则抬起来的手牌会盖住它并吃掉它的点击（铁律 24）。
+        /// </summary>
+        private static float EndTurnBottomY => HandAreaBottom + SelectedTopY + 74f;
 
         // ============================================================ 构建
 
@@ -162,7 +225,11 @@ namespace Game.UI
             float top = parent != null ? -56f : 0f;
 
             // ---- 顶栏
-            var topBar = UIFactory.CreatePanel(root, "TopBar", new Color(0f, 0f, 0f, 0.35f));
+            // ★ 用不投影的 Bar 预设：顶栏是**贴着屏幕上边缘**的满宽条，
+            //   投影会有一半落到屏幕外，剩下的一半只是在战场顶端糊一道黑边。
+            //   圆角在这里也基本看不见（两个角就在屏幕角上），真正起作用的是那点渐变。
+            var topBar = UIFactory.CreateRoundedPanel(root, "TopBar",
+                new Color(0f, 0f, 0f, 0.35f), RoundedStyle.Bar).rectTransform;
             UIFactory.SetAnchored(topBar, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, top - 60), new Vector2(0, top));
             _turnText = UIFactory.CreateText(topBar, "Turn", "", 26);
             UIFactory.Stretch(_turnText.rectTransform);
@@ -189,9 +256,17 @@ namespace Game.UI
             UIFactory.SetAnchored(_playerSlot, new Vector2(0, 0.5f), new Vector2(0, 0.5f),
                 new Vector2(60, -100), new Vector2(320, 100));
 
-            // ---- 能量
-            var energyBg = UIFactory.CreatePanel(root, "Energy", new Color(0.85f, 0.7f, 0.2f, 0.9f));
-            UIFactory.SetAnchored(energyBg, new Vector2(0, 0), new Vector2(0, 0), new Vector2(40, 120), new Vector2(150, 230));
+            // ---- 能量。★ 收进左侧竖排的最下面：原来它在 x 40..150，
+            //      右边缘正好卡在加宽后手牌的左端（见 HandWidth 的推导）。
+            //   ★ 它叫「能量球」但一直是个方块。圆角开到 22（Chip 预设的 6 明显不够）
+            //     是这里唯一一处偏离预设的地方：120×120 的方块配 22 的圆角刚好读成「一枚牌子」，
+            //     再大就开始像圆形，而真圆形会与费用球（CircleSprite 画的那个）撞脸。
+            var energyPanel = UIFactory.CreateRoundedPanel(root, "Energy",
+                new Color(0.85f, 0.7f, 0.2f, 0.9f), RoundedStyle.Chip);
+            energyPanel.CornerRadius = 22f;
+            var energyBg = energyPanel.rectTransform;
+            UIFactory.SetAnchored(energyBg, new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(HudLeft, 20), new Vector2(HudLeft + HudColWidth, 140));
             _energyPanel = energyBg;
             _energyText = UIFactory.CreateText(energyBg, "EnergyText", "3/3", 34, TextAnchor.MiddleCenter, Color.black);
             UIFactory.Stretch(_energyText.rectTransform);
@@ -208,20 +283,32 @@ namespace Game.UI
 
             // ---- 牌堆信息（三颗可点按钮）
             //
-            // ★ 位置沿用原来那行纯文字的区域（左下 40..420 × 20..110），兄弟顺序也没变——
+            // ★ 竖排在能量球正上方，整列宽 HudColWidth，兄弟顺序没变——
             //   它夹在能量球与 _handArea 之间，而 _handArea 的宽度是按遮挡关系推算出来的（铁律 24）。
-            //   把这块往右挪或加宽，就要重算 HandWidth。
+            //   把这一列加宽或往右挪，就要重算 HandWidth。
             BuildPileButtons(root);
 
             // ---- 结束回合按钮
+            //
+            // ★ 从右下角(原 y 130..210)升到手牌够不着的高度。理由不是审美：
+            //   手牌区建得比它晚，牌压到按钮上就会把它的点击直接吃掉（铁律 24），
+            //   而卡牌加高到 330 之后，「悬停 / 选中抬起」的牌顶已经越过 460。
+            //   高度由 EndTurnBottomY 从卡牌尺寸推导，改卡牌大小时它自己跟着走。
+            //
+            // ★ 横向也退到 x 1600 之后：抬起来的牌是**扶正 + 放大**的，
+            //   最外侧那张的右缘能探到 1740 上下，按钮再往左就又被啃到了。
             _endTurnButton = UIFactory.CreateButton(root, "EndTurn", Loc.T("ui.battle.end_turn", "结束回合"), 26, new Color(0.55f, 0.25f, 0.25f));
             UIFactory.SetAnchored((RectTransform)_endTurnButton.transform, new Vector2(1, 0), new Vector2(1, 0),
-                new Vector2(-260, 130), new Vector2(-40, 210));
+                new Vector2(-320, EndTurnBottomY), new Vector2(-40, EndTurnBottomY + EndTurnHeight));
+            UIFactory.EnableAutoSize(UIFactory.LabelOf(_endTurnButton), 18f, 26f);
             _endTurnButton.onClick.AddListener(OnEndTurnClicked);
 
-            // ---- 战斗日志
-            var logBg = UIFactory.CreatePanel(root, "LogPanel", new Color(0f, 0f, 0f, 0.4f));
-            UIFactory.SetAnchored(logBg, new Vector2(1, 0.5f), new Vector2(1, 1), new Vector2(-420, -280), new Vector2(-20, -70));
+            // ---- 战斗日志。★ 底边压在「结束回合」之上，跟着它一起浮动。
+            //      offsetMin 是相对屏幕中线（anchorMin.y = 0.5）的，所以要减掉 540。
+            var logBg = UIFactory.CreateRoundedPanel(root, "LogPanel",
+                new Color(0f, 0f, 0f, 0.4f), RoundedStyle.Panel).rectTransform;
+            UIFactory.SetAnchored(logBg, new Vector2(1, 0.5f), new Vector2(1, 1),
+                new Vector2(-420, EndTurnBottomY + EndTurnHeight + 30f - 540f), new Vector2(-20, -70));
             _logText = UIFactory.CreateText(logBg, "LogText", "", 18, TextAnchor.LowerLeft);
             UIFactory.Stretch(_logText.rectTransform, 10);
 
@@ -245,9 +332,15 @@ namespace Game.UI
 
             // ---- 提示。★ 在手牌与拖拽层之后：抬起 / 举起的牌会侵入这条提示的高度，
             //      建在前面的话玩家正需要看提示的时候恰好被牌盖住。
+            //
+            // ★ 高度由 SelectedTopY 推导，压在「最高的那种静止姿态」之上。
+            //   写死一个像素值的话，牌一加高提示就常态糊在卡面上——
+            //   它只是被**画**在上层，不是没被牌挡住，读起来是一行叠在插画上的字。
+            //   唯一躲不开的是「举牌拉箭头」那一姿态，那正是本节点建得比手牌晚的原因。
+            float hintY = HandAreaBottom + SelectedTopY + 14f;
             _hintText = UIFactory.CreateText(root, "Hint", "", 24, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.5f));
             UIFactory.SetAnchored(_hintText.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0),
-                new Vector2(-500, 290), new Vector2(500, 340));
+                new Vector2(-500, hintY), new Vector2(500, hintY + 50f));
 
             // ---- 整屏效果（回合横幅 / 受创闪光）。在手牌与提示之后、飘字之前：
             //      要盖住战场和 HUD，但不该盖住伤害数字——那是要读的。
@@ -271,28 +364,64 @@ namespace Game.UI
 
         // ============================================================ 牌堆浏览
 
-        /// <summary>三个牌堆各一颗按钮。数字每帧由 <see cref="RefreshHud"/> 写进 label。</summary>
+        /// <summary>
+        /// 三个牌堆各一颗按钮，在能量球正上方**自下而上**排一列。
+        ///
+        /// ★ 建的顺序是「消耗 → 弃牌 → 抽牌」而 y 递增，所以屏幕上从上往下读是
+        ///   抽牌 / 弃牌 / 消耗——与牌的生命周期同向。
+        /// ★ 顶到 314，而玩家面板从 440 起（PlayerSlot 的 y 是 540±100），留了 126 的空当。
+        /// </summary>
         private void BuildPileButtons(RectTransform root)
         {
-            const float x0 = 40f, y0 = 20f, w = 122f, h = 46f, gap = 6f;
+            const float y0 = 160f, h = 46f, gap = 8f;
 
-            _drawPileButton = MakePileButton(root, "PileDraw", x0, y0, w, h, CardPile.Draw);
-            _discardPileButton = MakePileButton(root, "PileDiscard", x0 + (w + gap), y0, w, h, CardPile.Discard);
-            _exhaustPileButton = MakePileButton(root, "PileExhaust", x0 + (w + gap) * 2f, y0, w, h, CardPile.Exhaust);
+            _exhaustPileButton = MakePileButton(root, "PileExhaust", y0, h, CardPile.Exhaust);
+            _discardPileButton = MakePileButton(root, "PileDiscard", y0 + (h + gap), h, CardPile.Discard);
+            _drawPileButton = MakePileButton(root, "PileDraw", y0 + (h + gap) * 2f, h, CardPile.Draw);
         }
 
-        private Button MakePileButton(RectTransform root, string name, float x, float y,
-                                      float w, float h, CardPile pile)
+        private Button MakePileButton(RectTransform root, string name, float y, float h, CardPile pile)
         {
             var btn = UIFactory.CreateTextButton(root, name, "", 18, PileButtonColor, () => OpenPileView(pile));
             UIFactory.SetAnchored((RectTransform)btn.transform, new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(x, y), new Vector2(x + w, y + h));
+                new Vector2(HudLeft, y), new Vector2(HudLeft + HudColWidth, y + h));
 
-            // 按钮宽度写死 122，而英文比中文长 1.6–2 倍（「消耗堆 12」→「Exhaust 12」）
-            // 且张数可能是两位数 → 让文字自己缩，别指望 122 永远够
-            UIFactory.EnableAutoSize(UIFactory.LabelOf(btn), 12f, 18f);
+            // ---- 左边那一小摞牌（厚度 = 张数）。见 PileStackView。
+            //
+            // ★★ 它画在**按钮里面**，而不是按钮左边多加一块。
+            //    HandWidth 是从 (HudLeft + HudColWidth) 推导出来的（见 HandWidth 的注释），
+            //    把这一列撑宽会把整个手牌扇形挤窄，而那个后果要到
+            //    「手牌满 10 张时最右一张压住结束回合按钮」才看得见（铁律 24）。
+            _pileStacks[(int)pile] = PileStackView.Create((RectTransform)btn.transform, CardBackSprite);
+
+            // ★ 文字让开那一摞的宽度，否则「抽牌堆 12」会压在牌背上。
+            //   靠左对齐而不是居中：让开之后剩 78 像素，居中会让长短不一的三行文字
+            //   各自偏在不同位置，读起来像没对齐。
+            var label = UIFactory.LabelOf(btn);
+            UIFactory.SetAnchored(label.rectTransform, new Vector2(0, 0), new Vector2(1, 1),
+                new Vector2(PileStackView.Width + 10f, 0f), Vector2.zero);
+            UIFactory.SetAlignment(label, TextAnchor.MiddleLeft);
+
+            // 按钮宽度写死 120，而英文比中文长 1.6–2 倍（「消耗堆 12」→「Exhaust 12」）
+            // 且张数可能是两位数 → 让文字自己缩，别指望 120 永远够
+            // ★ 下限从 12 降到 10：那一摞又吃掉了 46 像素，英文长词在 12 号下会溢出。
+            UIFactory.EnableAutoSize(label, 10f, 18f);
             return btn;
         }
+
+        /// <summary>
+        /// 三个牌堆各自的那一摞。下标是 <see cref="CardPile"/> 的枚举值。
+        /// ★ 长度 5 而不是 3：枚举是 <c>Draw=0, Hand=1, Discard=2, Exhaust=3, None=4</c>，
+        ///   下标不连续，按枚举值直接索引才不用再维护一张映射表。
+        /// </summary>
+        private readonly PileStackView[] _pileStacks = new PileStackView[5];
+
+        /// <summary>
+        /// 卡背图。没配就是 null，各处会退回 <see cref="UIFactory.CardBackSprite"/> 那张内置的。
+        /// ★ 不在这里做 null 兜底：兜底收在 <see cref="UIFactory.CardBackOr"/> 一处，
+        ///   免得「洗牌用的是新卡背，牌堆图标还是旧的」。
+        /// </summary>
+        private Sprite CardBackSprite => Database != null ? Database.CardBack : null;
 
         private static readonly Color PileButtonColor = new Color(0.22f, 0.25f, 0.32f);
 
@@ -620,10 +749,11 @@ namespace Game.UI
         /// <summary>
         /// 新建手牌视图的起点：抽牌堆按钮的**真实位置**，换算成 `_handArea` 的本地坐标。
         ///
-        /// ★ 原本这里是写死的 <c>(-720, -20)</c>，而抽牌堆按钮在左下 x 40..162
+        /// ★ 原本这里是写死的 <c>(-720, -20)</c>，而抽牌堆按钮当时在左下 x 40..162
         ///   （换算过来约 x = -860）——差了 140 像素，牌是从抽牌堆**旁边**冒出来的。
         ///   牌少的时候没人看得出，一旦改成一张一张发，玩家的视线会跟着每一张牌从头看到尾，
         ///   起点对不对就变得很显眼了。
+        ///   （牌堆按钮后来又改成了左侧竖排，而这里一个字都不用动——正因为它问的是按钮本人。）
         ///
         /// ★ 每次现算而不是缓存：`Bind` 那一帧 Canvas 可能还没完成第一次布局，
         ///   此刻算出来的值是错的，而缓存会把这个错误一直留到战斗结束。
@@ -635,14 +765,15 @@ namespace Game.UI
 
         /// <summary>
         /// 把 <paramref name="source"/> 的矩形中心换算成 <paramref name="target"/> 的本地坐标。
-        /// 两个 Canvas 都是 Overlay，所以相机传 null。
+        /// ★ 相机走 <see cref="UIFactory.CanvasCamera"/>，见那边的注释——Overlay 下它就是 null。
         /// </summary>
         private static Vector2 CenterIn(RectTransform target, RectTransform source)
         {
             if (target == null || source == null) return Vector2.zero;
+            var cam = UIFactory.CanvasCamera;
             Vector3 world = source.TransformPoint(source.rect.center);
-            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, world);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(target, screen, null, out var local);
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(cam, world);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(target, screen, cam, out var local);
             return local;
         }
 
@@ -779,7 +910,15 @@ namespace Game.UI
                 if (flies)
                 {
                     _flyOutUid = -1;
-                    CardFlyOut.Play(v, PopupLayer, _flyOutTo);
+
+                    // ★ 打出去的牌可能**同时**是一张消耗牌（「消耗」关键字的攻击牌很常见）。
+                    //   这两件事不是二选一：先飞向目标（因果，铁律 57），到了再烧（不可逆，V5）。
+                    //   归宿照样从「它现在真的在哪一堆」读，不从事件类型猜（铁律 58）。
+                    bool burns = v.Card != null && Ctx != null
+                                 && Ctx.Deck.ExhaustPile.Contains(v.Card);
+
+                    if (burns) FlashPileButton(CardPile.Exhaust);
+                    CardFlyOut.Play(v, PopupLayer, _flyOutTo, burnOnArrive: burns);
                 }
                 else if (v.Card != null && _pendingLeave.Contains(v.Card.Uid))
                 {
@@ -871,7 +1010,11 @@ namespace Game.UI
                 _leaving.RemoveAt(i);
 
                 FlashPileButton(item.To);
-                CardFlyOut.Play(v, PopupLayer, PileAnchor(item.To));
+
+                // ★ 消耗不飞向消耗堆，就地烧掉——飞过去等于说「它进了那一堆」，
+                //   而消耗的语义正是「哪一堆都没进」。见 CardBurnOut 的类注释。
+                if (item.To == CardPile.Exhaust) CardBurnOut.Play(v, PopupLayer);
+                else CardFlyOut.Play(v, PopupLayer, PileAnchor(item.To));
             }
         }
 
@@ -948,7 +1091,7 @@ namespace Game.UI
                         // 自由拖拽：牌跟着手走，扶正
                         slot.Position = _dragCardSlot;
                         slot.Rotation = 0f;
-                        scale = 1.06f;
+                        scale = DragFreeScale;
                     }
                     else
                     {
@@ -956,21 +1099,27 @@ namespace Game.UI
                         // 跟手的话牌本身会挡住玩家想点的敌人
                         slot.Position = AimSlot;
                         slot.Rotation = 0f;
-                        scale = 1.12f;
+                        scale = DragAimScale;
                     }
                 }
                 else if (v == _selected)
                 {
                     slot.Position.y += SelectedLift;
                     slot.Rotation *= 0.35f;      // 选中的牌扶正一点，字更好读
-                    scale = 1.12f;
+                    scale = SelectedScale;
                 }
                 else if (v == _hoveredCard && _dragMode == DragMode.None)
                 {
                     slot.Position.y += HoverLift;
                     slot.Rotation *= 0.45f;
-                    scale = 1.10f;
+                    scale = HoverScale;
                 }
+
+                // ★ 只有「正被悬停、且没在拖任何牌」的那一张跟着光标倾斜。
+                //   判据直接复用上面那三条分支的结论，不另外去问 CardView.Hovered——
+                //   同一帧里两张牌的 Hovered 同时为真是可能的（铁律 28），
+                //   各自读的话会有两张牌一起倾。
+                v.SetTiltWanted(v == _hoveredCard && v != _dragCard && _dragMode == DragMode.None);
 
                 v.SetLayoutTarget(slot.Position, slot.Rotation, scale);
             }
@@ -1095,6 +1244,14 @@ namespace Game.UI
             SetPileButton(_discardPileButton, Loc.T("ui.battle.pile.discard", "弃牌堆 {0}", deck.DiscardPile.Count), on);
             SetPileButton(_exhaustPileButton, Loc.T("ui.battle.pile.exhaust", "消耗堆 {0}", deck.ExhaustPile.Count), on);
 
+            // ★ 厚度与数字走同一次刷新：分开写迟早会出现「数字变了、厚度没变」的一帧，
+            //   而那一帧看起来就像厚度算错了。
+            // ★ 置灰态也一并传：按钮自己在 SetPileButton 里被压暗，那一摞不跟着压的话，
+            //   置灰的按钮上会浮着一摞亮闪闪的牌（铁律 61 那类「两边各管一半」的形状）。
+            SetPileStack(CardPile.Draw, deck.DrawPile.Count, on);
+            SetPileStack(CardPile.Discard, deck.DiscardPile.Count, on);
+            SetPileStack(CardPile.Exhaust, deck.ExhaustPile.Count, on);
+
             // ★ 兜底：战斗结束时把还开着的面板收掉，否则它会浮在结算面板上。
             //   正常流程走不到这里（面板开着时玩家点不了任何能推进战斗的东西），
             //   但第三次会话的界面泄漏就是「以为走不到」的那一类，留一行不亏。
@@ -1109,6 +1266,20 @@ namespace Game.UI
             UIFactory.SetInteractable(btn, on, PileButtonColor);
         }
 
+        private void SetPileStack(CardPile pile, int count, bool on)
+        {
+            int i = (int)pile;
+            if (i < 0 || i >= _pileStacks.Length) return;
+
+            var stack = _pileStacks[i];
+            if (stack == null) return;
+
+            // ★ 每帧补一次卡背：建这一摞的时候 Ctx 可能还是 null，那时 Database 取不到。
+            //   见 PileStackView.SetCardBack 的注释——它自带「没变就不动」。
+            stack.SetCardBack(CardBackSprite);
+            stack.SetCount(count, on);
+        }
+
         // ============================================================ 牌堆反馈
 
         /// <summary>牌堆按钮被「碰到」时鼓一下的幅度与时长。</summary>
@@ -1118,9 +1289,10 @@ namespace Game.UI
         /// <summary>
         /// 某个牌堆刚吞进 / 吐出一张牌，让它的按钮弹一下。
         ///
-        /// ★ 这是三颗按钮并排挤在左下角的补偿。抽牌堆 x 40..162、弃牌堆 168..290、
-        ///   消耗堆 296..418，彼此只隔 128 像素——牌飞过去的终点在画面上几乎是同一个角落，
-        ///   光看轨迹分不出这张牌到底进了哪一堆。让接收方自己动一下，指向才算说清楚。
+        /// ★ 这是三颗按钮挤成一小块的补偿。它们现在竖排在左侧 x 16..136、
+        ///   y 分别是 268 / 214 / 160，彼此只隔 54 像素——牌飞过去的终点在画面上
+        ///   仍然几乎是同一个角落，光看轨迹分不出这张牌到底进了哪一堆。
+        ///   让接收方自己动一下，指向才算说清楚。
         ///
         /// ★ 只动 scale 不动颜色：按钮底色被 <see cref="SetPileButton"/> 每帧无条件重写
         ///   （表现播放期间要置灰），在这里 tween 颜色活不过一帧——同铁律 54 那条，
@@ -1150,7 +1322,7 @@ namespace Game.UI
         {
             if (PopupLayer == null) return;
 
-            PileFlyFx.Play(PopupLayer, PileAnchor(CardPile.Discard), PileAnchor(CardPile.Draw));
+            PileFlyFx.Play(PopupLayer, PileAnchor(CardPile.Discard), PileAnchor(CardPile.Draw), CardBackSprite);
             FlashPileButton(CardPile.Draw);
         }
 
@@ -1198,8 +1370,15 @@ namespace Game.UI
         private Image _playLineBar;
         private TMP_Text _playLineLabel;
 
-        /// <summary>举牌位（_handArea 本地坐标）。选在敌人区与手牌区之间的空档上。</summary>
-        private static readonly Vector2 AimSlot = new Vector2(0f, 400f);
+        /// <summary>
+        /// 举牌位（_handArea 本地坐标）。选在敌人区与手牌区之间的空档上。
+        ///
+        /// ★ 由「举起来的那张牌**不能盖住敌人**」反解：玩家正要把箭头拖到敌人身上，
+        ///   牌自己挡在目标前面是最糟的一种。
+        ///     顶边 = HandAreaBottom + AimSlot.y + CardHeight × DragAimScale ≤ 敌人区底边 − 6
+        /// </summary>
+        private static Vector2 AimSlot => new Vector2(0f,
+            EnemyRowBottomY - HandAreaBottom - HandFanLayout.CardHeight * DragAimScale - 6f);
 
         private static readonly Color ArrowFree = new Color(0.95f, 0.85f, 0.45f, 0.80f);
         private static readonly Color ArrowLocked = new Color(1.00f, 0.42f, 0.35f, 0.95f);
@@ -1391,7 +1570,7 @@ namespace Game.UI
             // 是因为牌正在被插值搬到举牌位、而且还带着缩放，只有实际的世界坐标是准的。
             var cardRt = (RectTransform)_dragCard.transform;
             Vector3 topWorld = cardRt.TransformPoint(new Vector3(cardRt.rect.center.x, cardRt.rect.yMax, 0f));
-            Vector2 topScreen = RectTransformUtility.WorldToScreenPoint(null, topWorld);
+            Vector2 topScreen = RectTransformUtility.WorldToScreenPoint(UIFactory.CanvasCamera, topWorld);
 
             _arrow.From = ScreenToLocal(_arrow.rectTransform, topScreen);
             _arrow.To = ScreenToLocal(_arrow.rectTransform, _dragPointer);
@@ -1410,7 +1589,8 @@ namespace Game.UI
             {
                 var v = _unitViews[i];
                 if (v == null || v.Unit == null || v.Unit.IsPlayer || !v.Unit.IsAlive) continue;
-                if (!RectTransformUtility.RectangleContainsScreenPoint((RectTransform)v.transform, screenPos, null))
+                if (!RectTransformUtility.RectangleContainsScreenPoint(
+                        (RectTransform)v.transform, screenPos, UIFactory.CanvasCamera))
                     continue;
 
                 // 顺手复查一遍：目标不合法就不该给出「已锁定」的红箭头
@@ -1419,10 +1599,18 @@ namespace Game.UI
             return null;
         }
 
-        /// <summary>屏幕坐标 → 某个 RectTransform 的本地坐标。两个 Canvas 都是 Overlay，所以相机传 null。</summary>
+        /// <summary>
+        /// 屏幕坐标 → 某个 RectTransform 的本地坐标。
+        ///
+        /// ★★ 这一处是全工程**最不能传错相机**的地方：拖拽出牌的抓取偏移
+        ///    （<c>_dragGrabOffset</c>）和每帧的牌位（<c>_dragCardSlot</c>）都从它出来。
+        ///    传错的表现不是报错，而是牌与光标之间差着一个越靠边越大的偏移量，
+        ///    看起来像是「拖拽手感变差了」而不是「坐标算错了」。
+        /// </summary>
         private static Vector2 ScreenToLocal(RectTransform rt, Vector2 screenPos)
         {
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, screenPos, null, out var local);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rt, screenPos, UIFactory.CanvasCamera, out var local);
             return local;
         }
 
@@ -1488,8 +1676,8 @@ namespace Game.UI
                 if (i >= potions.Count)
                 {
                     // 空槽也画出来，玩家才知道自己还能拿几瓶
-                    var empty = UIFactory.CreatePanel(_potionBar, "PotionSlotEmpty" + i,
-                        new Color(1f, 1f, 1f, 0.05f));
+                    var empty = UIFactory.CreateRoundedPanel(_potionBar, "PotionSlotEmpty" + i,
+                        new Color(1f, 1f, 1f, 0.05f), RoundedStyle.Chip).rectTransform;
                     UIFactory.SetAnchored(empty, new Vector2(0, 1), new Vector2(1, 1),
                         new Vector2(0, y - 40), new Vector2(0, y - 6));
 
@@ -1716,9 +1904,10 @@ namespace Game.UI
         public Vector2 AnchoredPosOf(UnitView v)
         {
             var rt = (RectTransform)v.transform;
+            var cam = UIFactory.CanvasCamera;
             Vector3 world = rt.TransformPoint(rt.rect.center);
-            Vector2 screen = RectTransformUtility.WorldToScreenPoint(null, world);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(PopupLayer, screen, null, out var local);
+            Vector2 screen = RectTransformUtility.WorldToScreenPoint(cam, world);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(PopupLayer, screen, cam, out var local);
             return local;
         }
 

@@ -1350,3 +1350,100 @@ Assets/
 复利那个改法第一回合看起来完全正确，要到第三回合才看得出不对。
 测试内容里同时新增了 `black_star` 遗物，与既有的 `lantern` 只差 `FirstTurnOnly` 一位，
 两者一起测才能证明那一位真的起作用。
+
+### 2026-08-01 — 第十四次会话：圆角面板 shader（唯一一个「改一处、整套界面受益」的视觉项）
+
+使用者问「从各种角度看能加什么 shader 让画面更好」，评估后先做优先级最高的一项：
+**圆角 SDF 面板**。
+
+**为什么是它排第一**：整套界面是代码搭的、不引入任何图片资产，
+代价是**所有面板都是硬边纯色矩形**。而圆角 / 描边 / 投影这类让界面「像成品」的东西，
+传统做法要靠 9-slice 贴图——也就是要先有美术。
+距离场把这一整类东西变成了算术：只要知道「当前像素离圆角矩形的边有多远」，
+圆角 / 描边 / 内发光 / 外投影 / 渐变底**全部**是这一个距离值的函数，一张图都不用。
+
+**方案的要害是「逐实例参数走顶点通道」**（立为铁律 67）：
+uGUI 的 `CanvasRenderer` **不吃 `MaterialPropertyBlock`**，所以「每块面板圆角半径不同」
+只有两条路——每块面板一个 material 实例（每块一次 draw call），或者把参数塞进顶点。
+走顶点则全工程共用**一个** material，合批完整保住：`CardListView` 那种几十行的长列表仍是一次 draw call。
+
+**新增两个文件**
+
+1. `Assets/Resources/RoundedPanel.shader` — SDF 本体。
+   放在 `Resources` 下不是随手放的（立为铁律 68）：打包时 Unity 只收「被引用到」的 shader，
+   而本工程没有任何 prefab / 场景引用它（界面全是代码搭的）。
+   放 `Resources` 是让它进 build 的**唯一**保证，否则会出现
+   「编辑器里好好的，打出来的包全是直角」这种只在发布后才现形的问题。
+2. `Assets/Game/UI/RoundedPanel.cs` — `Image` 的子类（要写顶点就必须走 `OnPopulateMesh`，
+   那是 `Graphic` 的方法），外加 `RoundedStyle` 的六个预设。
+   预设存在的理由不是少打字，而是**让界面有统一的语汇**——
+   圆角一旦让每个调用点各填各的，三天内就会出现六种半径和四种投影，
+   那比全是直角还难看，因为不统一会被读成「没做完」。
+
+**顶点通道分配**（`OnPopulateMesh` 与 shader 两边必须逐字段对应）
+
+| 通道 | 内容 |
+|---|---|
+| `COLOR` | 面板底色 |
+| `TEXCOORD0` | xy = 像素级局部坐标（相对中心，含外扩故可超出）；zw = 半尺寸 |
+| `TEXCOORD1` | 圆角半径 / 描边宽度 / 内发光宽度 / 投影模糊半径 |
+| `TEXCOORD2` | 投影下移量 / 渐变强度 |
+| `TEXCOORD3` | 投影颜色 RGB + 不透明度 |
+| `NORMAL` | 内发光颜色 RGB |
+| `TANGENT` | 描边颜色 RGBA |
+
+**顺带白捡的一件事**：`TANGENT` / `NORMAL` 是浮点通道，**不像 `COLOR` 那样被 `Color32` 截到 [0,1]**。
+于是描边色与内发光色天然支持 HDR，而 `UIRenderSetup` 里 Bloom 的 threshold 正好定在 1.0——
+把描边色调到 1.5 之类的值它就会**真的发光**，不用再动管线。
+那条注释里写的「等哪个元素被调成 HDR 亮度就会自动发光」，到这一步才第一次有了兑现的途径
+（底色仍然做不到，它走 `COLOR`）。
+
+**接了哪些位置**（刻意**不**全局替换 `CreatePanel`）
+
+`CreatePanel` 同时还在建全屏遮罩、受创闪光层、地图连线、灰烬碎片、悬停判定垫——
+这些要么本来就该是直角，要么根本不该有投影（连线加投影会糊成一团）。
+「哪里该圆」是逐处判断的问题，不是一个可以全局开关的问题。实际接入七处：
+
+| 位置 | 预设 | 为什么是它 |
+|---|---|---|
+| `UIFactory.CreateButton` | Button | 覆盖面最大的一处——主菜单 / 休息 / 事件 / 奖励 / 商店 / 结束回合 / 药水栏全从这条路出来 |
+| `CardView` 卡牌底板 | Card | **收益最直接**。手牌是扇形互相压着的，在这之前「哪张在上面」只能靠底色深浅猜；一圈投影把压着的那条边变成明确的落差 |
+| `CardPickerScreen` 迷你卡 | Card | 必须与上一条**同一个**预设，否则奖励里的卡和手上的卡会读成两种东西 |
+| `TooltipView` 面板 | Tooltip | 全界面唯一「浮在所有东西之上」的元素，之前却和底下的面板长得一模一样 |
+| `MapNodeView` 节点 | Chip | 全界面最密的方块阵，圆角+小投影后一眼能数清几个、哪些连着 |
+| `BattleScreen` 日志面板 | Panel | — |
+| `BattleScreen` 顶栏 / 能量 / 空药水槽 | Bar / Chip | 顶栏贴屏幕边，用不投影的 Bar；能量球是唯一一处偏离预设（圆角开到 22） |
+
+**结果面板与选牌面板刻意没接**：它们是 `Stretch` 满屏的遮罩层，圆角看不见、投影没有意义。
+
+**写的时候避开的坑**
+
+| # | 坑 | 处置 |
+|---|---|---|
+| 1 | `Canvas.additionalShaderChannels` 默认**只带 TexCoord1**，没开的通道到顶点着色器里全是 0 → 圆角 0、描边 0、投影 0，也就是**一个平平无奇的直角矩形，且不报任何错** | 在 `CreateCanvas`（所有 Canvas 的出生地）开齐，`RoundedPanel.OnEnable` 再兜一道。立为**铁律 66**，本方案最难查的一个坑 |
+| 2 | 重写 `OnPopulateMesh` 会让 `Image` 的 `type`(Sliced/Tiled/Filled) / `fillAmount` / `preserveAspect` **静默失效** | 写进类注释；接入前逐处查过——唯一用 `Image.Type.Sliced` 的是 `CardView` 的**卡框**，而卡框仍是普通 `Image`。立为**铁律 69** |
+| 3 | 圆角半径超过半尺寸时 `sdRoundBox` 的 `q` 会算出负的 b，形状翻出去变成一坨十字——而「填 999 表示胶囊形」是很自然的写法 | CPU 与 shader **两侧都夹**。两侧都夹不是重复：CPU 那次是为了让投影与本体用同一个半径 |
+| 4 | `fixed4` 在移动端是 [-2,2] 定点，会把描边 / 内发光的 HDR 亮度截掉——正好截掉这套 shader 唯一能喂给 Bloom 的东西 | `frag` 返回 `float4`，不照抄 `UI/Default` 的 `fixed4` |
+| 5 | 外投影要把网格撑到 `RectTransform` 之外 | 撑出去**不影响布局**（LayoutGroup 读 RectTransform）、**不影响点击**（Raycast 也读 RectTransform，于是投影不吃射线，正是想要的）、**会被 `RectMask2D` 裁**（这也是对的，但「列表最后一项投影缺一块」的原因在这） |
+| 6 | 缺 `Stencil` 块和 `_ClipRect` 的 UI shader，放进任何 `ScrollView` 都会**溢出裁剪框** | 照 `UI/Default` 抄齐那一整块规定动作；`CreateScrollView` 建的每个列表都带 `RectMask2D` |
+
+**验证**：四个程序集（`Game.Runtime` / `Game.UI` / `Game.Editor` / `Game.Tests.EditMode`）
+**0 error 0 warning**，用 `dotnet build` 逐个跑的。
+按第十三次会话定下的约定，改动只落在 `Game.UI`，EditMode 完全不覆盖它，故**未跑** 201 条用例，
+`Game.Runtime` 与 `Assets/Tests/` 一行未改。
+
+**尚未在 Play 模式下看过** —— shader 的正确性编译验证不了，下次进 Unity 要看的是：
+① 手牌扇形里投影有没有真的把层次拉开；
+② 提示框的描边在深色背景上是不是太亮；
+③ `RoundedPanel.shader` 首次导入后 Unity 有没有报 shader 编译错（`float4`/`fwidth`/target 3.0 那几处）；
+④ 进 ScrollView 的圆角面板（`CardListView` 的行、商店列表）有没有溢出裁剪框——那是铁律 66 之外的另一个静默失败点。
+
+**两个 `.meta` 是手写的**（Unity 占着工程锁，没法让它自己生成）：
+`RoundedPanel.cs.meta` 与 `RoundedPanel.shader.meta`，GUID 新生成、格式与既有 meta 一致。
+与 `PileFlyFx.cs.meta` 是同一个情况，Unity 首次导入若有异议，删掉让它重建即可。
+
+**下一步的候选**（评估时列过的清单，按性价比排）：
+① 稀有卡的全息箔面——`CardView` 已经有 `_tiltX/_tiltY`，喂进 material 就是现成的视差；
+② 真 dissolve 取代 `CardBurnOut` 现在那层橙红叠色；
+③ 重击时的色差 + 低血量红色脉动暗角——URP 自带，改 Volume 参数即可，**零 shader**；
+④ 用本次的描边通道表达卡牌稀有度（`CardMiniView._rarity` 已经在那儿了）。

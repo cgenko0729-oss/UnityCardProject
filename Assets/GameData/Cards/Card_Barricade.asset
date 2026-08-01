@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: barricade
   DisplayName: "\u58C1\u5792"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 3
   CostMode: 0
   Type: 2
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u62A4\u7532\u4E0D\u518D\u4E8E\u56DE\u5408\u5F00\u59CB\u65F6\u6D88\u5931\u3002"
   Effects:
-  - rid: 1041046769074962980
+  - rid: 1041046820846829759
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962980
+    - rid: 1041046820846829759
       type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

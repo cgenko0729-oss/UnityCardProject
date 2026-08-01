@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e66bdef0ee8d2e04f8b08063aa91b8aa, type: 3}
+  m_Name: Card_CrescentSlash
+  m_EditorClassIdentifier: 
+  Id: crescent_slash
+  DisplayName: "\u65B0\u6708\u65A9"
+  Art: {fileID: 0}
+  Cost: 1
+  CostMode: 0
+  Type: 0
+  Rarity: 2
+  TargetKind: 1
+  Keywords: 0
+  DescriptionTemplate: "\u9020\u6210 {0} \u70B9\u4F24\u5BB3\uFF0C\u4F7F\u5176\u6613\u4F24
+    {1} \u5C42\u3002"
+  Effects:
+  - rid: 1041046820846829588
+  - rid: 1041046820846829589
+  InHandEndOfTurnEffects: []
+  UpgradedVersion: {fileID: 11400000, guid: 4a93c6b8d5fb35d40b84e475399ab145, type: 2}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1041046820846829588
+      type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 2
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Amount:
+          Base: 8
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Times:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0
+        Kind: 0
+        IgnoreBlock: 0
+    - rid: 1041046820846829589
+      type: {class: ApplyStatusEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
+      data:
+        Target:
+          Kind: 9
+          Count: 0
+          AllowDuplicates: 0
+          ExcludeSelf: 0
+          RequireStatusId: 
+        Status: {fileID: 11400000, guid: fbf6e4bfad3859d4f986d1667e41345b, type: 2}
+        Stacks:
+          Base: 1
+          Scale: 0
+          ScaleId: 
+          PerUnit: 0
+          Min: 0
+          Max: 0

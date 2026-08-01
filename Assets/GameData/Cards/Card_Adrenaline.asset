@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: adrenaline
   DisplayName: "\u80BE\u4E0A\u817A\u7D20"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 0
   CostMode: 0
   Type: 1
@@ -23,14 +23,14 @@ MonoBehaviour:
   Keywords: 1
   DescriptionTemplate: "\u83B7\u5F97 {1} \u70B9\u80FD\u91CF\uFF0C\u62BD {0} \u5F20\u724C\u3002\u6D88\u8017\u3002"
   Effects:
-  - rid: 1041046769074962895
-  - rid: 1041046769074962896
+  - rid: 1041046820846829672
+  - rid: 1041046820846829673
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962895
+    - rid: 1041046820846829672
       type: {class: DrawEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:
@@ -46,7 +46,7 @@ MonoBehaviour:
           PerUnit: 0
           Min: 0
           Max: 0
-    - rid: 1041046769074962896
+    - rid: 1041046820846829673
       type: {class: EnergyEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

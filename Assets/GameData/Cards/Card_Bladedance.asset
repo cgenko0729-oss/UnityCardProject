@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Id: bladedance
   DisplayName: "\u5200\u5203\u4E4B\u821E"
-  Art: {fileID: 0}
+  Art: {fileID: 21300000, guid: 26b23ee2cc519834b993e6fe56970c59, type: 3}
   Cost: 1
   CostMode: 0
   Type: 0
@@ -23,13 +23,13 @@ MonoBehaviour:
   Keywords: 0
   DescriptionTemplate: "\u5BF9\u968F\u673A\u654C\u4EBA\u9020\u6210 4 \u70B9\u4F24\u5BB3\uFF0C\u6B21\u6570\u7B49\u4E8E\u4F60\u7684\u624B\u724C\u6570\u3002"
   Effects:
-  - rid: 1041046769074962857
+  - rid: 1041046820846829635
   InHandEndOfTurnEffects: []
   UpgradedVersion: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962857
+    - rid: 1041046820846829635
       type: {class: DamageEffect, ns: Game.Effects.Impl, asm: Game.Runtime}
       data:
         Target:

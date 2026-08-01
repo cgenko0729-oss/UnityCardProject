@@ -18,12 +18,12 @@ MonoBehaviour:
   Rarity: 5
   Description: "\u6218\u6597\u80DC\u5229\u540E\u989D\u5916\u83B7\u5F97 12 \u91D1\u5E01\u3002"
   Behaviours:
-  - rid: 1041046769074962931
+  - rid: 1041046820846829709
   ShopPrice: 180
   references:
     version: 2
     RefIds:
-    - rid: 1041046769074962931
+    - rid: 1041046820846829709
       type: {class: BattleRewardBehaviour, ns: Game.Relics.Impl, asm: Game.Runtime}
       data:
         HealOnVictory: 0
